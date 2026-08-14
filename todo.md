@@ -53,3 +53,7 @@ A tabela principal deve mostrar o último upload associado ao item e um resumo d
 
 - [x] Medir e registrar explicitamente o tempo da importação antes e depois da otimização com a mesma planilha de referência
 - [x] Aprimorar o feedback de progresso com estados visíveis de leitura, processamento e atualização do painel
+
+- [x] Corrigir comparativo para usar o último registro histórico por Item + Customer PO e preservar todos os uploads
+- [x] Exibir no detalhe as alterações acumuladas entre uploads, sem limitar ao último arquivo
+- [x] Testar sequência de três uploads com mudança de previsão em duas semanas diferentes

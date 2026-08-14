@@ -1,4 +1,4 @@
-import { eq, desc, sql, and, or, like, gte, lte } from "drizzle-orm";
+import { eq, desc, asc, sql, and, or, like, gte, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, uploads, orderItems, predictionHistory, InsertUploadRecord, InsertOrderItem, InsertPredictionHistoryRecord } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -95,7 +95,7 @@ export async function createUploadRecord(data: InsertUploadRecord) {
 export async function getUploadsList() {
   const db = await getDb();
   if (!db) return [];
-  return await db.select().from(uploads).orderBy(desc(uploads.uploadDate));
+  return await db.select().from(uploads).orderBy(desc(uploads.uploadDate), desc(uploads.id));
 }
 
 export async function resetImportedData() {
@@ -180,7 +180,7 @@ export async function getPredictionHistoryByItem(orderItemId: number) {
   .from(predictionHistory)
   .innerJoin(uploads, eq(predictionHistory.uploadId, uploads.id))
   .where(eq(predictionHistory.orderItemId, orderItemId))
-  .orderBy(predictionHistory.recordedAt);
+  .orderBy(asc(predictionHistory.uploadId), asc(predictionHistory.id), asc(predictionHistory.recordedAt));
 
   return records.map((record, index) => {
     const previousPrediction = index > 0 ? records[index - 1].prediction : null;
@@ -282,15 +282,16 @@ export async function getDashboardStats(shipTo?: string) {
   const allItems = shipTo
     ? await db.select().from(orderItems).where(eq(orderItems.shipTo, shipTo))
     : await db.select().from(orderItems);
-  const uploadList = await db.select().from(uploads).orderBy(desc(uploads.uploadDate)).limit(8);
+  const uploadList = await db.select().from(uploads).orderBy(desc(uploads.uploadDate), desc(uploads.id)).limit(8);
   const latestUpload = uploadList[0] || null;
   let changedLastUpload = latestUpload?.changedRowsCount || 0;
   if (shipTo && latestUpload) {
     const scopedHistory = await db.select({
+      id: predictionHistory.id,
       orderItemId: predictionHistory.orderItemId,
       uploadId: predictionHistory.uploadId,
       prediction: predictionHistory.prediction,
-    }).from(predictionHistory).innerJoin(orderItems, eq(predictionHistory.orderItemId, orderItems.id)).where(eq(orderItems.shipTo, shipTo)).orderBy(predictionHistory.recordedAt);
+    }).from(predictionHistory).innerJoin(orderItems, eq(predictionHistory.orderItemId, orderItems.id)).where(eq(orderItems.shipTo, shipTo)).orderBy(asc(predictionHistory.uploadId), asc(predictionHistory.id), asc(predictionHistory.recordedAt));
     const historyByItem = new Map<number, Array<{ uploadId: number; prediction: string }>>();
     for (const record of scopedHistory) {
       const series = historyByItem.get(record.orderItemId) || [];

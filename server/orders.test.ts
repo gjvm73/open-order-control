@@ -198,6 +198,48 @@ describe("Open Orders Backend & Upload Logic", () => {
     // Verificar detalhe e histórico
     const detail = await caller.orders.getItemDetail({ id: updatedItem!.id });
     expect(detail.history.length).toBe(2); // Histórico dos 2 uploads
+    expect(detail.history[1]).toMatchObject({
+      previousPrediction: "2025-06-01",
+      prediction: "2025-07-15",
+      changed: true,
+    });
+
+    // Terceiro upload: a comparação deve usar a segunda previsão, não apenas a primeira.
+    const wsData3 = [{
+      "Endereco (ship To)": "TESTE RS",
+      "Customer PO": customerPo,
+      "Shipment Priority": "High",
+      "Data Criacao da Ordem": "2025-01-01",
+      "Item": itemCode,
+      "Descricao do Item": "PEÇA DE TESTE",
+      "Quantidade": 10,
+      "Scheduled Reserved": 0,
+      "Unit Selling Price": 100,
+      "Extended Price": 1000,
+      "Previsão": "2025-08-20",
+      "Long Text": "Terceira previsão",
+    }];
+    const wb3 = XLSX.utils.book_new();
+    const ws3 = XLSX.utils.json_to_sheet(wsData3);
+    XLSX.utils.book_append_sheet(wb3, ws3, "OpenOrders");
+    const base643 = XLSX.write(wb3, { type: "buffer", bookType: "xlsx" }).toString("base64");
+    const res3 = await caller.orders.uploadExcel({ fileName: "Relatorio_Semana_3.xlsx", fileBase64: base643 });
+    expect(res3.changedRowsCount).toBe(1);
+
+    const thirdItems = await caller.orders.listItems({ item: itemCode, customerPo, shipTo: "TESTE RS" });
+    const thirdItem = thirdItems.find(i => i.item === itemCode && i.customerPo === customerPo);
+    expect(thirdItem).toMatchObject({
+      currentPrediction: "2025-08-20",
+      previousPrediction: "2025-07-15",
+      predictionChangesCount: 2,
+    });
+    const thirdDetail = await caller.orders.getItemDetail({ id: thirdItem!.id });
+    expect(thirdDetail.history).toHaveLength(3);
+    expect(thirdDetail.history[2]).toMatchObject({
+      previousPrediction: "2025-07-15",
+      prediction: "2025-08-20",
+      changed: true,
+    });
 
     const branches = await caller.orders.getBranchSummary();
     const branch = branches.find((entry) => entry.shipTo === "TESTE RS");

@@ -32,6 +32,7 @@ export type InsertUploadRecord = typeof uploads.$inferInsert;
 export const orderItems = mysqlTable("order_items", {
   id: int("id").autoincrement().primaryKey(),
   shipTo: text("shipTo"),
+  comparisonKey: varchar("comparisonKey", { length: 255 }).notNull(),
   customerPo: varchar("customerPo", { length: 100 }),
   shipmentPriority: varchar("shipmentPriority", { length: 50 }),
   orderCreationDate: varchar("orderCreationDate", { length: 50 }),
@@ -49,7 +50,7 @@ export const orderItems = mysqlTable("order_items", {
   lastUploadId: int("lastUploadId"),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
-  itemCustomerPoUnique: uniqueIndex("order_items_item_customer_po_unique").on(table.item, table.customerPo),
+  comparisonKeyUnique: uniqueIndex("order_items_comparison_key_unique").on(table.comparisonKey),
 }));
 
 export type OrderItem = typeof orderItems.$inferSelect;

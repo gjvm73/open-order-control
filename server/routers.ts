@@ -1,5 +1,5 @@
 import { COOKIE_NAME } from "@shared/const";
-import { inArray } from "drizzle-orm";
+import { asc, desc, inArray } from "drizzle-orm";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, publicProcedure, protectedProcedure, router } from "./_core/trpc";
@@ -7,6 +7,14 @@ import * as db from "./db";
 import { sql } from "./db";
 import { z } from "zod";
 import * as XLSX from "xlsx";
+
+function normalizeComparisonPart(value: string) {
+  return value.trim().toLocaleUpperCase("pt-BR");
+}
+
+function buildComparisonKey(shipTo: string, itemCode: string, customerPo: string) {
+  return `${normalizeComparisonPart(shipTo || "SEM FILIAL INFORMADA")}::${normalizeComparisonPart(itemCode)}::${normalizeComparisonPart(customerPo || "SEM PO")}`;
+}
 
 export const appRouter = router({
   system: systemRouter,
@@ -98,6 +106,7 @@ export const appRouter = router({
           extendedPrice: string;
           prediction: string;
           longText: string;
+          comparisonKey: string;
         };
 
         const preparedByKey = new Map<string, PreparedRow>();
@@ -108,6 +117,7 @@ export const appRouter = router({
           const orderCreationDate = String(row['Data Criacao da Ordem'] || row['Data Criação da Ordem'] || '').trim();
           const itemCode = String(row['Item'] || '').trim();
           if (!itemCode) continue;
+          const comparisonKey = buildComparisonKey(shipTo, itemCode, customerPo);
 
           const itemDescription = String(row['Descricao do Item'] || row['Descrição do Item'] || '');
           const quantity = String(row['Quantidade'] || '0');
@@ -125,8 +135,9 @@ export const appRouter = router({
             prediction = String(rawPrediction).trim();
           }
 
-          preparedByKey.set(`${itemCode}::${customerPo}`, {
+          preparedByKey.set(comparisonKey, {
             shipTo,
+            comparisonKey,
             customerPo,
             shipmentPriority,
             orderCreationDate,
@@ -150,17 +161,35 @@ export const appRouter = router({
             changedRowsCount: 0,
           });
           const uploadId = Number(uploadResult.insertId);
-          const itemCodes = Array.from(new Set(preparedRows.map((row) => row.itemCode)));
-          const existingRows = itemCodes.length > 0
-            ? await tx.select().from(db.orderItems).where(inArray(db.orderItems.item, itemCodes))
+          const comparisonKeys = Array.from(new Set(preparedRows.map((row) => row.comparisonKey)));
+          const existingRows = comparisonKeys.length > 0
+            ? await tx.select().from(db.orderItems).where(inArray(db.orderItems.comparisonKey, comparisonKeys))
             : [];
-          const existingByKey = new Map(existingRows.map((item) => [`${item.item}::${item.customerPo || ''}`, item] as const));
+          const existingByKey = new Map(existingRows.map((item) => [item.comparisonKey, item] as const));
+          const existingIds = existingRows.map((item) => item.id);
+          const priorHistoryRows = existingIds.length > 0
+            ? await tx.select({
+                id: db.predictionHistory.id,
+                orderItemId: db.predictionHistory.orderItemId,
+                prediction: db.predictionHistory.prediction,
+              }).from(db.predictionHistory)
+                .where(inArray(db.predictionHistory.orderItemId, existingIds))
+                .orderBy(asc(db.predictionHistory.orderItemId), desc(db.predictionHistory.uploadId), desc(db.predictionHistory.id))
+            : [];
+          const latestHistoryByItemId = new Map<number, string>();
+          for (const historyRow of priorHistoryRows) {
+            if (!latestHistoryByItemId.has(historyRow.orderItemId)) {
+              latestHistoryByItemId.set(historyRow.orderItemId, historyRow.prediction);
+            }
+          }
           const changedExistingRows = preparedRows.map((row) => {
-            const existing = existingByKey.get(`${row.itemCode}::${row.customerPo}`);
-            if (!existing || existing.currentPrediction === row.prediction) return null;
+            const existing = existingByKey.get(row.comparisonKey);
+            if (!existing) return null;
+            const previousPrediction = latestHistoryByItemId.get(existing.id) ?? existing.currentPrediction;
+            if (previousPrediction === row.prediction) return null;
             return {
               id: existing.id,
-              previousPrediction: existing.currentPrediction,
+              previousPrediction,
               predictionChangesCount: existing.predictionChangesCount + 1,
             };
           }).filter((change): change is { id: number; previousPrediction: string | null; predictionChangesCount: number } => change !== null);
@@ -171,6 +200,7 @@ export const appRouter = router({
             const batch = preparedRows.slice(start, start + importBatchSize);
             await tx.insert(db.orderItems).values(batch.map((row) => ({
               shipTo: row.shipTo,
+              comparisonKey: row.comparisonKey,
               customerPo: row.customerPo,
               shipmentPriority: row.shipmentPriority,
               orderCreationDate: row.orderCreationDate,
@@ -195,11 +225,11 @@ export const appRouter = router({
                 scheduledReserved: sql`VALUES(\`scheduledReserved\`)`,
                 unitSellingPrice: sql`VALUES(\`unitSellingPrice\`)`,
                 extendedPrice: sql`VALUES(\`extendedPrice\`)`,
-                previousPrediction: sql`IF(\`currentPrediction\` <> VALUES(\`currentPrediction\`), \`currentPrediction\`, \`previousPrediction\`)`,
+                previousPrediction: sql`IF(NOT (\`currentPrediction\` <=> VALUES(\`currentPrediction\`)), \`currentPrediction\`, \`previousPrediction\`)`,
                 currentPrediction: sql`VALUES(\`currentPrediction\`)`,
                 longText: sql`VALUES(\`longText\`)`,
-                predictionChangesCount: sql`\`predictionChangesCount\` + (\`currentPrediction\` <> VALUES(\`currentPrediction\`))`,
-                lastPredictionChangeDate: sql`IF(\`currentPrediction\` <> VALUES(\`currentPrediction\`), NOW(), \`lastPredictionChangeDate\`)`,
+                predictionChangesCount: sql`\`predictionChangesCount\` + (NOT (\`currentPrediction\` <=> VALUES(\`currentPrediction\`)))`,
+                lastPredictionChangeDate: sql`IF(NOT (\`currentPrediction\` <=> VALUES(\`currentPrediction\`)), NOW(), \`lastPredictionChangeDate\`)`,
                 lastUploadId: sql`VALUES(\`lastUploadId\`)`,
                 updatedAt: sql`NOW()`,
               },
@@ -221,12 +251,12 @@ export const appRouter = router({
             }).where(inArray(db.orderItems.id, changedExistingRows.map((change) => change.id)));
           }
 
-          const refreshedRows = itemCodes.length > 0
-            ? await tx.select().from(db.orderItems).where(inArray(db.orderItems.item, itemCodes))
+          const refreshedRows = comparisonKeys.length > 0
+            ? await tx.select().from(db.orderItems).where(inArray(db.orderItems.comparisonKey, comparisonKeys))
             : [];
-          const refreshedByKey = new Map(refreshedRows.map((item) => [`${item.item}::${item.customerPo || ''}`, item] as const));
+          const refreshedByKey = new Map(refreshedRows.map((item) => [item.comparisonKey, item] as const));
           const historyRows = preparedRows.map((row) => {
-            const item = refreshedByKey.get(`${row.itemCode}::${row.customerPo}`);
+            const item = refreshedByKey.get(row.comparisonKey);
             if (!item) throw new Error(`Não foi possível localizar o item ${row.itemCode} após o upsert.`);
             return {
               orderItemId: item.id,
