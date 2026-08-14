@@ -37,24 +37,18 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(Array.isArray(trend)).toBe(true);
   });
 
-  it("blocks resetImports for non-admin users", async () => {
+  it("allows resetImports without an authenticated user", async () => {
     const ctx: TrpcContext = {
-      user: {
-        id: 2,
-        openId: "regular-user",
-        name: "Regular User",
-        email: "user@test.com",
-        loginMethod: "manus",
-        role: "user",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        lastSignedIn: new Date(),
-      },
+      user: null,
       req: { protocol: "https", headers: {} } as any,
       res: {} as any,
     };
     const caller = appRouter.createCaller(ctx);
-    await expect(caller.orders.resetImports()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.orders.resetImports()).resolves.toMatchObject({
+      deletedUploads: expect.any(Number),
+      deletedItems: expect.any(Number),
+      deletedHistory: expect.any(Number),
+    });
   });
 
   it("allows admin reset, executes real DB cleanup, and validates resulting empty dashboard and tables", async () => {
@@ -361,3 +355,45 @@ describe("Open Orders Backend & Upload Logic", () => {
     })).rejects.toThrow("Não foi possível localizar uma tabela válida");
   });
 });
+
+
+  it("normalizes Ship To filters when imported values contain surrounding spaces", async () => {
+    await db.resetImportedData();
+
+    const ctx: TrpcContext = {
+      user: null,
+      req: { protocol: "https", headers: {} } as any,
+      res: {} as any,
+    };
+    const caller = appRouter.createCaller(ctx);
+    const itemCode = `ITEM-SHIPTO-TRIM-${Date.now()}`;
+    const customerPo = `PO-SHIPTO-TRIM-${Date.now()}`;
+    const wsData = [{
+      "Endereco (ship To)": "  FILIAL ESPAÇADA  ",
+      "Customer PO": customerPo,
+      "Shipment Priority": "High",
+      "Data Criacao da Ordem": new Date("2025-01-01T00:00:00.000Z"),
+      "Item": itemCode,
+      "Descricao do Item": "Teste de filial com espaços",
+      "Quantidade": 1,
+      "Scheduled Reserved": 0,
+      "Unit Selling Price": 10,
+      "Extended Price": 10,
+      "Previsão": "2025-06-01",
+      "Long Text": "Teste de normalização",
+    }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(wsData), "OpenOrders");
+    const fileBase64 = XLSX.write(wb, { type: "buffer", bookType: "xlsx" }).toString("base64");
+
+    await caller.orders.uploadExcel({ fileName: "shipto-trim.xlsx", fileBase64 });
+
+    const filteredItems = await caller.orders.listItems({ shipTo: "FILIAL ESPAÇADA" });
+    expect(filteredItems.some((item) => item.item === itemCode)).toBe(true);
+
+    const filteredStats = await caller.orders.getStats({ shipTo: "FILIAL ESPAÇADA" });
+    expect(filteredStats.totalItems).toBe(1);
+
+    const filteredAlerts = await caller.orders.getAlerts({ thresholdDays: 7, shipTo: "FILIAL ESPAÇADA" });
+    expect(filteredAlerts.alerts).toEqual([]);
+  });

@@ -51,6 +51,23 @@
 - [x] Corrigir o tratamento do formato de planilha sem regressão no histórico
 - [x] Adicionar teste de importação para o formato que causou a falha
 - [x] Validar novamente testes, build e preview após a correção
-- [ ] Validar o preview/browser após a correção de `orderCreationDate`, confirmando a importação bem-sucedida de uma planilha real e ausência de regressão visual ou funcional
-- [ ] Validar no browser o upload de uma planilha real após a correção de `orderCreationDate`, confirmando sucesso da importação e atualização dos dados na interface
-- [ ] Registrar evidências da validação funcional pós-correção, incluindo upload e consulta do histórico sem erro
+- [x] Validar o preview/browser após a correção de `orderCreationDate`, confirmando a importação bem-sucedida de uma planilha real e ausência de regressão visual ou funcional
+- [x] Validar no browser o upload de uma planilha real após a correção de `orderCreationDate`, confirmando sucesso da importação e atualização dos dados na interface
+- [x] Registrar evidências da validação funcional pós-correção, incluindo upload e consulta do histórico sem erro
+
+- [x] Inspecionar rotas tRPC para verificar se `uploadExcel` exige autenticação restrita
+- [x] Ajustar o procedimento de upload para público ou garantir que usuário padrão seja injetado quando não houver sessão ativa
+- [x] Realizar upload real da planilha no preview sem exigir login e confirmar sucesso na interface
+- [x] Executar testes, build e salvar checkpoint final
+- [x] Validar no browser, após upload real, tabela principal, filtro de filial e atualização dos alertas sem erro
+- [x] Abrir o histórico de um item após o upload real e confirmar que o modal/consulta carrega corretamente
+- [x] Registrar as evidências ampliadas de UI e histórico no relatório de validação
+
+- [x] Tornar a rota tRPC `resetImports` pública ou acessível sem restrição de admin
+- [x] Exibir o botão "Resetar importações" de forma permanente no cabeçalho do Home.tsx
+- [x] Validar no browser a exibição do botão e a execução correta da limpeza da base
+- [x] Executar testes, build e salvar checkpoint final
+
+- [ ] Corrigir a comparação de `Ship To` para ignorar espaços nas consultas de itens, indicadores e alertas
+- [ ] Adicionar teste de integração para filial com espaços extras no valor importado
+- [ ] Revalidar filtro por filial e histórico no browser após a correção

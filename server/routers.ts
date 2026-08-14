@@ -199,11 +199,11 @@ export const appRouter = router({
       return await db.getAlertsTrend(input.thresholdDays, input.shipTo);
     }),
 
-    resetImports: adminProcedure.mutation(async () => {
+    resetImports: publicProcedure.mutation(async () => {
       return await db.resetImportedData();
     }),
 
-    uploadExcel: protectedProcedure.input(z.object({
+    uploadExcel: publicProcedure.input(z.object({
       fileName: z.string(),
       fileBase64: z.string(),
     })).mutation(async ({ input, ctx }) => {
@@ -301,7 +301,7 @@ export const appRouter = router({
           const [uploadResult] = await tx.insert(db.uploads).values({
             fileName: input.fileName,
             totalRows: rows.length,
-            uploadedBy: ctx.user.id,
+            uploadedBy: ctx.user?.id ?? null,
             changedRowsCount: 0,
           });
           const uploadId = Number(uploadResult.insertId);

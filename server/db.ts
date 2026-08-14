@@ -140,7 +140,10 @@ export async function getOrderItems(filters?: { search?: string; item?: string; 
     conditions.push(like(orderItems.currentPrediction, `%${filters.prediction}%`));
   }
   if (filters?.shipTo) {
-    conditions.push(eq(orderItems.shipTo, filters.shipTo));
+    const normalizedShipTo = filters.shipTo.trim();
+    if (normalizedShipTo) {
+      conditions.push(sql`TRIM(${orderItems.shipTo}) = ${normalizedShipTo}`);
+    }
   }
   
   const itemsQuery = db.select().from(orderItems).leftJoin(uploads, eq(orderItems.lastUploadId, uploads.id));
@@ -205,7 +208,8 @@ export async function getPredictionAlerts(thresholdDays: number, shipTo?: string
   const db = await getDb();
   if (!db) return [];
 
-  const conditions = shipTo ? [eq(orderItems.shipTo, shipTo)] : [];
+  const normalizedShipTo = shipTo?.trim();
+  const conditions = normalizedShipTo ? [sql`TRIM(${orderItems.shipTo}) = ${normalizedShipTo}`] : [];
   const items = conditions.length > 0
     ? await db.select().from(orderItems).where(and(...conditions))
     : await db.select().from(orderItems);
@@ -279,7 +283,7 @@ export async function getAlertsTrend(thresholdDays: number, shipTo?: string) {
       })
       .from(predictionHistory)
       .innerJoin(orderItems, eq(predictionHistory.orderItemId, orderItems.id))
-      .where(eq(orderItems.shipTo, shipTo))
+      .where(sql`TRIM(${orderItems.shipTo}) = ${shipTo.trim()}`)
       .orderBy(asc(predictionHistory.uploadId), asc(predictionHistory.id))
     : await db.select({
         orderItemId: predictionHistory.orderItemId,
@@ -418,7 +422,7 @@ export async function getDashboardStats(shipTo?: string) {
   }
 
   const allItems = shipTo
-    ? await db.select().from(orderItems).where(eq(orderItems.shipTo, shipTo))
+    ? await db.select().from(orderItems).where(sql`TRIM(${orderItems.shipTo}) = ${shipTo.trim()}`)
     : await db.select().from(orderItems);
   const uploadList = await db.select().from(uploads).orderBy(desc(uploads.uploadDate), desc(uploads.id)).limit(8);
   const latestUpload = uploadList[0] || null;
@@ -429,7 +433,7 @@ export async function getDashboardStats(shipTo?: string) {
       orderItemId: predictionHistory.orderItemId,
       uploadId: predictionHistory.uploadId,
       prediction: predictionHistory.prediction,
-    }).from(predictionHistory).innerJoin(orderItems, eq(predictionHistory.orderItemId, orderItems.id)).where(eq(orderItems.shipTo, shipTo)).orderBy(asc(predictionHistory.uploadId), asc(predictionHistory.id), asc(predictionHistory.recordedAt));
+    }).from(predictionHistory).innerJoin(orderItems, eq(predictionHistory.orderItemId, orderItems.id)).where(sql`TRIM(${orderItems.shipTo}) = ${shipTo.trim()}`).orderBy(asc(predictionHistory.uploadId), asc(predictionHistory.id), asc(predictionHistory.recordedAt));
     const historyByItem = new Map<number, Array<{ uploadId: number; prediction: string }>>();
     for (const record of scopedHistory) {
       const series = historyByItem.get(record.orderItemId) || [];
