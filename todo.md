@@ -107,3 +107,7 @@
 - [x] Criar testes para o mapeamento de endereços e validar o filtro por filial
 - [x] Executar testes, checagem TypeScript, build e validação visual após a correção
 - [x] Salvar checkpoint da correção de normalização de filiais
+
+- [ ] Exibir o nome/descrição do item ao lado do código na seção 07 / Mapa de alterações
+- [ ] Validar testes, build e visualização da tabela após a alteração
+- [ ] Salvar checkpoint da melhoria do mapa de alterações
