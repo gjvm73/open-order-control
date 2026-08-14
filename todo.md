@@ -30,11 +30,11 @@
 - [x] Adicionar seletor de filial na interface para segmentar itens, alertas e histórico
 - [x] Validar consolidação por filial com testes unitários e testes de integração
 
-- [ ] Adicionar à tabela principal a data do upload mais recente e um resumo explícito das alterações do item
-- [ ] Criar uma função de apresentação da linha do tempo com teste unitário verificável
-- [ ] Executar resetImports em cenário isolado de teste e validar dashboard e tabelas vazias
-- [ ] Validar valores consolidados por filial após uploads controlados (contagens, taxa de alteração e valor sob risco)
-- [ ] Revalidar o build e o preview após as correções finais
+- [x] Adicionar à tabela principal a data do upload mais recente e um resumo explícito das alterações do item
+- [x] Criar uma função de apresentação da linha do tempo com teste unitário verificável
+- [x] Executar resetImports em cenário isolado de teste e validar dashboard e tabelas vazias
+- [x] Validar valores consolidados por filial após uploads controlados (contagens, taxa de alteração e valor sob risco)
+- [x] Revalidar o build e o preview após as correções finais
 
 > Observação de histórico: os itens marcados anteriormente como concluídos foram refinados com as validações adicionais acima para cobrir os critérios de aceite com maior precisão.
 
@@ -44,4 +44,4 @@
 
 A tabela principal deve mostrar o último upload associado ao item e um resumo das transições registradas. A consolidação por filial deve ser conferida com valores esperados em um cenário controlado. O reset deve ser exercitado em uma base de teste isolada, sem apagar os dados operacionais atuais, e o estado vazio resultante deve ser verificado.
 
-- [ ] Revisar e confirmar todos os critérios de aceite adicionais antes do próximo checkpoint
+- [x] Revisar e confirmar todos os critérios de aceite adicionais antes do próximo checkpoint

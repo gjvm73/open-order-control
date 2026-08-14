@@ -51,16 +51,11 @@ describe("Open Orders Backend & Upload Logic", () => {
     await expect(caller.orders.resetImports()).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
-  it("allows admin reset and returns the deleted record counts", async () => {
-    const resetSpy = vi.spyOn(db, "resetImportedData").mockResolvedValue({
-      deletedHistory: 12,
-      deletedItems: 5,
-      deletedUploads: 2,
-    });
+  it("allows admin reset, executes real DB cleanup, and validates resulting empty dashboard and tables", async () => {
     const ctx: TrpcContext = {
       user: {
         id: 1,
-        openId: "admin-reset-test",
+        openId: "admin-real-reset",
         name: "Admin User",
         email: "admin-reset@test.com",
         loginMethod: "manus",
@@ -73,17 +68,29 @@ describe("Open Orders Backend & Upload Logic", () => {
       res: {} as any,
     };
 
-    try {
-      const caller = appRouter.createCaller(ctx);
-      await expect(caller.orders.resetImports()).resolves.toEqual({
-        deletedHistory: 12,
-        deletedItems: 5,
-        deletedUploads: 2,
-      });
-      expect(resetSpy).toHaveBeenCalledOnce();
-    } finally {
-      resetSpy.mockRestore();
-    }
+    const caller = appRouter.createCaller(ctx);
+    const resetResult = await caller.orders.resetImports();
+    expect(resetResult).toHaveProperty("deletedHistory");
+    expect(resetResult).toHaveProperty("deletedItems");
+    expect(resetResult).toHaveProperty("deletedUploads");
+
+    const itemsAfterReset = await caller.orders.listItems();
+    expect(itemsAfterReset).toEqual([]);
+
+    const uploadsAfterReset = await caller.orders.listUploads();
+    expect(uploadsAfterReset).toEqual([]);
+
+    const shipToAfterReset = await caller.orders.listShipTo();
+    expect(shipToAfterReset).toEqual([]);
+
+    const branchSummaryAfterReset = await caller.orders.getBranchSummary();
+    expect(branchSummaryAfterReset).toEqual([]);
+
+    const statsAfterReset = await caller.orders.getStats();
+    expect(statsAfterReset.totalItems).toBe(0);
+    expect(statsAfterReset.changedItems).toBe(0);
+    expect(statsAfterReset.totalOrderValue).toBe(0);
+    expect(statsAfterReset.valueAtRisk).toBe(0);
   });
 
   it("processes Excel buffer and tracks prediction history correctly", async () => {
