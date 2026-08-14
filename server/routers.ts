@@ -27,8 +27,16 @@ export const appRouter = router({
 
     listItems: publicProcedure.input(z.object({
       search: z.string().optional(),
+      item: z.string().optional(),
+      customerPo: z.string().optional(),
+      prediction: z.string().optional(),
     }).optional()).query(async ({ input }) => {
-      return await db.getOrderItems({ search: input?.search });
+      return await db.getOrderItems({
+        search: input?.search,
+        item: input?.item,
+        customerPo: input?.customerPo,
+        prediction: input?.prediction,
+      });
     }),
 
     getItemDetail: publicProcedure.input(z.object({
@@ -106,8 +114,9 @@ export const appRouter = router({
           if (existingItems.length > 0) {
             const existing = existingItems[0];
             const oldPrediction = existing.currentPrediction;
+            const hasChanged = oldPrediction !== prediction;
 
-            if (oldPrediction !== prediction) {
+            if (hasChanged) {
               changedCount++;
               const newChangesCount = existing.predictionChangesCount + 1;
 
@@ -128,15 +137,8 @@ export const appRouter = router({
                 lastUploadId: uploadId,
                 updatedAt: new Date(),
               }).where(sql`id = ${existing.id}`);
-
-              await database.insert(db.predictionHistory).values({
-                orderItemId: existing.id,
-                uploadId: uploadId,
-                item: itemCode,
-                customerPo: customerPo,
-                prediction: prediction,
-              });
             } else {
+              // Mesmo sem mudança de previsão, atualizar dados gerais e o último upload
               await database.update(db.orderItems).set({
                 shipTo,
                 shipmentPriority,
@@ -151,7 +153,18 @@ export const appRouter = router({
                 updatedAt: new Date(),
               }).where(sql`id = ${existing.id}`);
             }
+
+            // Registrar SEMPRE no histórico a ocorrência da previsão neste upload semanal (rastreabilidade completa)
+            await database.insert(db.predictionHistory).values({
+              orderItemId: existing.id,
+              uploadId: uploadId,
+              item: itemCode,
+              customerPo: customerPo,
+              prediction: prediction,
+            });
+
           } else {
+            // Novo item
             const [insertResult] = await database.insert(db.orderItems).values({
               shipTo,
               customerPo,

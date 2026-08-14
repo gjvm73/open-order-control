@@ -17,7 +17,6 @@ export async function getDb() {
   return _db;
 }
 
-// Exportar tabelas para uso nos routers
 export { users, uploads, orderItems, predictionHistory, sql, eq, desc, and, or, like };
 
 export async function upsertUser(user: InsertUser): Promise<void> {
@@ -99,7 +98,7 @@ export async function getUploadsList() {
   return await db.select().from(uploads).orderBy(desc(uploads.uploadDate));
 }
 
-export async function getOrderItems(filters?: { search?: string }) {
+export async function getOrderItems(filters?: { search?: string; item?: string; customerPo?: string; prediction?: string }) {
   const db = await getDb();
   if (!db) return [];
   
@@ -111,6 +110,15 @@ export async function getOrderItems(filters?: { search?: string }) {
       like(orderItems.customerPo, s),
       like(orderItems.itemDescription, s)
     ));
+  }
+  if (filters?.item) {
+    conditions.push(like(orderItems.item, `%${filters.item}%`));
+  }
+  if (filters?.customerPo) {
+    conditions.push(like(orderItems.customerPo, `%${filters.customerPo}%`));
+  }
+  if (filters?.prediction) {
+    conditions.push(like(orderItems.currentPrediction, `%${filters.prediction}%`));
   }
   
   if (conditions.length > 0) {
@@ -130,7 +138,22 @@ export async function getOrderItemById(id: number) {
 export async function getPredictionHistoryByItem(orderItemId: number) {
   const db = await getDb();
   if (!db) return [];
-  return await db.select().from(predictionHistory).where(eq(predictionHistory.orderItemId, orderItemId)).orderBy(desc(predictionHistory.recordedAt));
+  // Retornar histórico incluindo a data do upload correspondente
+  return await db.select({
+    id: predictionHistory.id,
+    orderItemId: predictionHistory.orderItemId,
+    uploadId: predictionHistory.uploadId,
+    item: predictionHistory.item,
+    customerPo: predictionHistory.customerPo,
+    prediction: predictionHistory.prediction,
+    recordedAt: predictionHistory.recordedAt,
+    fileName: uploads.fileName,
+    uploadDate: uploads.uploadDate,
+  })
+  .from(predictionHistory)
+  .innerJoin(uploads, eq(predictionHistory.uploadId, uploads.id))
+  .where(eq(predictionHistory.orderItemId, orderItemId))
+  .orderBy(desc(predictionHistory.recordedAt));
 }
 
 export async function getDashboardStats() {
@@ -148,8 +171,20 @@ export async function getDashboardStats() {
   let changedLastUpload = 0;
   if (uploadList.length > 0) {
     const lastUploadId = uploadList[0].id;
-    const changedInUpload = await db.select().from(orderItems).where(eq(orderItems.lastUploadId, lastUploadId));
-    changedLastUpload = changedInUpload.filter(i => i.predictionChangesCount > 0 && i.lastUploadId === lastUploadId).length;
+    // Contar quantas entradas no histórico pertencem ao último upload e representam mudança
+    const historyLastUpload = await db.select()
+      .from(predictionHistory)
+      .innerJoin(orderItems, eq(predictionHistory.orderItemId, orderItems.id))
+      .where(and(
+        eq(predictionHistory.uploadId, lastUploadId),
+        sql`${orderItems.previousPrediction} IS NOT NULL AND ${orderItems.previousPrediction} != ${predictionHistory.prediction}`
+      ));
+    changedLastUpload = historyLastUpload.length;
+    // Fallback se necessário
+    if (changedLastUpload === 0) {
+      const changedInUpload = await db.select().from(orderItems).where(eq(orderItems.lastUploadId, lastUploadId));
+      changedLastUpload = changedInUpload.filter(i => i.predictionChangesCount > 0 && i.lastUploadId === lastUploadId).length;
+    }
   }
 
   return {

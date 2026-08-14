@@ -13,24 +13,29 @@ import {
   History, 
   Search, 
   FileSpreadsheet, 
-  ArrowUpRight, 
-  CheckCircle2, 
-  Calendar,
   LogOut,
-  RefreshCw,
-  Eye
+  Filter,
+  RefreshCw
 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Home() {
   const { user, isAuthenticated, logout } = useAuth();
   const [search, setSearch] = useState("");
+  const [filterItem, setFilterItem] = useState("");
+  const [filterPo, setFilterPo] = useState("");
+  const [filterPrediction, setFilterPrediction] = useState("");
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Queries tRPC
+  // Queries tRPC com filtros
   const statsQuery = trpc.orders.getStats.useQuery();
-  const itemsQuery = trpc.orders.listItems.useQuery({ search });
+  const itemsQuery = trpc.orders.listItems.useQuery({ 
+    search, 
+    item: filterItem, 
+    customerPo: filterPo, 
+    prediction: filterPrediction 
+  });
   const uploadsQuery = trpc.orders.listUploads.useQuery();
   const itemDetailQuery = trpc.orders.getItemDetail.useQuery(
     { id: selectedItemId! },
@@ -39,7 +44,6 @@ export default function Home() {
 
   const utils = trpc.useUtils();
 
-  // Manipular upload de arquivo Excel
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -151,7 +155,7 @@ export default function Home() {
 
             <div className="border border-zinc-900 p-6 bg-white relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-3 h-3 bg-red-600"></div>
-              <p className="text-xs font-mono uppercase tracking-widest text-zinc-500">Alterados no Último Upload</p>
+              <p className="text-xs font-mono uppercase tracking-widest text-zinc-500">Alterados Último Upload</p>
               <p className="text-4xl font-black mt-2 tracking-tight text-red-600">{stats.changedLastUpload}</p>
               <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-500 font-mono">
                 <span>Mudança de Previsão</span>
@@ -171,11 +175,13 @@ export default function Home() {
 
             <div className="border border-zinc-900 p-6 bg-white relative overflow-hidden group">
               <div className="absolute top-0 right-0 w-3 h-3 bg-zinc-950"></div>
-              <p className="text-xs font-mono uppercase tracking-widest text-zinc-500">Uploads Realizados</p>
-              <p className="text-4xl font-black mt-2 tracking-tight">{uploadsList.length}</p>
+              <p className="text-xs font-mono uppercase tracking-widest text-zinc-500">Mais Alterados</p>
+              <p className="text-lg font-black mt-2 tracking-tight truncate">
+                {stats.mostChanged?.[0]?.item ? `${stats.mostChanged[0].item} (${stats.mostChanged[0].predictionChangesCount}x)` : "Nenhum"}
+              </p>
               <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-500 font-mono">
-                <span>Ciclos semanais</span>
-                <FileSpreadsheet className="w-4 h-4 text-zinc-400" />
+                <span>Top Instabilidade</span>
+                <History className="w-4 h-4 text-zinc-400" />
               </div>
             </div>
           </div>
@@ -201,7 +207,7 @@ export default function Home() {
           </section>
         )}
 
-        {/* Main Table Section */}
+        {/* Main Table Section with Advanced Filters */}
         <section className="space-y-4">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-zinc-900 pb-2">
             <div>
@@ -209,13 +215,44 @@ export default function Home() {
               <h3 className="text-xl font-bold tracking-tight">Rastreamento de Itens e Alterações de Previsão</h3>
             </div>
 
-            <div className="w-full md:w-72 relative">
+            <div className="w-full md:w-80 relative">
               <Search className="absolute left-3 top-3 w-4 h-4 text-zinc-400" />
               <Input
-                placeholder="Buscar por Item, PO ou Descrição..."
+                placeholder="Busca geral..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 rounded-none border-zinc-900 font-mono text-xs bg-white"
+              />
+            </div>
+          </div>
+
+          {/* Filtros Avançados por Campo */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 border border-zinc-900 bg-zinc-50">
+            <div>
+              <label className="text-xs font-mono uppercase tracking-wider text-zinc-500 block mb-1">Filtrar por Item</label>
+              <Input 
+                placeholder="Ex: 0102-1543" 
+                value={filterItem} 
+                onChange={(e) => setFilterItem(e.target.value)}
+                className="rounded-none border-zinc-900 font-mono text-xs bg-white"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-mono uppercase tracking-wider text-zinc-500 block mb-1">Filtrar por Customer PO</label>
+              <Input 
+                placeholder="Ex: 133923E" 
+                value={filterPo} 
+                onChange={(e) => setFilterPo(e.target.value)}
+                className="rounded-none border-zinc-900 font-mono text-xs bg-white"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-mono uppercase tracking-wider text-zinc-500 block mb-1">Filtrar por Previsão</label>
+              <Input 
+                placeholder="Ex: 2025-06" 
+                value={filterPrediction} 
+                onChange={(e) => setFilterPrediction(e.target.value)}
+                className="rounded-none border-zinc-900 font-mono text-xs bg-white"
               />
             </div>
           </div>
@@ -237,7 +274,7 @@ export default function Home() {
                 {items.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="p-12 text-center text-zinc-500">
-                      Nenhum item cadastrado ou encontrado. Faça o upload de uma planilha Excel acima para começar.
+                      Nenhum item encontrado com os filtros informados ou base vazia. Faça upload de uma planilha Excel.
                     </td>
                   </tr>
                 ) : (
@@ -268,7 +305,7 @@ export default function Home() {
                           <DialogContent className="max-w-2xl rounded-none border-2 border-zinc-950 bg-white">
                             <DialogHeader className="border-b border-zinc-900 pb-4">
                               <DialogTitle className="font-black text-lg uppercase tracking-tight">
-                                Histórico de Alterações — Item: {itemDetailQuery.data?.item.item}
+                                Histórico Completo — Item: {itemDetailQuery.data?.item.item}
                               </DialogTitle>
                             </DialogHeader>
 
@@ -292,13 +329,16 @@ export default function Home() {
                                 </div>
 
                                 <div>
-                                  <h4 className="font-bold uppercase tracking-wider text-zinc-700 mb-3">Linha do Tempo de Previsões</h4>
+                                  <h4 className="font-bold uppercase tracking-wider text-zinc-700 mb-3">Linha do Tempo de Previsões por Upload</h4>
                                   <div className="border border-zinc-900 divide-y divide-zinc-200 max-h-64 overflow-y-auto">
                                     {itemDetailQuery.data?.history.map((h, idx) => (
                                       <div key={h.id} className="p-3 flex justify-between items-center bg-white hover:bg-zinc-50">
                                         <div className="flex items-center gap-3">
                                           <span className="font-bold text-zinc-400">#{idx + 1}</span>
-                                          <span className="font-semibold text-red-600">{h.prediction}</span>
+                                          <div>
+                                            <span className="font-semibold text-red-600 block">{h.prediction}</span>
+                                            <span className="text-[10px] text-zinc-400">Arquivo: {h.fileName}</span>
+                                          </div>
                                         </div>
                                         <span className="text-zinc-500">{new Date(h.recordedAt).toLocaleString()}</span>
                                       </div>
