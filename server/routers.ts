@@ -16,6 +16,14 @@ function buildComparisonKey(shipTo: string, itemCode: string, customerPo: string
   return `${normalizeComparisonPart(shipTo || "SEM FILIAL INFORMADA")}::${normalizeComparisonPart(itemCode)}::${normalizeComparisonPart(customerPo || "SEM PO")}`;
 }
 
+function normalizeExcelHeader(value: unknown): string {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
 function getExcelRowValue(row: Record<string, any>, keys: string[]): any {
   if (!row) return undefined;
   for (const k of keys) {
@@ -25,9 +33,9 @@ function getExcelRowValue(row: Record<string, any>, keys: string[]): any {
   }
   const rowKeys = Object.keys(row);
   for (const targetKey of keys) {
-    const normalizedTarget = targetKey.toLowerCase().replace(/[\s\(\)\-_]/g, '');
+    const normalizedTarget = normalizeExcelHeader(targetKey);
     for (const rk of rowKeys) {
-      const normalizedRk = rk.toLowerCase().replace(/[\s\(\)\-_]/g, '');
+      const normalizedRk = normalizeExcelHeader(rk);
       if (normalizedRk === normalizedTarget) {
         const val = row[rk];
         if (val !== undefined && val !== null && val !== '') {
@@ -37,6 +45,36 @@ function getExcelRowValue(row: Record<string, any>, keys: string[]): any {
     }
   }
   return undefined;
+}
+
+function scoreExcelHeaderRow(headerRow: unknown[]): number {
+  const headers = headerRow.map(normalizeExcelHeader).filter(Boolean);
+  const has = (aliases: string[]) => aliases.some(alias => headers.includes(normalizeExcelHeader(alias)));
+  let score = 0;
+  if (has(['Item', 'Item Code', 'Item Number', 'Código do Item', 'Material', 'SKU'])) score += 5;
+  if (has(['Previsão', 'Previsão de Entrega', 'Data de Entrega', 'Delivery Date', 'Prazo'])) score += 5;
+  if (has(['Endereco (ship To)', 'Endereço (ship To)', 'Ship To', 'Filial', 'Endereço'])) score += 3;
+  if (has(['Customer PO', 'PO', 'Pedido', 'Purchase Order'])) score += 3;
+  if (has(['Quantidade', 'Quantity', 'Qtd'])) score += 1;
+  return score;
+}
+
+function extractBestWorksheetRows(workbook: XLSX.WorkBook): { rows: any[]; score: number; sheetName: string; headerRowIndex: number } {
+  let best = { rows: [] as any[], score: -1, sheetName: "", headerRowIndex: 0 };
+  for (const sheetName of workbook.SheetNames) {
+    const sheet = workbook.Sheets[sheetName];
+    const matrix = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null }) as unknown[][];
+    for (let headerRowIndex = 0; headerRowIndex < Math.min(matrix.length, 30); headerRowIndex++) {
+      const headerRow = matrix[headerRowIndex] ?? [];
+      const score = scoreExcelHeaderRow(headerRow);
+      if (score < 8) continue;
+      const candidateRows = XLSX.utils.sheet_to_json(sheet, { range: headerRowIndex, defval: null });
+      if (candidateRows.length > 0 && score > best.score) {
+        best = { rows: candidateRows, score, sheetName, headerRowIndex };
+      }
+    }
+  }
+  return best;
 }
 
 function parseExcelDate(raw: any): string {
@@ -171,14 +209,12 @@ export const appRouter = router({
     })).mutation(async ({ input, ctx }) => {
       try {
         const buffer = Buffer.from(input.fileBase64, 'base64');
-        const workbook = XLSX.read(buffer, { type: 'buffer' });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const rows: any[] = XLSX.utils.sheet_to_json(sheet);
-
-        if (!rows || rows.length === 0) {
-          throw new Error("A planilha está vazia ou em formato inválido.");
+        const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
+        const extracted = extractBestWorksheetRows(workbook);
+        if (extracted.score < 8 || extracted.rows.length === 0) {
+          throw new Error("Não foi possível localizar uma tabela válida. A planilha precisa conter um cabeçalho com Item e Previsão de entrega.");
         }
+        const rows: any[] = extracted.rows;
 
         const database = await db.getDb();
         if (!database) throw new Error("Banco de dados indisponível");
@@ -258,6 +294,9 @@ export const appRouter = router({
         }
 
         const preparedRows = Array.from(preparedByKey.values());
+        if (preparedRows.length === 0) {
+          throw new Error("Nenhuma linha válida foi reconhecida. Verifique se a planilha contém as colunas de Item e Previsão de entrega no cabeçalho.");
+        }
         const result = await database.transaction(async (tx) => {
           const [uploadResult] = await tx.insert(db.uploads).values({
             fileName: input.fileName,

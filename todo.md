@@ -36,34 +36,12 @@
 - [x] Validar valores consolidados por filial após uploads controlados (contagens, taxa de alteração e valor sob risco)
 - [x] Revalidar o build e o preview após as correções finais
 
-> Observação de histórico: os itens marcados anteriormente como concluídos foram refinados com as validações adicionais acima para cobrir os critérios de aceite com maior precisão.
+- [x] Otimizar importação com consultas e escritas em lote e feedback de progresso
+- [x] Corrigir comparativo para usar o último registro histórico por Item + Customer PO e preservar histórico
+- [x] Implementar alertas visuais com limiar configurável de dias
+- [x] Adicionar gráfico de resumo de severidade e gráfico de tendência histórica de alertas críticos
 
----
-
-## Critérios de aceite adicionais
-
-A tabela principal deve mostrar o último upload associado ao item e um resumo das transições registradas. A consolidação por filial deve ser conferida com valores esperados em um cenário controlado. O reset deve ser exercitado em uma base de teste isolada, sem apagar os dados operacionais atuais, e o estado vazio resultante deve ser verificado.
-
-- [x] Revisar e confirmar todos os critérios de aceite adicionais antes do próximo checkpoint
-
-- [x] Medir o tempo atual do upload e localizar gargalos no parsing, comparação, histórico e gravação
-- [x] Otimizar a importação com consultas e escritas em lote, preservando a comparação semanal
-- [x] Evitar recarregamentos redundantes após o upload e melhorar o feedback de progresso
-- [x] Validar desempenho, contagem de alterações, histórico e build após a otimização
-
-- [x] Medir e registrar explicitamente o tempo da importação antes e depois da otimização com a mesma planilha de referência
-- [x] Aprimorar o feedback de progresso com estados visíveis de leitura, processamento e atualização do painel
-
-- [x] Corrigir comparativo para usar o último registro histórico por Item + Customer PO e preservar todos os uploads
-- [x] Exibir no detalhe as alterações acumuladas entre uploads, sem limitar ao último arquivo
-- [x] Testar sequência de três uploads com mudança de previsão em duas semanas diferentes
-
-- [x] Implementar parâmetros de limite de dias para alerta no backend e nas rotas tRPC
-- [x] Criar endpoint para retornar alertas de atraso e adiantamento acima do limite configurado
-- [x] Construir o painel visual de alertas configuráveis com ajuste de limiar no dashboard
-- [x] Validar alertas com testes unitários e testes de integração end-to-end
-
-- [x] Calcular proporção de alertas críticos vs atenção e expor totais e percentuais na API tRPC de alertas
-- [x] Criar endpoint e gráfico de tendência histórica de alertas críticos por upload semanal com filtro por filial
-- [x] Executar pnpm check, pnpm test e pnpm build e validar sucesso de todos os testes
-- [x] Validar gráfico de tendência histórica e proporção de severidade integrado ao dashboard gerencial
+- [x] Investigar por que o upsert e o comparativo de histórico não registram alterações entre múltiplos uploads
+- [x] Ajustar a lógica de comparação no upload para consultar o último histórico gravado por chave exata
+- [x] Garantir que `previousPrediction`, `predictionChangesCount` e o histórico sejam atualizados corretamente em cada novo arquivo
+- [x] Criar teste de integração específico para múltiplos uploads com datas divergentes

@@ -279,4 +279,85 @@ describe("Open Orders Backend & Upload Logic", () => {
     const alertResponse40 = await caller.orders.getAlerts({ thresholdDays: 40, shipTo: "TESTE RS" });
     expect(alertResponse40.alerts.some((alert) => alert.item === itemCode && alert.customerPo === customerPo)).toBe(false);
   });
+
+  it("handles shifted headers and tracks history across multiple weekly uploads correctly", async () => {
+    const ctx: TrpcContext = {
+      user: {
+        id: 1,
+        openId: "test-admin-shifted",
+        name: "Test Admin",
+        email: "admin@test.com",
+        loginMethod: "manus",
+        role: "admin",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      },
+      req: { protocol: "https", headers: {} } as any,
+      res: {} as any,
+    };
+    const caller = appRouter.createCaller(ctx);
+
+    const itemCode = `ITEM-SHIFT-${Date.now()}`;
+    const customerPo = `PO-SHIFT-${Date.now()}`;
+
+    // Planilha 1 com linhas vazias antes do cabeçalho real
+    const sheetData1 = [
+      ["Relatório Semanal de Open Orders", "", ""],
+      ["", "", ""],
+      ["Filial", "Customer PO", "Item", "Previsão de Entrega"],
+      ["FILIAL SP", customerPo, itemCode, "2025-10-01"],
+    ];
+
+    const wb1 = XLSX.utils.book_new();
+    const ws1 = XLSX.utils.aoa_to_sheet(sheetData1);
+    XLSX.utils.book_append_sheet(wb1, ws1, "Sheet1");
+    const buf1 = XLSX.write(wb1, { type: "buffer", bookType: "xlsx" });
+
+    const res1 = await caller.orders.uploadExcel({ fileName: "Semana1.xlsx", fileBase64: buf1.toString("base64") });
+    expect(res1.success).toBe(true);
+    expect(res1.totalRows).toBe(1);
+
+    const items1 = await caller.orders.listItems({ item: itemCode });
+    expect(items1).toHaveLength(1);
+    expect(items1[0].currentPrediction).toBe("2025-10-01");
+    expect(items1[0].predictionChangesCount).toBe(0);
+
+    // Planilha 2 com nova data de previsão
+    const sheetData2 = [
+      ["Relatório Semanal de Open Orders Semana 2", "", ""],
+      ["", "", ""],
+      ["Filial", "Customer PO", "Item", "Previsão de Entrega"],
+      ["FILIAL SP", customerPo, itemCode, "2025-10-25"], // Mudou 24 dias
+    ];
+
+    const wb2 = XLSX.utils.book_new();
+    const ws2 = XLSX.utils.aoa_to_sheet(sheetData2);
+    XLSX.utils.book_append_sheet(wb2, ws2, "Sheet1");
+    const buf2 = XLSX.write(wb2, { type: "buffer", bookType: "xlsx" });
+
+    const res2 = await caller.orders.uploadExcel({ fileName: "Semana2.xlsx", fileBase64: buf2.toString("base64") });
+    expect(res2.success).toBe(true);
+    expect(res2.changedRowsCount).toBe(1);
+
+    const items2 = await caller.orders.listItems({ item: itemCode });
+    expect(items2).toHaveLength(1);
+    expect(items2[0].currentPrediction).toBe("2025-10-25");
+    expect(items2[0].previousPrediction).toBe("2025-10-01");
+    expect(items2[0].predictionChangesCount).toBe(1);
+
+    const detail = await caller.orders.getItemDetail({ id: items2[0].id });
+    expect(detail.history).toHaveLength(2);
+    expect(detail.history[1].prediction).toBe("2025-10-25");
+    expect(detail.history[1].previousPrediction).toBe("2025-10-01");
+
+    const invalidWorkbook = XLSX.utils.book_new();
+    const invalidSheet = XLSX.utils.aoa_to_sheet([["Arquivo sem tabela reconhecível"], ["texto"]]);
+    XLSX.utils.book_append_sheet(invalidWorkbook, invalidSheet, "Sheet1");
+    const invalidBuffer = XLSX.write(invalidWorkbook, { type: "buffer", bookType: "xlsx" });
+    await expect(caller.orders.uploadExcel({
+      fileName: "SemTabela.xlsx",
+      fileBase64: invalidBuffer.toString("base64"),
+    })).rejects.toThrow("Não foi possível localizar uma tabela válida");
+  });
 });
