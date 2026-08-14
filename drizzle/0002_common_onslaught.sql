@@ -1,0 +1,1 @@
+ALTER TABLE `order_items` ADD CONSTRAINT `order_items_item_customer_po_unique` UNIQUE(`item`,`customerPo`);

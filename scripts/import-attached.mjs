@@ -4,6 +4,7 @@ import { appRouter } from "../server/routers.ts";
 import { getUserByOpenId } from "../server/db.ts";
 import { ENV } from "../server/_core/env.ts";
 
+const startedAt = performance.now();
 const filePath = "/home/ubuntu/upload/RelatóriodeOpenOrder-DMMC-15-05-25.xlsx";
 const buffer = await fs.readFile(filePath);
 const user = await getUserByOpenId(ENV.ownerOpenId);
@@ -39,6 +40,7 @@ console.log(JSON.stringify({
       currentPrediction: item.currentPrediction,
     })),
   },
+  durationMs: Math.round(performance.now() - startedAt),
   firstItems: items.slice(0, 5).map((item) => ({
     id: item.id,
     item: item.item,
@@ -48,3 +50,4 @@ console.log(JSON.stringify({
     predictionChangesCount: item.predictionChangesCount,
   })),
 }, null, 2));
+process.exit(0);

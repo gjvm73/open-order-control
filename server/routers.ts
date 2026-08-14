@@ -1,4 +1,5 @@
 import { COOKIE_NAME } from "@shared/const";
+import { inArray } from "drizzle-orm";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, publicProcedure, protectedProcedure, router } from "./_core/trpc";
@@ -84,140 +85,169 @@ export const appRouter = router({
         const database = await db.getDb();
         if (!database) throw new Error("Banco de dados indisponível");
 
-        const uploadId = await db.createUploadRecord({
-          fileName: input.fileName,
-          totalRows: rows.length,
-          uploadedBy: ctx.user.id,
-          changedRowsCount: 0,
-        });
+        type PreparedRow = {
+          shipTo: string;
+          customerPo: string;
+          shipmentPriority: string;
+          orderCreationDate: string;
+          itemCode: string;
+          itemDescription: string;
+          quantity: string;
+          scheduledReserved: string;
+          unitSellingPrice: string;
+          extendedPrice: string;
+          prediction: string;
+          longText: string;
+        };
 
-        let changedCount = 0;
-
+        const preparedByKey = new Map<string, PreparedRow>();
         for (const row of rows) {
-          const shipTo = String(row['Endereco (ship To)'] || row['Endereço (ship To)'] || '');
-          const customerPo = String(row['Customer PO'] || '');
-          const shipmentPriority = String(row['Shipment Priority'] || '');
-          const orderCreationDate = String(row['Data Criacao da Ordem'] || row['Data Criação da Ordem'] || '');
+          const shipTo = String(row['Endereco (ship To)'] || row['Endereço (ship To)'] || '').trim();
+          const customerPo = String(row['Customer PO'] || '').trim();
+          const shipmentPriority = String(row['Shipment Priority'] || '').trim();
+          const orderCreationDate = String(row['Data Criacao da Ordem'] || row['Data Criação da Ordem'] || '').trim();
           const itemCode = String(row['Item'] || '').trim();
+          if (!itemCode) continue;
+
           const itemDescription = String(row['Descricao do Item'] || row['Descrição do Item'] || '');
           const quantity = String(row['Quantidade'] || '0');
           const scheduledReserved = String(row['Scheduled Reserved'] || '0');
           const unitSellingPrice = String(row['Unit Selling Price'] || '0');
           const extendedPrice = String(row['Extended Price'] || '0');
-          
-          let rawPrediction = row['Previsão'] ?? row['Previsao'];
+          const rawPrediction = row['Previsão'] ?? row['Previsao'];
           let prediction = 'Sem previsão';
           if (rawPrediction instanceof Date) {
             prediction = rawPrediction.toISOString().split('T')[0];
           } else if (typeof rawPrediction === 'number') {
             const utcDays = Math.floor(rawPrediction - 25569);
-            const utcValue = utcDays * 86400 * 1000;
-            prediction = new Date(utcValue).toISOString().split('T')[0];
+            prediction = new Date(utcDays * 86400 * 1000).toISOString().split('T')[0];
           } else if (rawPrediction) {
             prediction = String(rawPrediction).trim();
           }
 
-          const longText = String(row['Long Text'] || '');
-
-          if (!itemCode) continue;
-
-          const existingItems = await database.select().from(db.orderItems).where(
-            sql`item = ${itemCode} AND customerPo = ${customerPo}`
-          );
-
-          if (existingItems.length > 0) {
-            const existing = existingItems[0];
-            const oldPrediction = existing.currentPrediction;
-            const hasChanged = oldPrediction !== prediction;
-
-            if (hasChanged) {
-              changedCount++;
-              const newChangesCount = existing.predictionChangesCount + 1;
-
-              await database.update(db.orderItems).set({
-                shipTo,
-                shipmentPriority,
-                orderCreationDate,
-                itemDescription,
-                quantity,
-                scheduledReserved,
-                unitSellingPrice,
-                extendedPrice,
-                previousPrediction: oldPrediction,
-                currentPrediction: prediction,
-                longText,
-                predictionChangesCount: newChangesCount,
-                lastPredictionChangeDate: new Date(),
-                lastUploadId: uploadId,
-                updatedAt: new Date(),
-              }).where(sql`id = ${existing.id}`);
-            } else {
-              // Mesmo sem mudança de previsão, atualizar dados gerais e o último upload
-              await database.update(db.orderItems).set({
-                shipTo,
-                shipmentPriority,
-                orderCreationDate,
-                itemDescription,
-                quantity,
-                scheduledReserved,
-                unitSellingPrice,
-                extendedPrice,
-                longText,
-                lastUploadId: uploadId,
-                updatedAt: new Date(),
-              }).where(sql`id = ${existing.id}`);
-            }
-
-            // Registrar SEMPRE no histórico a ocorrência da previsão neste upload semanal (rastreabilidade completa)
-            await database.insert(db.predictionHistory).values({
-              orderItemId: existing.id,
-              uploadId: uploadId,
-              item: itemCode,
-              customerPo: customerPo,
-              prediction: prediction,
-            });
-
-          } else {
-            // Novo item
-            const [insertResult] = await database.insert(db.orderItems).values({
-              shipTo,
-              customerPo,
-              shipmentPriority,
-              orderCreationDate,
-              item: itemCode,
-              itemDescription,
-              quantity,
-              scheduledReserved,
-              unitSellingPrice,
-              extendedPrice,
-              currentPrediction: prediction,
-              previousPrediction: null,
-              longText,
-              predictionChangesCount: 0,
-              lastUploadId: uploadId,
-            });
-
-            const newId = insertResult.insertId;
-
-            await database.insert(db.predictionHistory).values({
-              orderItemId: newId,
-              uploadId: uploadId,
-              item: itemCode,
-              customerPo: customerPo,
-              prediction: prediction,
-            });
-          }
+          preparedByKey.set(`${itemCode}::${customerPo}`, {
+            shipTo,
+            customerPo,
+            shipmentPriority,
+            orderCreationDate,
+            itemCode,
+            itemDescription,
+            quantity,
+            scheduledReserved,
+            unitSellingPrice,
+            extendedPrice,
+            prediction,
+            longText: String(row['Long Text'] || ''),
+          });
         }
 
-        await database.update(db.uploads).set({
-          changedRowsCount: changedCount,
-        }).where(sql`id = ${uploadId}`);
+        const preparedRows = Array.from(preparedByKey.values());
+        const result = await database.transaction(async (tx) => {
+          const [uploadResult] = await tx.insert(db.uploads).values({
+            fileName: input.fileName,
+            totalRows: rows.length,
+            uploadedBy: ctx.user.id,
+            changedRowsCount: 0,
+          });
+          const uploadId = Number(uploadResult.insertId);
+          const itemCodes = Array.from(new Set(preparedRows.map((row) => row.itemCode)));
+          const existingRows = itemCodes.length > 0
+            ? await tx.select().from(db.orderItems).where(inArray(db.orderItems.item, itemCodes))
+            : [];
+          const existingByKey = new Map(existingRows.map((item) => [`${item.item}::${item.customerPo || ''}`, item] as const));
+          const changedExistingRows = preparedRows.map((row) => {
+            const existing = existingByKey.get(`${row.itemCode}::${row.customerPo}`);
+            if (!existing || existing.currentPrediction === row.prediction) return null;
+            return {
+              id: existing.id,
+              previousPrediction: existing.currentPrediction,
+              predictionChangesCount: existing.predictionChangesCount + 1,
+            };
+          }).filter((change): change is { id: number; previousPrediction: string | null; predictionChangesCount: number } => change !== null);
+          const changedCount = changedExistingRows.length;
+
+          const importBatchSize = 500;
+          for (let start = 0; start < preparedRows.length; start += importBatchSize) {
+            const batch = preparedRows.slice(start, start + importBatchSize);
+            await tx.insert(db.orderItems).values(batch.map((row) => ({
+              shipTo: row.shipTo,
+              customerPo: row.customerPo,
+              shipmentPriority: row.shipmentPriority,
+              orderCreationDate: row.orderCreationDate,
+              item: row.itemCode,
+              itemDescription: row.itemDescription,
+              quantity: row.quantity,
+              scheduledReserved: row.scheduledReserved,
+              unitSellingPrice: row.unitSellingPrice,
+              extendedPrice: row.extendedPrice,
+              currentPrediction: row.prediction,
+              previousPrediction: null,
+              longText: row.longText,
+              predictionChangesCount: 0,
+              lastUploadId: uploadId,
+            }))).onDuplicateKeyUpdate({
+              set: {
+                shipTo: sql`VALUES(\`shipTo\`)`,
+                shipmentPriority: sql`VALUES(\`shipmentPriority\`)`,
+                orderCreationDate: sql`VALUES(\`orderCreationDate\`)`,
+                itemDescription: sql`VALUES(\`itemDescription\`)`,
+                quantity: sql`VALUES(\`quantity\`)`,
+                scheduledReserved: sql`VALUES(\`scheduledReserved\`)`,
+                unitSellingPrice: sql`VALUES(\`unitSellingPrice\`)`,
+                extendedPrice: sql`VALUES(\`extendedPrice\`)`,
+                previousPrediction: sql`IF(\`currentPrediction\` <> VALUES(\`currentPrediction\`), \`currentPrediction\`, \`previousPrediction\`)`,
+                currentPrediction: sql`VALUES(\`currentPrediction\`)`,
+                longText: sql`VALUES(\`longText\`)`,
+                predictionChangesCount: sql`\`predictionChangesCount\` + (\`currentPrediction\` <> VALUES(\`currentPrediction\`))`,
+                lastPredictionChangeDate: sql`IF(\`currentPrediction\` <> VALUES(\`currentPrediction\`), NOW(), \`lastPredictionChangeDate\`)`,
+                lastUploadId: sql`VALUES(\`lastUploadId\`)`,
+                updatedAt: sql`NOW()`,
+              },
+            });
+          }
+
+          if (changedExistingRows.length > 0) {
+            const previousPredictionCases = sql.join(
+              changedExistingRows.map((change) => sql`WHEN ${change.id} THEN ${change.previousPrediction}`),
+              sql.raw(" "),
+            );
+            const changesCountCases = sql.join(
+              changedExistingRows.map((change) => sql`WHEN ${change.id} THEN ${change.predictionChangesCount}`),
+              sql.raw(" "),
+            );
+            await tx.update(db.orderItems).set({
+              previousPrediction: sql`CASE ${db.orderItems.id} ${previousPredictionCases} ELSE ${db.orderItems.previousPrediction} END`,
+              predictionChangesCount: sql`CASE ${db.orderItems.id} ${changesCountCases} ELSE ${db.orderItems.predictionChangesCount} END`,
+            }).where(inArray(db.orderItems.id, changedExistingRows.map((change) => change.id)));
+          }
+
+          const refreshedRows = itemCodes.length > 0
+            ? await tx.select().from(db.orderItems).where(inArray(db.orderItems.item, itemCodes))
+            : [];
+          const refreshedByKey = new Map(refreshedRows.map((item) => [`${item.item}::${item.customerPo || ''}`, item] as const));
+          const historyRows = preparedRows.map((row) => {
+            const item = refreshedByKey.get(`${row.itemCode}::${row.customerPo}`);
+            if (!item) throw new Error(`Não foi possível localizar o item ${row.itemCode} após o upsert.`);
+            return {
+              orderItemId: item.id,
+              uploadId,
+              item: row.itemCode,
+              customerPo: row.customerPo,
+              prediction: row.prediction,
+            };
+          });
+          for (let start = 0; start < historyRows.length; start += importBatchSize) {
+            await tx.insert(db.predictionHistory).values(historyRows.slice(start, start + importBatchSize));
+          }
+          await tx.update(db.uploads).set({ changedRowsCount: changedCount }).where(sql`id = ${uploadId}`);
+          return { uploadId, changedCount };
+        });
 
         return {
           success: true,
-          uploadId,
+          uploadId: result.uploadId,
           totalRows: rows.length,
-          changedRowsCount: changedCount,
+          changedRowsCount: result.changedCount,
         };
       } catch (error: any) {
         console.error("Erro no upload do Excel:", error);

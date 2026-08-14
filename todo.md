@@ -45,3 +45,11 @@
 A tabela principal deve mostrar o último upload associado ao item e um resumo das transições registradas. A consolidação por filial deve ser conferida com valores esperados em um cenário controlado. O reset deve ser exercitado em uma base de teste isolada, sem apagar os dados operacionais atuais, e o estado vazio resultante deve ser verificado.
 
 - [x] Revisar e confirmar todos os critérios de aceite adicionais antes do próximo checkpoint
+
+- [x] Medir o tempo atual do upload e localizar gargalos no parsing, comparação, histórico e gravação
+- [x] Otimizar a importação com consultas e escritas em lote, preservando a comparação semanal
+- [x] Evitar recarregamentos redundantes após o upload e melhorar o feedback de progresso
+- [x] Validar desempenho, contagem de alterações, histórico e build após a otimização
+
+- [x] Medir e registrar explicitamente o tempo da importação antes e depois da otimização com a mesma planilha de referência
+- [x] Aprimorar o feedback de progresso com estados visíveis de leitura, processamento e atualização do painel

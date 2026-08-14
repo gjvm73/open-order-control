@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, decimal } from "drizzle-orm/mysql-core";
+import { decimal, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
   id: int("id").autoincrement().primaryKey(),
@@ -48,7 +48,9 @@ export const orderItems = mysqlTable("order_items", {
   lastPredictionChangeDate: timestamp("lastPredictionChangeDate"),
   lastUploadId: int("lastUploadId"),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-});
+}, (table) => ({
+  itemCustomerPoUnique: uniqueIndex("order_items_item_customer_po_unique").on(table.item, table.customerPo),
+}));
 
 export type OrderItem = typeof orderItems.$inferSelect;
 export type InsertOrderItem = typeof orderItems.$inferInsert;

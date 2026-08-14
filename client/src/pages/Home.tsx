@@ -43,6 +43,7 @@ export default function Home() {
   const [filterShipTo, setFilterShipTo] = useState("");
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<"idle" | "reading" | "processing" | "refreshing">("idle");
   const [resetConfirmation, setResetConfirmation] = useState("");
 
   const statsInput = React.useMemo(() => ({ shipTo: filterShipTo || undefined }), [filterShipTo]);
@@ -77,24 +78,33 @@ export default function Home() {
       return;
     }
     setIsUploading(true);
+    setUploadStatus("reading");
     const reader = new FileReader();
     reader.onload = async (uploadEvent) => {
       try {
-        const buffer = uploadEvent.target?.result as ArrayBuffer;
-        const bytes = new Uint8Array(buffer);
-        let binary = "";
-        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
-        const result = await utils.client.orders.uploadExcel.mutate({ fileName: file.name, fileBase64: btoa(binary) });
+        setUploadStatus("processing");
+        const dataUrl = String(uploadEvent.target?.result || "");
+        const fileBase64 = dataUrl.includes(",") ? dataUrl.slice(dataUrl.indexOf(",") + 1) : dataUrl;
+        const result = await utils.client.orders.uploadExcel.mutate({ fileName: file.name, fileBase64 });
         toast.success(`${result.totalRows} linhas processadas; ${result.changedRowsCount} alterações identificadas.`);
-        await Promise.all([statsQuery.refetch(), itemsQuery.refetch(), uploadsQuery.refetch(), shipToQuery.refetch(), branchSummaryQuery.refetch()]);
+        setUploadStatus("refreshing");
+        setIsUploading(false);
+        void Promise.all([
+          utils.orders.getStats.invalidate(statsInput),
+          utils.orders.listItems.invalidate(itemsInput),
+          utils.orders.listUploads.invalidate(),
+          utils.orders.listShipTo.invalidate(),
+          utils.orders.getBranchSummary.invalidate(),
+        ]).finally(() => setUploadStatus("idle"));
       } catch (err: any) {
         toast.error(err.message || "Erro ao processar o upload do arquivo.");
-      } finally {
+        setUploadStatus("idle");
         setIsUploading(false);
+      } finally {
         e.target.value = "";
       }
     };
-    reader.readAsArrayBuffer(file);
+    reader.readAsDataURL(file);
   };
 
   const stats = statsQuery.data || {
@@ -109,6 +119,7 @@ export default function Home() {
   const changedItems = items.filter((item) => item.predictionChangesCount > 0);
   const stabilityRate = stats.stabilityRate ?? 0;
   const maxTrendChanges = Math.max(...stats.trend.map((entry) => entry.changedRowsCount), 1);
+  const uploadStatusLabel = uploadStatus === "reading" ? "Lendo arquivo..." : uploadStatus === "processing" ? "Gravando lotes..." : uploadStatus === "refreshing" ? "Atualizando painel..." : "Upload planilha semanal";
 
   return (
     <div className="min-h-screen bg-white text-zinc-950 font-sans selection:bg-red-600 selection:text-white">
@@ -118,7 +129,7 @@ export default function Home() {
           <p className="text-xs font-mono uppercase tracking-widest text-zinc-500 mt-1">Dashboard gerencial de previsões de entrega</p>
         </div>
         <div className="flex items-center gap-4">
-          <label className="cursor-pointer bg-zinc-950 hover:bg-zinc-800 text-white px-5 py-2.5 text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all"><Upload className="w-4 h-4" />{isUploading ? "Processando..." : "Upload planilha semanal"}<input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleFileUpload} disabled={isUploading} /></label>
+          <label className="cursor-pointer bg-zinc-950 hover:bg-zinc-800 text-white px-5 py-2.5 text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all"><Upload className="w-4 h-4" />{uploadStatusLabel}<input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleFileUpload} disabled={isUploading} /></label>
           {isAdmin && <AlertDialog onOpenChange={(open) => { if (!open) setResetConfirmation(""); }}><AlertDialogTrigger asChild><Button variant="outline" className="rounded-none border-red-600 text-red-600 hover:bg-red-600 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto"><ShieldAlert className="w-4 h-4 mr-2" />Resetar importações</Button></AlertDialogTrigger><AlertDialogContent className="rounded-none border-2 border-red-600 bg-white"><AlertDialogHeader><AlertDialogTitle className="font-black uppercase tracking-tight text-red-700">Resetar todas as importações?</AlertDialogTitle><AlertDialogDescription className="font-mono text-xs leading-6 text-zinc-700">Esta ação excluirá permanentemente todos os uploads, itens cadastrados e o histórico de previsões da base de consulta. As contas de acesso serão preservadas. Não é possível desfazer esta operação.</AlertDialogDescription></AlertDialogHeader><div className="space-y-2"><label className="text-xs font-mono uppercase tracking-wider text-zinc-600">Digite RESETAR para confirmar</label><Input value={resetConfirmation} onChange={(event) => setResetConfirmation(event.target.value.toUpperCase())} placeholder="RESETAR" className="rounded-none border-zinc-900 font-mono" autoFocus /></div><AlertDialogFooter><AlertDialogCancel className="rounded-none border-zinc-900 font-mono text-xs uppercase">Cancelar</AlertDialogCancel><AlertDialogAction className="rounded-none bg-red-600 hover:bg-red-700 font-mono text-xs uppercase" disabled={resetConfirmation !== "RESETAR" || resetMutation.isPending} onClick={(event) => { event.preventDefault(); void handleResetImports(); }}>{resetMutation.isPending ? "Limpando..." : "Confirmar reset"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>}
           {isAuthenticated ? <div className="flex items-center gap-3 border border-zinc-900 px-3 py-1.5 bg-zinc-50"><span className="text-xs font-mono">{user?.name || user?.email}</span><Button variant="ghost" size="sm" onClick={() => logout()} className="h-7 px-2 text-red-600 hover:bg-red-50"><LogOut className="w-3.5 h-3.5" /></Button></div> : <Button variant="outline" size="sm" className="border-zinc-900 text-xs font-mono uppercase rounded-none" onClick={() => (window.location.href = "/api/oauth/login")}>Entrar</Button>}
         </div>
