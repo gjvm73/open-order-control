@@ -45,3 +45,12 @@
 - [x] Ajustar a lógica de comparação no upload para consultar o último histórico gravado por chave exata
 - [x] Garantir que `previousPrediction`, `predictionChangesCount` e o histórico sejam atualizados corretamente em cada novo arquivo
 - [x] Criar teste de integração específico para múltiplos uploads com datas divergentes
+
+- [x] Diagnosticar o erro atual que impede a importação de arquivos
+- [x] Reproduzir a falha com a planilha real e identificar a etapa do parser que quebra
+- [x] Corrigir o tratamento do formato de planilha sem regressão no histórico
+- [x] Adicionar teste de importação para o formato que causou a falha
+- [x] Validar novamente testes, build e preview após a correção
+- [ ] Validar o preview/browser após a correção de `orderCreationDate`, confirmando a importação bem-sucedida de uma planilha real e ausência de regressão visual ou funcional
+- [ ] Validar no browser o upload de uma planilha real após a correção de `orderCreationDate`, confirmando sucesso da importação e atualização dos dados na interface
+- [ ] Registrar evidências da validação funcional pós-correção, incluindo upload e consulta do histórico sem erro

@@ -247,7 +247,7 @@ export const appRouter = router({
           const shipmentPriority = String(shipmentPriorityVal || '').trim();
 
           const orderCreationDateVal = getExcelRowValue(row, ['Data Criacao da Ordem', 'Data Criação da Ordem', 'Data da Ordem', 'Data Ordem', 'Creation Date']);
-          const orderCreationDate = String(orderCreationDateVal || '').trim();
+          const orderCreationDate = parseExcelDate(orderCreationDateVal);
 
           const itemCodeVal = getExcelRowValue(row, ['Item', 'Código do Item', 'Codigo do Item', 'Material', 'SKU', 'Item Code', 'Cod Item']);
           const itemCode = String(itemCodeVal || '').trim();
