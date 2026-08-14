@@ -3,6 +3,7 @@ import { appRouter } from "./routers";
 import * as db from "./db";
 import type { TrpcContext } from "./_core/context";
 import * as XLSX from "xlsx";
+import { normalizeShipTo } from "./shipTo";
 
 describe("Open Orders Backend & Upload Logic", () => {
   it("allows fetching dashboard stats and item list", async () => {
@@ -400,4 +401,13 @@ describe("Open Orders Backend & Upload Logic", () => {
 
     const filteredAlerts = await caller.orders.getAlerts({ thresholdDays: 7, shipTo: "FILIAL ESPAÇADA" });
     expect(filteredAlerts.alerts).toEqual([]);
+  });
+
+  it("normalizes specified addresses to corresponding cities", () => {
+    expect(normalizeShipTo("AVENIDA ASSIS BRASIL RS BR")).toBe("PORTO ALEGRE");
+    expect(normalizeShipTo("  RUA ABEL SCUISSIATO PR BR  ")).toBe("COLOMBO");
+    expect(normalizeShipTo("R VIDAL PROCOPIO LOHN SC BR")).toBe("SÃO JOSÉ");
+    expect(normalizeShipTo("AV PREFEITO SINCLER SAMBATTI PR BR")).toBe("MARINGÁ");
+    expect(normalizeShipTo("RUA VALDEMIRO BELINSKI PARALELA A BR 282 SC BR")).toBe("CHAPECÓ");
+    expect(normalizeShipTo("OUTRA FILIAL SP BR")).toBe("OUTRA FILIAL SP BR");
   });

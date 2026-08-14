@@ -99,6 +99,11 @@
 - [x] Validar a geração do arquivo .docx com formatação limpa e seções estruturadas
 - [x] Entregar o documento Word ao usuário
 
-- [ ] Criar o arquivo de conteúdo markdown dos slides executivos (slide_content.md)
+- [x] Criar o arquivo de conteúdo markdown dos slides executivos (slide_content.md)
 - [x] Gerar a apresentação de slides usando o modo html do Manus Slides
 - [x] Exportar a apresentação para PDF/PPT e entregá-la ao usuário
+
+- [ ] Normalizar os cinco endereços solicitados para as cidades correspondentes nos filtros, itens, alertas, histórico e indicadores
+- [ ] Criar testes para o mapeamento de endereços e validar o filtro por filial
+- [ ] Executar testes, checagem TypeScript, build e validação visual após a correção
+- [ ] Salvar checkpoint da correção de normalização de filiais

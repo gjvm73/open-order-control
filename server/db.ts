@@ -2,6 +2,7 @@ import { eq, desc, asc, sql, and, or, like, gte, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, uploads, orderItems, predictionHistory, InsertUploadRecord, InsertOrderItem, InsertPredictionHistoryRecord } from "../drizzle/schema";
 import { ENV } from './_core/env';
+import { normalizeShipTo } from './shipTo';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -140,7 +141,7 @@ export async function getOrderItems(filters?: { search?: string; item?: string; 
     conditions.push(like(orderItems.currentPrediction, `%${filters.prediction}%`));
   }
   if (filters?.shipTo) {
-    const normalizedShipTo = filters.shipTo.trim();
+    const normalizedShipTo = normalizeShipTo(filters.shipTo);
     if (normalizedShipTo) {
       conditions.push(sql`TRIM(${orderItems.shipTo}) = ${normalizedShipTo}`);
     }
@@ -208,7 +209,7 @@ export async function getPredictionAlerts(thresholdDays: number, shipTo?: string
   const db = await getDb();
   if (!db) return [];
 
-  const normalizedShipTo = shipTo?.trim();
+  const normalizedShipTo = shipTo ? normalizeShipTo(shipTo) : undefined;
   const conditions = normalizedShipTo ? [sql`TRIM(${orderItems.shipTo}) = ${normalizedShipTo}`] : [];
   const items = conditions.length > 0
     ? await db.select().from(orderItems).where(and(...conditions))
@@ -283,7 +284,7 @@ export async function getAlertsTrend(thresholdDays: number, shipTo?: string) {
       })
       .from(predictionHistory)
       .innerJoin(orderItems, eq(predictionHistory.orderItemId, orderItems.id))
-      .where(sql`TRIM(${orderItems.shipTo}) = ${shipTo.trim()}`)
+      .where(sql`TRIM(${orderItems.shipTo}) = ${normalizeShipTo(shipTo)}`)
       .orderBy(asc(predictionHistory.uploadId), asc(predictionHistory.id))
     : await db.select({
         orderItemId: predictionHistory.orderItemId,
@@ -348,7 +349,7 @@ export async function getShipToOptions() {
   if (!db) return [];
   const rows = await db.select({ shipTo: orderItems.shipTo }).from(orderItems);
   const options = rows
-    .map(row => row.shipTo?.trim())
+    .map(row => normalizeShipTo(row.shipTo))
     .filter((value): value is string => Boolean(value));
   return Array.from(new Set(options)).sort((a, b) => a.localeCompare(b, "pt-BR"));
 }
@@ -370,7 +371,7 @@ export async function getBranchSummary() {
   };
   const groups = new Map<string, typeof allItems>();
   for (const item of allItems) {
-    const branch = item.shipTo?.trim() || "Sem filial informada";
+    const branch = normalizeShipTo(item.shipTo) || "Sem filial informada";
     const current = groups.get(branch) || [];
     current.push(item);
     groups.set(branch, current);
@@ -426,7 +427,7 @@ export async function getDashboardStats(shipTo?: string) {
   }
 
   const allItems = shipTo
-    ? await db.select().from(orderItems).where(sql`TRIM(${orderItems.shipTo}) = ${shipTo.trim()}`)
+    ? await db.select().from(orderItems).where(sql`TRIM(${orderItems.shipTo}) = ${normalizeShipTo(shipTo)}`)
     : await db.select().from(orderItems);
   const uploadList = await db.select().from(uploads).orderBy(desc(uploads.uploadDate), desc(uploads.id)).limit(8);
   const latestUpload = uploadList[0] || null;
@@ -437,7 +438,7 @@ export async function getDashboardStats(shipTo?: string) {
       orderItemId: predictionHistory.orderItemId,
       uploadId: predictionHistory.uploadId,
       prediction: predictionHistory.prediction,
-    }).from(predictionHistory).innerJoin(orderItems, eq(predictionHistory.orderItemId, orderItems.id)).where(sql`TRIM(${orderItems.shipTo}) = ${shipTo.trim()}`).orderBy(asc(predictionHistory.uploadId), asc(predictionHistory.id), asc(predictionHistory.recordedAt));
+    }).from(predictionHistory).innerJoin(orderItems, eq(predictionHistory.orderItemId, orderItems.id)).where(sql`TRIM(${orderItems.shipTo}) = ${normalizeShipTo(shipTo)}`).orderBy(asc(predictionHistory.uploadId), asc(predictionHistory.id), asc(predictionHistory.recordedAt));
     const historyByItem = new Map<number, Array<{ uploadId: number; prediction: string }>>();
     for (const record of scopedHistory) {
       const series = historyByItem.get(record.orderItemId) || [];

@@ -7,6 +7,7 @@ import * as db from "./db";
 import { sql } from "./db";
 import { z } from "zod";
 import * as XLSX from "xlsx";
+import { normalizeShipTo } from "./shipTo";
 
 function normalizeComparisonPart(value: string) {
   return value.trim().toLocaleUpperCase("pt-BR");
@@ -238,7 +239,7 @@ export const appRouter = router({
         const preparedByKey = new Map<string, PreparedRow>();
         for (const row of rows) {
           const shipToVal = getExcelRowValue(row, ['Endereco (ship To)', 'Endereço (ship To)', 'Ship To', 'Filial', 'Endereço', 'Endereco', 'ShipTo']);
-          const shipTo = String(shipToVal || '').trim();
+          const shipTo = normalizeShipTo(shipToVal);
 
           const customerPoVal = getExcelRowValue(row, ['Customer PO', 'PO', 'Pedido', 'Pedido do Cliente', 'Cust PO', 'Purchase Order']);
           const customerPo = String(customerPoVal || '').trim();
