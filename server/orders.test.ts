@@ -412,6 +412,54 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(normalizeShipTo("OUTRA FILIAL SP BR")).toBe("OUTRA FILIAL SP BR");
   });
 
+  it("restores the full dataset after clearing a branch filter", async () => {
+    await db.resetImportedData();
+    const ctx: TrpcContext = {
+      user: null,
+      req: { protocol: "https", headers: {} } as any,
+      res: {} as any,
+    };
+    const caller = appRouter.createCaller(ctx);
+    const suffix = Date.now();
+    const wsData = [
+      {
+        "Endereco (ship To)": "AVENIDA ASSIS BRASIL RS BR",
+        "Customer PO": `PO-CLEAR-PA-${suffix}`,
+        "Item": `ITEM-CLEAR-PA-${suffix}`,
+        "Descricao do Item": "Item Porto Alegre",
+        "Quantidade": 1,
+        "Unit Selling Price": 10,
+        "Extended Price": 10,
+        "Previsão": "2025-09-01",
+      },
+      {
+        "Endereco (ship To)": "RUA ABEL SCUISSIATO PR BR",
+        "Customer PO": `PO-CLEAR-CO-${suffix}`,
+        "Item": `ITEM-CLEAR-CO-${suffix}`,
+        "Descricao do Item": "Item Colombo",
+        "Quantidade": 1,
+        "Unit Selling Price": 20,
+        "Extended Price": 20,
+        "Previsão": "2025-09-10",
+      },
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(wsData), "OpenOrders");
+    const fileBase64 = XLSX.write(wb, { type: "buffer", bookType: "xlsx" }).toString("base64");
+    await caller.orders.uploadExcel({ fileName: "clear-filter-test.xlsx", fileBase64 });
+
+    const filteredItems = await caller.orders.listItems({ shipTo: "PORTO ALEGRE" });
+    expect(filteredItems).toHaveLength(1);
+    expect(filteredItems[0].shipTo).toBe("PORTO ALEGRE");
+
+    const allItemsAfterClear = await caller.orders.listItems({ shipTo: undefined });
+    expect(allItemsAfterClear).toHaveLength(2);
+    expect(new Set(allItemsAfterClear.map(item => item.shipTo))).toEqual(new Set(["PORTO ALEGRE", "COLOMBO"]));
+
+    const allStatsAfterClear = await caller.orders.getStats({ shipTo: undefined });
+    expect(allStatsAfterClear.totalItems).toBe(2);
+  });
+
   it("uploads order with mapped address and filters correctly by canonical city PORTO ALEGRE", async () => {
     await db.resetImportedData();
     const ctx: TrpcContext = {

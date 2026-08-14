@@ -108,6 +108,12 @@
 - [x] Executar testes, checagem TypeScript, build e validação visual após a correção
 - [x] Salvar checkpoint da correção de normalização de filiais
 
-- [ ] Exibir o nome/descrição do item ao lado do código na seção 07 / Mapa de alterações
-- [ ] Validar testes, build e visualização da tabela após a alteração
-- [ ] Salvar checkpoint da melhoria do mapa de alterações
+- [x] Exibir o nome/descrição do item ao lado do código na seção 07 / Mapa de alterações
+- [x] Validar testes, build e visualização da tabela após a alteração
+- [x] Salvar checkpoint da melhoria do mapa de alterações
+
+- [ ] Investigar o comportamento do filtro por filial ao selecionar e limpar a opção
+- [ ] Corrigir a sincronização das consultas e indicadores ao limpar o filtro
+- [ ] Adicionar testes para seleção, limpeza e retorno ao conjunto completo de filiais
+- [ ] Validar no preview, executar testes e build
+- [ ] Salvar checkpoint da correção do filtro por filial
