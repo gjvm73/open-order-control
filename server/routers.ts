@@ -16,6 +16,67 @@ function buildComparisonKey(shipTo: string, itemCode: string, customerPo: string
   return `${normalizeComparisonPart(shipTo || "SEM FILIAL INFORMADA")}::${normalizeComparisonPart(itemCode)}::${normalizeComparisonPart(customerPo || "SEM PO")}`;
 }
 
+function getExcelRowValue(row: Record<string, any>, keys: string[]): any {
+  if (!row) return undefined;
+  for (const k of keys) {
+    if (row[k] !== undefined && row[k] !== null && row[k] !== '') {
+      return row[k];
+    }
+  }
+  const rowKeys = Object.keys(row);
+  for (const targetKey of keys) {
+    const normalizedTarget = targetKey.toLowerCase().replace(/[\s\(\)\-_]/g, '');
+    for (const rk of rowKeys) {
+      const normalizedRk = rk.toLowerCase().replace(/[\s\(\)\-_]/g, '');
+      if (normalizedRk === normalizedTarget) {
+        const val = row[rk];
+        if (val !== undefined && val !== null && val !== '') {
+          return val;
+        }
+      }
+    }
+  }
+  return undefined;
+}
+
+function parseExcelDate(raw: any): string {
+  if (raw === undefined || raw === null || raw === '') return 'Sem previsão';
+  if (raw instanceof Date) {
+    if (isNaN(raw.getTime())) return String(raw);
+    return raw.toISOString().split('T')[0];
+  }
+  if (typeof raw === 'number') {
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+    const jsDate = new Date(excelEpoch.getTime() + raw * 86400000);
+    if (isNaN(jsDate.getTime())) return String(raw);
+    return jsDate.toISOString().split('T')[0];
+  }
+  const str = String(raw).trim();
+  if (!str) return 'Sem previsão';
+
+  const isoMatch = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (isoMatch) {
+    const [, y, m, d] = isoMatch;
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+
+  const brMatch = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+  if (brMatch) {
+    let [, d, m, y] = brMatch;
+    if (y.length === 2) {
+      y = (parseInt(y, 10) > 50 ? '19' : '20') + y;
+    }
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString().split('T')[0];
+  }
+
+  return str;
+}
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -140,29 +201,44 @@ export const appRouter = router({
 
         const preparedByKey = new Map<string, PreparedRow>();
         for (const row of rows) {
-          const shipTo = String(row['Endereco (ship To)'] || row['Endereço (ship To)'] || '').trim();
-          const customerPo = String(row['Customer PO'] || '').trim();
-          const shipmentPriority = String(row['Shipment Priority'] || '').trim();
-          const orderCreationDate = String(row['Data Criacao da Ordem'] || row['Data Criação da Ordem'] || '').trim();
-          const itemCode = String(row['Item'] || '').trim();
+          const shipToVal = getExcelRowValue(row, ['Endereco (ship To)', 'Endereço (ship To)', 'Ship To', 'Filial', 'Endereço', 'Endereco', 'ShipTo']);
+          const shipTo = String(shipToVal || '').trim();
+
+          const customerPoVal = getExcelRowValue(row, ['Customer PO', 'PO', 'Pedido', 'Pedido do Cliente', 'Cust PO', 'Purchase Order']);
+          const customerPo = String(customerPoVal || '').trim();
+
+          const shipmentPriorityVal = getExcelRowValue(row, ['Shipment Priority', 'Prioridade', 'Priority']);
+          const shipmentPriority = String(shipmentPriorityVal || '').trim();
+
+          const orderCreationDateVal = getExcelRowValue(row, ['Data Criacao da Ordem', 'Data Criação da Ordem', 'Data da Ordem', 'Data Ordem', 'Creation Date']);
+          const orderCreationDate = String(orderCreationDateVal || '').trim();
+
+          const itemCodeVal = getExcelRowValue(row, ['Item', 'Código do Item', 'Codigo do Item', 'Material', 'SKU', 'Item Code', 'Cod Item']);
+          const itemCode = String(itemCodeVal || '').trim();
           if (!itemCode) continue;
+
           const comparisonKey = buildComparisonKey(shipTo, itemCode, customerPo);
 
-          const itemDescription = String(row['Descricao do Item'] || row['Descrição do Item'] || '');
-          const quantity = String(row['Quantidade'] || '0');
-          const scheduledReserved = String(row['Scheduled Reserved'] || '0');
-          const unitSellingPrice = String(row['Unit Selling Price'] || '0');
-          const extendedPrice = String(row['Extended Price'] || '0');
-          const rawPrediction = row['Previsão'] ?? row['Previsao'];
-          let prediction = 'Sem previsão';
-          if (rawPrediction instanceof Date) {
-            prediction = rawPrediction.toISOString().split('T')[0];
-          } else if (typeof rawPrediction === 'number') {
-            const utcDays = Math.floor(rawPrediction - 25569);
-            prediction = new Date(utcDays * 86400 * 1000).toISOString().split('T')[0];
-          } else if (rawPrediction) {
-            prediction = String(rawPrediction).trim();
-          }
+          const itemDescriptionVal = getExcelRowValue(row, ['Descricao do Item', 'Descrição do Item', 'Descrição', 'Descricao', 'Item Description']);
+          const itemDescription = String(itemDescriptionVal || '');
+
+          const quantityVal = getExcelRowValue(row, ['Quantidade', 'Qtde', 'Qtd', 'Quantity']);
+          const quantity = String(quantityVal || '0');
+
+          const scheduledReservedVal = getExcelRowValue(row, ['Scheduled Reserved', 'Reservado', 'Reserved']);
+          const scheduledReserved = String(scheduledReservedVal || '0');
+
+          const unitSellingPriceVal = getExcelRowValue(row, ['Unit Selling Price', 'Preço Unitário', 'Preco Unitario', 'Unit Price']);
+          const unitSellingPrice = String(unitSellingPriceVal || '0');
+
+          const extendedPriceVal = getExcelRowValue(row, ['Extended Price', 'Preço Total', 'Preco Total', 'Total Price', 'ExtendedPrice']);
+          const extendedPrice = String(extendedPriceVal || '0');
+
+          const rawPrediction = getExcelRowValue(row, ['Previsão', 'Previsao', 'Data Previsão', 'Data Previsao', 'Data de Entrega', 'Previsão de Entrega', 'Previsao de Entrega', 'Delivery Date', 'Previsao Entrega', 'Data Entrega', 'Data Entr']);
+          const prediction = parseExcelDate(rawPrediction);
+
+          const longTextVal = getExcelRowValue(row, ['Long Text', 'Observações', 'Observacoes', 'Notes', 'Texto Longo']);
+          const longText = String(longTextVal || '');
 
           preparedByKey.set(comparisonKey, {
             shipTo,
@@ -177,7 +253,7 @@ export const appRouter = router({
             unitSellingPrice,
             extendedPrice,
             prediction,
-            longText: String(row['Long Text'] || ''),
+            longText,
           });
         }
 
