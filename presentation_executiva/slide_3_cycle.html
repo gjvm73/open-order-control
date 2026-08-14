@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #FFFFFF; color: #1A1A1A; overflow: hidden; }
+      .slide-container { width: 1280px; min-height: 720px; padding: 60px 80px; display: flex; flex-direction: column; }
+      .hr-header { width: 60px; height: 3px; background-color: #B40000; margin-bottom: 15px; }
+      .page-title { font-size: 48px; font-weight: 800; text-transform: uppercase; margin-bottom: 80px; letter-spacing: -1px; }
+      .process-flow { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 40px; }
+      .step-box { padding-top: 20px; border-top: 1px solid #1A1A1A; }
+      .step-number { font-size: 14px; font-weight: 700; color: #B40000; margin-bottom: 10px; }
+      .step-title { font-size: 28px; font-weight: 800; text-transform: uppercase; margin-bottom: 20px; line-height: 1.1; }
+      .step-desc { font-size: 18px; line-height: 1.4; color: #555; }
+      .key-note { margin-top: 80px; background-color: #1A1A1A; color: #FFFFFF; padding: 30px; font-size: 20px; font-weight: 300; }
+      .key-note b { color: #B40000; }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="hr-header"></div>
+        <h2 class="page-title">Ciclo Semanal e Comparativo</h2>
+        <div class="process-flow">
+            <div class="step-box">
+                <div class="step-number">01 / ENTRADA</div>
+                <h3 class="step-title">Upload<br>Semanal</h3>
+                <p class="step-desc">Importação de planilhas Excel enviadas por fornecedores ou extraídas do ERP.</p>
+            </div>
+            <div class="step-box">
+                <div class="step-number">02 / PROCESSAMENTO</div>
+                <h3 class="step-title">Chave<br>Estável</h3>
+                <p class="step-desc">Cruzamento automático por Filial, Item e PO, identificando registros existentes.</p>
+            </div>
+            <div class="step-box">
+                <div class="step-number">03 / SAÍDA</div>
+                <h3 class="step-title">Trilha de<br>Histórico</h3>
+                <p class="step-desc">Qualquer oscilação na previsão é gravada, gerando o contador de alterações por item.</p>
+            </div>
+        </div>
+        <div class="key-note">
+            Regra de Ouro: O sistema diferencia a <b>Estabilidade do Ciclo</b> (última semana) da <b>Volatilidade Acumulada</b> (vida útil do item).
+        </div>
+    </div>
+</body>
+</html>

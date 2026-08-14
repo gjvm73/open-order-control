@@ -1,0 +1,78 @@
+{
+  "project_info": {
+    "title": "Open Order Control: Governança de Prazos e Visão Executiva",
+    "created": 1786738414.287,
+    "last_updated": 1786738475.483,
+    "total_slides": 6
+  },
+  "slides": [
+    {
+      "id": "slide_1_title",
+      "state": "edited",
+      "pageNum": 1
+    },
+    {
+      "id": "slide_2_problem",
+      "state": "edited",
+      "pageNum": 2
+    },
+    {
+      "id": "slide_3_cycle",
+      "state": "edited",
+      "pageNum": 3
+    },
+    {
+      "id": "slide_4_metrics",
+      "state": "edited",
+      "pageNum": 4
+    },
+    {
+      "id": "slide_5_risk_index",
+      "state": "edited",
+      "pageNum": 5
+    },
+    {
+      "id": "slide_6_actions",
+      "state": "edited",
+      "pageNum": 6
+    }
+  ],
+  "outline": [
+    {
+      "id": "slide_1_title",
+      "title": "Open Order Control: Governança de Prazos e Visão Executiva",
+      "summary": "Capa da apresentação com título principal e subtítulo focado em governança de prazos.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "slide_2_problem",
+      "title": "O Impacto da Volatilidade na Operação",
+      "summary": "Explicação do problema da instabilidade de prazos e como o sistema resolve a falta de visibilidade.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "slide_3_cycle",
+      "title": "Ciclo Semanal e Comparativo de Previsões",
+      "summary": "Detalhamento da lógica de comparação entre uploads e a preservação do histórico.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "slide_4_metrics",
+      "title": "Métricas Estratégicas e Risco Financeiro",
+      "summary": "Apresentação dos indicadores de estabilidade, valor sob risco e taxa de risco da carteira.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "slide_5_risk_index",
+      "title": "Índice de Risco Executivo: Foco na Decisão",
+      "summary": "Explicação da composição do índice de 0 a 100 e as faixas de classificação gerencial.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "slide_6_actions",
+      "title": "Próximos Passos e Plano de Ação Executivo",
+      "summary": "Recomendações finais para a diretoria sobre o uso do sistema e governança de suprimentos.",
+      "image_plan": "Use a suitable image if needed"
+    }
+  ]
+}

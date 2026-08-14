@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #FFFFFF; color: #1A1A1A; overflow: hidden; }
+      .slide-container { width: 1280px; min-height: 720px; padding: 60px 80px; display: flex; flex-direction: column; }
+      .hr-header { width: 60px; height: 3px; background-color: #B40000; margin-bottom: 15px; }
+      .page-title { font-size: 48px; font-weight: 800; text-transform: uppercase; margin-bottom: 60px; letter-spacing: -1px; }
+      .content-grid { display: flex; gap: 80px; flex: 1; }
+      .left-col { flex: 1.2; }
+      .right-col { flex: 1; border-left: 1px solid #E0E0E0; padding-left: 40px; }
+      .main-statement { font-size: 36px; font-weight: 300; line-height: 1.3; color: #333; margin-bottom: 40px; }
+      .highlight { color: #B40000; font-weight: 700; }
+      .point-item { margin-bottom: 30px; }
+      .point-title { font-size: 22px; font-weight: 700; text-transform: uppercase; color: #B40000; margin-bottom: 8px; }
+      .point-text { font-size: 18px; font-weight: 400; line-height: 1.5; color: #555; }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="hr-header"></div>
+        <h2 class="page-title">O Impacto da Volatilidade na Operação</h2>
+        <div class="content-grid">
+            <div class="left-col">
+                <p class="main-statement">
+                    A oscilação constante nas previsões de entrega não é apenas um ruído logístico; é uma <span class="highlight">ameaça direta ao capital de giro</span> e à confiança do cliente final.
+                </p>
+                <p class="point-text">
+                    O Open Order Control surge para converter planilhas estáticas em um sistema de governança ativa, permitindo antecipar gargalos antes que eles se tornem rupturas de estoque.
+                </p>
+            </div>
+            <div class="right-col">
+                <div class="point-item">
+                    <h3 class="point-title">Risco Financeiro</h3>
+                    <p class="point-text">Pedidos instáveis elevam o custo de inventário e o risco de obsolescência.</p>
+                </div>
+                <div class="point-item">
+                    <h3 class="point-title">Planejamento Industrial</h3>
+                    <p class="point-text">Atrasos não comunicados desestruturam a linha de produção e o cronograma de vendas.</p>
+                </div>
+                <div class="point-item">
+                    <h3 class="point-title">Falta de Visibilidade</h3>
+                    <p class="point-text">Sem histórico, a gestão reage a crises em vez de prevenir desvios.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

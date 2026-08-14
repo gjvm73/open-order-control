@@ -98,3 +98,7 @@
 - [x] Criar o documento Word conceitual e de métricas do Open Order Control usando python-docx
 - [x] Validar a geração do arquivo .docx com formatação limpa e seções estruturadas
 - [x] Entregar o documento Word ao usuário
+
+- [ ] Criar o arquivo de conteúdo markdown dos slides executivos (slide_content.md)
+- [x] Gerar a apresentação de slides usando o modo html do Manus Slides
+- [x] Exportar a apresentação para PDF/PPT e entregá-la ao usuário

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #FFFFFF; color: #1A1A1A; overflow: hidden; }
+      .slide-container { width: 1280px; min-height: 720px; padding: 60px 80px; display: flex; flex-direction: column; }
+      .hr-header { width: 60px; height: 3px; background-color: #B40000; margin-bottom: 15px; }
+      .page-title { font-size: 48px; font-weight: 800; text-transform: uppercase; margin-bottom: 40px; letter-spacing: -1px; }
+      
+      .formula-section { display: flex; gap: 40px; margin-bottom: 60px; }
+      .formula-card { flex: 1; border-top: 1px solid #1A1A1A; padding-top: 20px; }
+      .weight { font-size: 32px; font-weight: 800; color: #B40000; margin-bottom: 5px; }
+      .pillar-name { font-size: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+      
+      .decision-matrix { display: flex; width: 100%; height: 120px; margin-top: auto; }
+      .matrix-zone { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 0 30px; color: #FFFFFF; }
+      .zone-label { font-size: 14px; font-weight: 700; text-transform: uppercase; margin-bottom: 5px; opacity: 0.8; }
+      .zone-title { font-size: 28px; font-weight: 800; text-transform: uppercase; }
+      
+      .zone-safe { background-color: #1A1A1A; }
+      .zone-warning { background-color: #666666; }
+      .zone-critical { background-color: #B40000; }
+      
+      .description { font-size: 20px; line-height: 1.5; color: #555; max-width: 900px; margin-bottom: 40px; }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="hr-header"></div>
+        <h2 class="page-title">Índice de Risco Executivo</h2>
+        
+        <p class="description">
+            Uma métrica única de 0 a 100 que sintetiza a saúde da carteira, permitindo priorizar intervenções onde a pressão operacional é maior.
+        </p>
+
+        <div class="formula-section">
+            <div class="formula-card">
+                <div class="weight">35%</div>
+                <div class="pillar-name">Alterações Recentes</div>
+            </div>
+            <div class="formula-card">
+                <div class="weight">25%</div>
+                <div class="pillar-name">Previsões Vencidas</div>
+            </div>
+            <div class="formula-card">
+                <div class="weight">20%</div>
+                <div class="pillar-name">Sem Fornecedor</div>
+            </div>
+            <div class="formula-card">
+                <div class="weight">10%</div>
+                <div class="pillar-name">Prioridade Alta</div>
+            </div>
+            <div class="formula-card">
+                <div class="weight">10%</div>
+                <div class="pillar-name">Risco Financeiro</div>
+            </div>
+        </div>
+
+        <div class="decision-matrix">
+            <div class="matrix-zone zone-safe">
+                <div class="zone-label">0 - 24.9 Pontos</div>
+                <div class="zone-title">Controlado</div>
+            </div>
+            <div class="matrix-zone zone-warning">
+                <div class="zone-label">25 - 49.9 Pontos</div>
+                <div class="zone-title">Atenção</div>
+            </div>
+            <div class="matrix-zone zone-critical">
+                <div class="zone-label">50+ Pontos</div>
+                <div class="zone-title">Crítico</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #FFFFFF; color: #1A1A1A; overflow: hidden; }
+      .slide-container { width: 1280px; min-height: 720px; padding: 60px 80px; display: flex; flex-direction: column; }
+      .hr-header { width: 60px; height: 3px; background-color: #B40000; margin-bottom: 15px; }
+      .page-title { font-size: 48px; font-weight: 800; text-transform: uppercase; margin-bottom: 60px; letter-spacing: -1px; }
+      .metrics-grid { display: flex; gap: 40px; flex: 1; }
+      .metric-card { flex: 1; border-top: 1px solid #1A1A1A; padding-top: 20px; }
+      .metric-label { font-size: 14px; font-weight: 700; color: #B40000; text-transform: uppercase; margin-bottom: 10px; }
+      .metric-value { font-size: 64px; font-weight: 900; margin-bottom: 15px; letter-spacing: -2px; }
+      .metric-desc { font-size: 18px; line-height: 1.4; color: #555; font-weight: 300; }
+      .finance-section { margin-top: 60px; padding: 40px; border: 1px solid #1A1A1A; display: flex; align-items: center; gap: 40px; }
+      .finance-title { font-size: 24px; font-weight: 800; text-transform: uppercase; min-width: 250px; }
+      .finance-text { font-size: 18px; line-height: 1.5; color: #333; }
+      .finance-text b { color: #B40000; }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="hr-header"></div>
+        <h2 class="page-title">Métricas Estratégicas e Risco</h2>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-label">Estabilidade do Ciclo</div>
+                <div class="metric-value">92%</div>
+                <p class="metric-desc">Percentual da carteira que manteve os prazos inalterados no último upload semanal.</p>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Taxa de Risco</div>
+                <div class="metric-value">18%</div>
+                <p class="metric-desc">Proporção de itens ativos que já sofreram pelo menos uma alteração de prazo histórica.</p>
+            </div>
+            <div class="metric-card">
+                <div class="metric-label">Itens Vencidos</div>
+                <div class="metric-value">05</div>
+                <p class="metric-desc">Pedidos com data de previsão ultrapassada e ainda pendentes de recebimento.</p>
+            </div>
+        </div>
+        <div class="finance-section">
+            <h3 class="finance-title">Risco Financeiro Acumulado</h3>
+            <p class="finance-text">
+                O sistema isola o <b>Valor Sob Risco</b>, somando o preço estendido de todos os itens com instabilidade. Isso permite que a diretoria visualize o impacto monetário real da volatilidade de prazos na operação.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

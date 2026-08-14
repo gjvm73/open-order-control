@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #FFFFFF; color: #1A1A1A; overflow: hidden; }
+      .slide-container { width: 1280px; min-height: 720px; padding: 60px 80px; display: flex; flex-direction: column; position: relative; }
+      .hr-header { width: 60px; height: 3px; background-color: #B40000; margin-bottom: 15px; }
+      .page-title { font-size: 48px; font-weight: 800; text-transform: uppercase; margin-bottom: 60px; letter-spacing: -1px; }
+      .action-list { display: flex; flex-direction: column; gap: 40px; max-width: 900px; }
+      .action-item { display: flex; align-items: flex-start; gap: 30px; border-top: 1px solid #E0E0E0; padding-top: 20px; }
+      .action-number { font-size: 48px; font-weight: 900; color: #B40000; line-height: 1; min-width: 60px; }
+      .action-content { flex: 1; }
+      .action-title { font-size: 24px; font-weight: 700; text-transform: uppercase; margin-bottom: 10px; }
+      .action-text { font-size: 18px; line-height: 1.5; color: #555; }
+      .closing-note { position: absolute; bottom: 60px; right: 80px; font-size: 14px; font-weight: 700; text-transform: uppercase; color: #B40000; }
+    </style>
+</head>
+<body>
+    <div class="slide-container">
+        <div class="hr-header"></div>
+        <h2 class="page-title">Plano de Ação Executivo</h2>
+        <div class="action-list">
+            <div class="action-item">
+                <div class="action-number">01</div>
+                <div class="action-content">
+                    <h3 class="action-title">Governança Semanal</h3>
+                    <p class="action-text">Instituir a revisão do Centro de Comando Estratégico em reuniões de diretoria, focando nas filiais com Índice de Risco acima de 50.</p>
+                </div>
+            </div>
+            <div class="action-item">
+                <div class="action-number">02</div>
+                <div class="action-content">
+                    <h3 class="action-title">Gestão de Fornecedores</h3>
+                    <p class="action-text">Utilizar o ranking de alterações acumuladas para renegociar contratos e prazos com fornecedores de baixa confiabilidade.</p>
+                </div>
+            </div>
+            <div class="action-item">
+                <div class="action-number">03</div>
+                <div class="action-content">
+                    <h3 class="action-title">Padronização de Relatórios</h3>
+                    <p class="action-text">Adotar a exportação em PDF do dashboard como documento oficial para o comitê de suprimentos, garantindo unidade de dados.</p>
+                </div>
+            </div>
+        </div>
+        <div class="closing-note">Open Order Control / 2026</div>
+    </div>
+</body>
+</html>
