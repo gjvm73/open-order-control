@@ -201,6 +201,54 @@ export async function getPredictionHistoryByItem(orderItemId: number) {
   });
 }
 
+export async function getPredictionAlerts(thresholdDays: number, shipTo?: string) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const conditions = shipTo ? [eq(orderItems.shipTo, shipTo)] : [];
+  const items = conditions.length > 0
+    ? await db.select().from(orderItems).where(and(...conditions))
+    : await db.select().from(orderItems);
+  const threshold = Math.max(1, Math.floor(thresholdDays));
+
+  const parseDate = (value: string | null) => {
+    if (!value) return null;
+    const normalized = value.trim();
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(normalized)
+      ? new Date(`${normalized}T00:00:00`)
+      : new Date(normalized);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  return items
+    .map((item) => {
+      const previousDate = parseDate(item.previousPrediction);
+      const currentDate = parseDate(item.currentPrediction);
+      if (!previousDate || !currentDate) return null;
+      const differenceDays = Math.round((currentDate.getTime() - previousDate.getTime()) / 86400000);
+      const absoluteDifferenceDays = Math.abs(differenceDays);
+      if (absoluteDifferenceDays <= threshold) return null;
+      return {
+        id: item.id,
+        item: item.item,
+        itemDescription: item.itemDescription,
+        shipTo: item.shipTo || "Sem filial informada",
+        customerPo: item.customerPo,
+        currentPrediction: item.currentPrediction,
+        previousPrediction: item.previousPrediction,
+        differenceDays,
+        absoluteDifferenceDays,
+        direction: differenceDays > 0 ? "ADIAMENTO" as const : "ANTECIPAÇÃO" as const,
+        severity: absoluteDifferenceDays >= threshold * 2 ? "CRÍTICO" as const : "ATENÇÃO" as const,
+        predictionChangesCount: item.predictionChangesCount,
+        lastPredictionChangeDate: item.lastPredictionChangeDate,
+        extendedPrice: item.extendedPrice,
+      };
+    })
+    .filter((alert): alert is NonNullable<typeof alert> => alert !== null)
+    .sort((a, b) => b.absoluteDifferenceDays - a.absoluteDifferenceDays || b.id - a.id);
+}
+
 export async function getShipToOptions() {
   const db = await getDb();
   if (!db) return [];

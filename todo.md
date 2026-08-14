@@ -57,3 +57,8 @@ A tabela principal deve mostrar o último upload associado ao item e um resumo d
 - [x] Corrigir comparativo para usar o último registro histórico por Item + Customer PO e preservar todos os uploads
 - [x] Exibir no detalhe as alterações acumuladas entre uploads, sem limitar ao último arquivo
 - [x] Testar sequência de três uploads com mudança de previsão em duas semanas diferentes
+
+- [x] Implementar parâmetros de limite de dias para alerta no backend e nas rotas tRPC
+- [x] Criar endpoint para retornar alertas de atraso e adiantamento acima do limite configurado
+- [x] Construir o painel visual de alertas configuráveis com ajuste de limiar no dashboard
+- [x] Validar alertas com testes unitários e testes de integração end-to-end

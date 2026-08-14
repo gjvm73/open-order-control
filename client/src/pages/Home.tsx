@@ -45,6 +45,16 @@ export default function Home() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<"idle" | "reading" | "processing" | "refreshing">("idle");
   const [resetConfirmation, setResetConfirmation] = useState("");
+  const [alertThresholdDays, setAlertThresholdDays] = useState(7);
+  const [alertThresholdDraft, setAlertThresholdDraft] = useState("7");
+
+  React.useEffect(() => {
+    const stored = Number(window.localStorage.getItem("open-order-alert-threshold-days"));
+    if (Number.isInteger(stored) && stored >= 1 && stored <= 3650) {
+      setAlertThresholdDays(stored);
+      setAlertThresholdDraft(String(stored));
+    }
+  }, []);
 
   const statsInput = React.useMemo(() => ({ shipTo: filterShipTo || undefined }), [filterShipTo]);
   const itemsInput = React.useMemo(() => ({ search, item: filterItem, customerPo: filterPo, prediction: filterPrediction, shipTo: filterShipTo || undefined }), [search, filterItem, filterPo, filterPrediction, filterShipTo]);
@@ -53,10 +63,23 @@ export default function Home() {
   const uploadsQuery = trpc.orders.listUploads.useQuery();
   const shipToQuery = trpc.orders.listShipTo.useQuery();
   const branchSummaryQuery = trpc.orders.getBranchSummary.useQuery();
+  const alertsInput = React.useMemo(() => ({ thresholdDays: alertThresholdDays, shipTo: filterShipTo || undefined }), [alertThresholdDays, filterShipTo]);
+  const alertsQuery = trpc.orders.getAlerts.useQuery(alertsInput);
   const itemDetailQuery = trpc.orders.getItemDetail.useQuery({ id: selectedItemId! }, { enabled: selectedItemId !== null });
   const resetMutation = trpc.orders.resetImports.useMutation();
   const utils = trpc.useUtils();
   const isAdmin = user?.role === "admin";
+
+  const applyAlertThreshold = () => {
+    const parsed = Number(alertThresholdDraft);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 3650) {
+      toast.error("Informe um limiar inteiro entre 1 e 3650 dias.");
+      return;
+    }
+    setAlertThresholdDays(parsed);
+    window.localStorage.setItem("open-order-alert-threshold-days", String(parsed));
+    toast.success(`Alertas configurados acima de ${parsed} dias.`);
+  };
 
   const handleResetImports = async () => {
     try {
@@ -64,7 +87,7 @@ export default function Home() {
       setResetConfirmation("");
       setSelectedItemId(null);
       toast.success(`Importações resetadas: ${result.deletedUploads} uploads, ${result.deletedItems} itens e ${result.deletedHistory} registros históricos removidos.`);
-      await Promise.all([statsQuery.refetch(), itemsQuery.refetch(), uploadsQuery.refetch(), shipToQuery.refetch(), branchSummaryQuery.refetch()]);
+      await Promise.all([statsQuery.refetch(), itemsQuery.refetch(), uploadsQuery.refetch(), shipToQuery.refetch(), branchSummaryQuery.refetch(), alertsQuery.refetch()]);
     } catch (err: any) {
       toast.error(err.message || "Não foi possível resetar as importações.");
     }
@@ -95,6 +118,7 @@ export default function Home() {
           utils.orders.listUploads.invalidate(),
           utils.orders.listShipTo.invalidate(),
           utils.orders.getBranchSummary.invalidate(),
+          utils.orders.getAlerts.invalidate(alertsInput),
         ]).finally(() => setUploadStatus("idle"));
       } catch (err: any) {
         toast.error(err.message || "Erro ao processar o upload do arquivo.");
@@ -116,6 +140,7 @@ export default function Home() {
   const uploadsList = uploadsQuery.data || [];
   const shipToOptions = shipToQuery.data || [];
   const branchSummary = branchSummaryQuery.data || [];
+  const alerts = alertsQuery.data || [];
   const changedItems = items.filter((item) => item.predictionChangesCount > 0);
   const stabilityRate = stats.stabilityRate ?? 0;
   const maxTrendChanges = Math.max(...stats.trend.map((entry) => entry.changedRowsCount), 1);
@@ -152,7 +177,9 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="space-y-4"><div className="border-b border-zinc-900 pb-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">01A / Consolidação por filial</h2><h3 className="text-xl font-bold tracking-tight">Filiais solicitantes e pressão operacional</h3><p className="text-xs font-mono text-zinc-500 mt-1">Cada linha do upload é consolidada pelo Endereço (Ship To). Clique em uma filial para segmentar todo o dashboard.</p></div><Badge className="rounded-none bg-zinc-950 text-white font-mono">{branchSummary.length} filiais</Badge></div><div className="border border-zinc-900 overflow-x-auto"><table className="w-full text-left border-collapse min-w-[980px]"><thead><tr className="border-b border-zinc-900 bg-zinc-50 text-xs font-mono uppercase tracking-wider"><th className="p-4">Filial solicitante / Endereço</th><th className="p-4 text-right">Itens</th><th className="p-4 text-right">Alterados</th><th className="p-4 text-right">Taxa de alteração</th><th className="p-4 text-right">Vencidos</th><th className="p-4 text-right">Sem fornecedor</th><th className="p-4 text-right">Valor sob risco</th><th className="p-4 text-center">Ação</th></tr></thead><tbody className="divide-y divide-zinc-200 text-sm font-mono">{branchSummary.length === 0 ? <tr><td colSpan={8} className="p-10 text-center text-zinc-500">Nenhuma filial identificada. Faça um upload para iniciar a consolidação.</td></tr> : branchSummary.map((branch) => <tr key={branch.shipTo} className={filterShipTo === branch.shipTo ? "bg-red-50" : "hover:bg-zinc-50"}><td className="p-4 font-bold max-w-[300px] truncate" title={branch.shipTo}>{branch.shipTo}</td><td className="p-4 text-right">{branch.totalItems}</td><td className={`p-4 text-right font-bold ${branch.changedItems > 0 ? "text-red-600" : "text-zinc-500"}`}>{branch.changedItems}</td><td className="p-4 text-right">{branch.changeRate}%</td><td className={`p-4 text-right ${branch.overdueItems > 0 ? "text-red-600 font-bold" : "text-zinc-500"}`}>{branch.overdueItems}</td><td className={`p-4 text-right ${branch.noSupplier > 0 ? "text-amber-700 font-bold" : "text-zinc-500"}`}>{branch.noSupplier}</td><td className="p-4 text-right">{formatCurrency(branch.valueAtRisk)}</td><td className="p-4 text-center"><Button variant="outline" size="sm" className="rounded-none border-zinc-900 text-[10px] font-mono uppercase h-8" onClick={() => setFilterShipTo(filterShipTo === branch.shipTo ? "" : branch.shipTo)}>{filterShipTo === branch.shipTo ? "Limpar" : "Filtrar"}</Button></td></tr>)}</tbody></table></div></section>
+        <section className="border-2 border-red-600 bg-red-50/30 p-6 space-y-5"><div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4 border-b border-red-200 pb-4"><div><h2 className="text-sm font-mono uppercase tracking-wider text-red-700">01A / Alertas de variação</h2><h3 className="text-xl font-black tracking-tight mt-1">Itens que exigem revisão de prazo</h3><p className="text-xs font-mono text-zinc-600 mt-1">O alerta é acionado quando a previsão muda acima do limite configurado, para mais ou para menos.</p></div><div className="flex items-end gap-2"><div><label htmlFor="alert-threshold" className="block text-[10px] font-mono uppercase tracking-wider text-zinc-600 mb-1">Alertar acima de (dias)</label><Input id="alert-threshold" type="number" min={1} max={3650} value={alertThresholdDraft} onChange={(event) => setAlertThresholdDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") applyAlertThreshold(); }} className="w-32 rounded-none border-zinc-900 bg-white font-mono" /></div><Button type="button" onClick={applyAlertThreshold} className="rounded-none bg-zinc-950 text-white hover:bg-zinc-800 font-mono text-xs uppercase h-10">Aplicar</Button></div></div><div className="flex flex-wrap items-center gap-3"><Badge className="rounded-none bg-red-600 text-white font-mono">{alerts.length} alertas ativos</Badge><span className="text-xs font-mono text-zinc-600">Limiar atual: &gt; {alertThresholdDays} dias</span>{filterShipTo && <Badge className="rounded-none bg-zinc-950 text-white font-mono">Filial: {filterShipTo}</Badge>}</div><div className="border border-zinc-900 bg-white overflow-x-auto"><table className="w-full min-w-[1050px] text-left border-collapse"><thead><tr className="border-b border-zinc-900 bg-zinc-950 text-white text-[10px] font-mono uppercase tracking-wider"><th className="p-3">Severidade</th><th className="p-3">Item / descrição</th><th className="p-3">Filial solicitante</th><th className="p-3">Customer PO</th><th className="p-3">Previsão anterior</th><th className="p-3">Previsão atual</th><th className="p-3 text-right">Variação</th><th className="p-3 text-center">Ação</th></tr></thead><tbody className="divide-y divide-zinc-200 text-xs font-mono">{alerts.length === 0 ? <tr><td colSpan={8} className="p-10 text-center text-zinc-500">Nenhum item ultrapassou o limiar de {alertThresholdDays} dias nesta filial.</td></tr> : alerts.slice(0, 20).map((alert) => <tr key={alert.id} className={alert.severity === "CRÍTICO" ? "bg-red-50" : "bg-white hover:bg-amber-50"}><td className="p-3"><span className={`inline-flex px-2 py-1 text-[10px] font-bold ${riskClass(alert.severity)}`}>{alert.severity}</span><p className="text-[10px] text-zinc-500 mt-1">{alert.direction}</p></td><td className="p-3"><p className="font-bold">{alert.item}</p><p className="text-[10px] text-zinc-500 max-w-[190px] truncate" title={alert.itemDescription || ""}>{alert.itemDescription || "—"}</p></td><td className="p-3 max-w-[180px] truncate" title={alert.shipTo}>{alert.shipTo}</td><td className="p-3">{alert.customerPo || "—"}</td><td className="p-3 text-zinc-600">{alert.previousPrediction || "—"}</td><td className="p-3 font-bold text-red-700">{alert.currentPrediction || "—"}</td><td className="p-3 text-right font-black text-red-700">{alert.differenceDays > 0 ? "+" : ""}{alert.differenceDays} dias</td><td className="p-3 text-center"><Button type="button" variant="outline" size="sm" onClick={() => setSelectedItemId(alert.id)} className="rounded-none border-zinc-900 text-[10px] font-mono uppercase h-8">Ver histórico</Button></td></tr>)}</tbody></table></div>{alerts.length > 20 && <p className="text-[10px] font-mono text-zinc-600">Exibindo os 20 alertas de maior variação. Ajuste a filial ou o limiar para refinar a lista.</p>}</section>
+
+        <section className="space-y-4"><div className="border-b border-zinc-900 pb-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">01B / Consolidação por filial</h2><h3 className="text-xl font-bold tracking-tight">Filiais solicitantes e pressão operacional</h3><p className="text-xs font-mono text-zinc-500 mt-1">Cada linha do upload é consolidada pelo Endereço (Ship To). Clique em uma filial para segmentar todo o dashboard.</p></div><Badge className="rounded-none bg-zinc-950 text-white font-mono">{branchSummary.length} filiais</Badge></div><div className="border border-zinc-900 overflow-x-auto"><table className="w-full text-left border-collapse min-w-[980px]"><thead><tr className="border-b border-zinc-900 bg-zinc-50 text-xs font-mono uppercase tracking-wider"><th className="p-4">Filial solicitante / Endereço</th><th className="p-4 text-right">Itens</th><th className="p-4 text-right">Alterados</th><th className="p-4 text-right">Taxa de alteração</th><th className="p-4 text-right">Vencidos</th><th className="p-4 text-right">Sem fornecedor</th><th className="p-4 text-right">Valor sob risco</th><th className="p-4 text-center">Ação</th></tr></thead><tbody className="divide-y divide-zinc-200 text-sm font-mono">{branchSummary.length === 0 ? <tr><td colSpan={8} className="p-10 text-center text-zinc-500">Nenhuma filial identificada. Faça um upload para iniciar a consolidação.</td></tr> : branchSummary.map((branch) => <tr key={branch.shipTo} className={filterShipTo === branch.shipTo ? "bg-red-50" : "hover:bg-zinc-50"}><td className="p-4 font-bold max-w-[300px] truncate" title={branch.shipTo}>{branch.shipTo}</td><td className="p-4 text-right">{branch.totalItems}</td><td className={`p-4 text-right font-bold ${branch.changedItems > 0 ? "text-red-600" : "text-zinc-500"}`}>{branch.changedItems}</td><td className="p-4 text-right">{branch.changeRate}%</td><td className={`p-4 text-right ${branch.overdueItems > 0 ? "text-red-600 font-bold" : "text-zinc-500"}`}>{branch.overdueItems}</td><td className={`p-4 text-right ${branch.noSupplier > 0 ? "text-amber-700 font-bold" : "text-zinc-500"}`}>{branch.noSupplier}</td><td className="p-4 text-right">{formatCurrency(branch.valueAtRisk)}</td><td className="p-4 text-center"><Button variant="outline" size="sm" className="rounded-none border-zinc-900 text-[10px] font-mono uppercase h-8" onClick={() => setFilterShipTo(filterShipTo === branch.shipTo ? "" : branch.shipTo)}>{filterShipTo === branch.shipTo ? "Limpar" : "Filtrar"}</Button></td></tr>)}</tbody></table></div></section>
 
         <section className="grid grid-cols-1 xl:grid-cols-[1.25fr_0.75fr] gap-6">
           <div className="border border-zinc-900 p-6">
