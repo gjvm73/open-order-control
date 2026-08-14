@@ -249,6 +249,96 @@ export async function getPredictionAlerts(thresholdDays: number, shipTo?: string
     .sort((a, b) => b.absoluteDifferenceDays - a.absoluteDifferenceDays || b.id - a.id);
 }
 
+export async function getAlertsTrend(thresholdDays: number, shipTo?: string) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const allUploads = await db.select().from(uploads).orderBy(asc(uploads.id));
+  if (allUploads.length === 0) return [];
+
+  const threshold = Math.max(1, Math.floor(thresholdDays));
+  const parseDate = (value: string | null) => {
+    if (!value) return null;
+    const normalized = value.trim();
+    const date = /^\d{4}-\d{2}-\d{2}$/.test(normalized)
+      ? new Date(`${normalized}T00:00:00`)
+      : new Date(normalized);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const trendResult: { uploadId: number; fileName: string; uploadDate: string; criticalCount: number; attentionCount: number; totalAlerts: number }[] = [];
+
+  // Para calcular o histórico por upload, buscamos todos os registros de histórico até este upload
+  // agrupados por item, para determinar o estado de cada item em cada semana.
+  const allHistory = shipTo
+    ? await db.select({
+        orderItemId: predictionHistory.orderItemId,
+        uploadId: predictionHistory.uploadId,
+        prediction: predictionHistory.prediction,
+        shipTo: orderItems.shipTo,
+      })
+      .from(predictionHistory)
+      .innerJoin(orderItems, eq(predictionHistory.orderItemId, orderItems.id))
+      .where(eq(orderItems.shipTo, shipTo))
+      .orderBy(asc(predictionHistory.uploadId), asc(predictionHistory.id))
+    : await db.select({
+        orderItemId: predictionHistory.orderItemId,
+        uploadId: predictionHistory.uploadId,
+        prediction: predictionHistory.prediction,
+        shipTo: orderItems.shipTo,
+      })
+      .from(predictionHistory)
+      .innerJoin(orderItems, eq(predictionHistory.orderItemId, orderItems.id))
+      .orderBy(asc(predictionHistory.uploadId), asc(predictionHistory.id));
+
+  // Agrupar histórico por orderItemId
+  const itemHistories = new Map<number, { uploadId: number; prediction: string }[]>();
+  for (const h of allHistory) {
+    const list = itemHistories.get(h.orderItemId) || [];
+    list.push({ uploadId: h.uploadId, prediction: h.prediction });
+    itemHistories.set(h.orderItemId, list);
+  }
+
+  for (const upload of allUploads) {
+    let criticalCount = 0;
+    let attentionCount = 0;
+
+    for (const historyList of Array.from(itemHistories.values())) {
+      // Encontrar o registro correspondente a este upload ou o último anterior
+      const relevantIndex = historyList.findIndex((h: { uploadId: number; prediction: string }) => h.uploadId === upload.id);
+      if (relevantIndex <= 0) continue; // Precisa ter upload atual e anterior
+
+      const currRecord = historyList[relevantIndex];
+      const prevRecord = historyList[relevantIndex - 1];
+
+      const prev = parseDate(prevRecord.prediction);
+      const curr = parseDate(currRecord.prediction);
+      if (!prev || !curr) continue;
+
+      const diffDays = Math.abs(Math.round((curr.getTime() - prev.getTime()) / 86400000));
+      if (diffDays > threshold) {
+        if (diffDays >= threshold * 2) {
+          criticalCount++;
+        } else {
+          attentionCount++;
+        }
+      }
+    }
+
+    const dateStr = new Date(upload.uploadDate).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+    trendResult.push({
+      uploadId: upload.id,
+      fileName: upload.fileName,
+      uploadDate: dateStr,
+      criticalCount,
+      attentionCount,
+      totalAlerts: criticalCount + attentionCount,
+    });
+  }
+
+  return trendResult;
+}
+
 export async function getShipToOptions() {
   const db = await getDb();
   if (!db) return [];

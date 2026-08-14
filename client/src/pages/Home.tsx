@@ -65,6 +65,7 @@ export default function Home() {
   const branchSummaryQuery = trpc.orders.getBranchSummary.useQuery();
   const alertsInput = React.useMemo(() => ({ thresholdDays: alertThresholdDays, shipTo: filterShipTo || undefined }), [alertThresholdDays, filterShipTo]);
   const alertsQuery = trpc.orders.getAlerts.useQuery(alertsInput);
+  const alertsTrendQuery = trpc.orders.getAlertsTrend.useQuery(alertsInput);
   const itemDetailQuery = trpc.orders.getItemDetail.useQuery({ id: selectedItemId! }, { enabled: selectedItemId !== null });
   const resetMutation = trpc.orders.resetImports.useMutation();
   const utils = trpc.useUtils();
@@ -87,7 +88,7 @@ export default function Home() {
       setResetConfirmation("");
       setSelectedItemId(null);
       toast.success(`Importações resetadas: ${result.deletedUploads} uploads, ${result.deletedItems} itens e ${result.deletedHistory} registros históricos removidos.`);
-      await Promise.all([statsQuery.refetch(), itemsQuery.refetch(), uploadsQuery.refetch(), shipToQuery.refetch(), branchSummaryQuery.refetch(), alertsQuery.refetch()]);
+      await Promise.all([statsQuery.refetch(), itemsQuery.refetch(), uploadsQuery.refetch(), shipToQuery.refetch(), branchSummaryQuery.refetch(), alertsQuery.refetch(), alertsTrendQuery.refetch()]);
     } catch (err: any) {
       toast.error(err.message || "Não foi possível resetar as importações.");
     }
@@ -119,6 +120,7 @@ export default function Home() {
           utils.orders.listShipTo.invalidate(),
           utils.orders.getBranchSummary.invalidate(),
           utils.orders.getAlerts.invalidate(alertsInput),
+          utils.orders.getAlertsTrend.invalidate(alertsInput),
         ]).finally(() => setUploadStatus("idle"));
       } catch (err: any) {
         toast.error(err.message || "Erro ao processar o upload do arquivo.");
@@ -234,8 +236,8 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="border border-zinc-900 bg-white p-4">
-            <div className="flex justify-between items-center mb-2">
+          <div className="border border-zinc-900 bg-white p-4 space-y-4">
+            <div className="flex justify-between items-center">
               <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Proporção visual de severidade (Limiar: &gt; {alertThresholdDays} dias)</span>
               <span className="text-[10px] font-mono text-zinc-500">{alertSummary.totalAlerts === 0 ? "Nenhum alerta" : `${alertSummary.criticalCount} críticos / ${alertSummary.attentionCount} atenção`}</span>
             </div>
@@ -257,6 +259,35 @@ export default function Home() {
                 )}
               </div>
             )}
+
+            <div className="pt-3 border-t border-zinc-200">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-600 font-bold">Tendência histórica de alertas críticos (&ge; {alertThresholdDays * 2} dias)</span>
+                <span className="text-[10px] font-mono text-zinc-500">Por upload semanal</span>
+              </div>
+              {(() => {
+                const trendData = alertsTrendQuery.data || [];
+                const maxCritical = Math.max(...trendData.map(d => d.criticalCount), 1);
+                return trendData.length === 0 ? (
+                  <div className="h-28 bg-zinc-50 flex items-center justify-center text-[10px] font-mono text-zinc-500 border border-dashed border-zinc-300">
+                    Nenhum histórico de upload disponível para tendência
+                  </div>
+                ) : (
+                  <div className="flex items-end gap-3 h-32 bg-zinc-50 p-3 border border-zinc-900">
+                    {trendData.map((entry) => {
+                      const heightPct = Math.max((entry.criticalCount / maxCritical) * 80, entry.criticalCount > 0 ? 12 : 6);
+                      return (
+                        <div key={entry.uploadId} className="flex-1 h-full flex flex-col justify-end items-center gap-1 min-w-0" title={`Upload #${entry.uploadId} (${entry.fileName}): ${entry.criticalCount} críticos, ${entry.attentionCount} atenção`}>
+                          <span className="text-[10px] font-mono font-bold text-red-600">{entry.criticalCount}</span>
+                          <div className="w-full max-w-10 bg-red-600 transition-all" style={{ height: `${heightPct}%` }} />
+                          <span className="text-[9px] font-mono text-zinc-600 truncate w-full text-center">{entry.uploadDate}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3"><Badge className="rounded-none bg-red-600 text-white font-mono">{alerts.length} alertas visíveis</Badge><span className="text-xs font-mono text-zinc-600">Limiar atual: &gt; {alertThresholdDays} dias</span>{filterShipTo && <Badge className="rounded-none bg-zinc-950 text-white font-mono">Filial: {filterShipTo}</Badge>}</div><div className="border border-zinc-900 bg-white overflow-x-auto"><table className="w-full min-w-[1050px] text-left border-collapse"><thead><tr className="border-b border-zinc-900 bg-zinc-950 text-white text-[10px] font-mono uppercase tracking-wider"><th className="p-3">Severidade</th><th className="p-3">Item / descrição</th><th className="p-3">Filial solicitante</th><th className="p-3">Customer PO</th><th className="p-3">Previsão anterior</th><th className="p-3">Previsão atual</th><th className="p-3 text-right">Variação</th><th className="p-3 text-center">Ação</th></tr></thead><tbody className="divide-y divide-zinc-200 text-xs font-mono">{alerts.length === 0 ? <tr><td colSpan={8} className="p-10 text-center text-zinc-500">Nenhum item ultrapassou o limiar de {alertThresholdDays} dias nesta filial.</td></tr> : alerts.slice(0, 20).map((alert) => <tr key={alert.id} className={alert.severity === "CRÍTICO" ? "bg-red-50" : "bg-white hover:bg-amber-50"}><td className="p-3"><span className={`inline-flex px-2 py-1 text-[10px] font-bold ${riskClass(alert.severity)}`}>{alert.severity}</span><p className="text-[10px] text-zinc-500 mt-1">{alert.direction}</p></td><td className="p-3"><p className="font-bold">{alert.item}</p><p className="text-[10px] text-zinc-500 max-w-[190px] truncate" title={alert.itemDescription || ""}>{alert.itemDescription || "—"}</p></td><td className="p-3 max-w-[180px] truncate" title={alert.shipTo}>{alert.shipTo}</td><td className="p-3">{alert.customerPo || "—"}</td><td className="p-3 text-zinc-600">{alert.previousPrediction || "—"}</td><td className="p-3 font-bold text-red-700">{alert.currentPrediction || "—"}</td><td className="p-3 text-right font-black text-red-700">{alert.differenceDays > 0 ? "+" : ""}{alert.differenceDays} dias</td><td className="p-3 text-center"><Button type="button" variant="outline" size="sm" onClick={() => setSelectedItemId(alert.id)} className="rounded-none border-zinc-900 text-[10px] font-mono uppercase h-8">Ver histórico</Button></td></tr>)}</tbody></table></div>{alerts.length > 20 && <p className="text-[10px] font-mono text-zinc-600">Exibindo os 20 alertas de maior variação. Ajuste a filial ou o limiar para refinar a lista.</p>}</section>

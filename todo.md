@@ -64,3 +64,6 @@ A tabela principal deve mostrar o último upload associado ao item e um resumo d
 - [x] Validar alertas com testes unitários e testes de integração end-to-end
 
 - [x] Calcular proporção de alertas críticos vs atenção e expor totais e percentuais na API tRPC de alertas
+- [x] Criar endpoint e gráfico de tendência histórica de alertas críticos por upload semanal com filtro por filial
+- [x] Executar pnpm check, pnpm test e pnpm build e validar sucesso de todos os testes
+- [x] Validar gráfico de tendência histórica e proporção de severidade integrado ao dashboard gerencial

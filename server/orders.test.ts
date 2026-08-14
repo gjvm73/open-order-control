@@ -29,8 +29,12 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(Array.isArray(shipToOptions)).toBe(true);
     const branches = await caller.orders.getBranchSummary();
     expect(Array.isArray(branches)).toBe(true);
-    const alerts = await caller.orders.getAlerts({ thresholdDays: 7 });
-    expect(Array.isArray(alerts)).toBe(true);
+    const alertResponse = await caller.orders.getAlerts({ thresholdDays: 7 });
+    expect(Array.isArray(alertResponse.alerts)).toBe(true);
+    expect(alertResponse.summary).toBeDefined();
+
+    const trend = await caller.orders.getAlertsTrend({ thresholdDays: 7 });
+    expect(Array.isArray(trend)).toBe(true);
   });
 
   it("blocks resetImports for non-admin users", async () => {
@@ -260,8 +264,8 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(filteredStats.changedItems).toBeGreaterThanOrEqual(1);
     expect(filteredStats.changedLastUpload).toBeGreaterThanOrEqual(1);
 
-    const alertsAboveThirtyDays = await caller.orders.getAlerts({ thresholdDays: 30, shipTo: "TESTE RS" });
-    const targetAlert = alertsAboveThirtyDays.find((alert) => alert.item === itemCode && alert.customerPo === customerPo);
+    const alertResponse = await caller.orders.getAlerts({ thresholdDays: 30, shipTo: "TESTE RS" });
+    const targetAlert = alertResponse.alerts.find((alert) => alert.item === itemCode && alert.customerPo === customerPo);
     expect(targetAlert).toMatchObject({
       shipTo: "TESTE RS",
       previousPrediction: "2025-07-15",
@@ -272,7 +276,7 @@ describe("Open Orders Backend & Upload Logic", () => {
     });
     expect(targetAlert?.severity).toBe("ATENÇÃO");
 
-    const alertsAboveFortyDays = await caller.orders.getAlerts({ thresholdDays: 40, shipTo: "TESTE RS" });
-    expect(alertsAboveFortyDays.some((alert) => alert.item === itemCode && alert.customerPo === customerPo)).toBe(false);
+    const alertResponse40 = await caller.orders.getAlerts({ thresholdDays: 40, shipTo: "TESTE RS" });
+    expect(alertResponse40.alerts.some((alert) => alert.item === itemCode && alert.customerPo === customerPo)).toBe(false);
   });
 });

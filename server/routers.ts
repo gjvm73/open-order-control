@@ -93,6 +93,13 @@ export const appRouter = router({
       };
     }),
 
+    getAlertsTrend: publicProcedure.input(z.object({
+      thresholdDays: z.number().int().min(1).max(3650).default(7),
+      shipTo: z.string().optional(),
+    })).query(async ({ input }) => {
+      return await db.getAlertsTrend(input.thresholdDays, input.shipTo);
+    }),
+
     resetImports: adminProcedure.mutation(async () => {
       return await db.resetImportedData();
     }),
