@@ -257,6 +257,10 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(filteredStats.totalItems).toBeGreaterThanOrEqual(1);
     expect(filteredStats.changedItems).toBeGreaterThanOrEqual(1);
     expect(filteredStats.changedLastUpload).toBeGreaterThanOrEqual(1);
+    expect(filteredStats.latestChangeRate).toBe(100);
+    expect(filteredStats.latestStabilityRate).toBe(0);
+    expect(filteredStats.stabilityRate).toBe(0);
+    expect(filteredStats.riskRate).toBe(100);
 
     const alertResponse = await caller.orders.getAlerts({ thresholdDays: 30, shipTo: "TESTE RS" });
     const targetAlert = alertResponse.alerts.find((alert) => alert.item === itemCode && alert.customerPo === customerPo);

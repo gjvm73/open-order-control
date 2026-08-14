@@ -84,3 +84,13 @@
 - [x] Implementar os novos painéis estratégicos e refinamentos visuais no Swiss Style
 - [x] Validar cálculos, responsividade e estabilidade dos dados estratégicos
 - [x] Salvar checkpoint e entregar o relatório do dashboard estratégico
+- [ ] Implementar a exportação do dashboard em PDF no frontend usando impressão otimizada ou jsPDF/html2canvas
+- [ ] Adicionar o botão "Exportar PDF" no cabeçalho ou na seção executiva
+- [ ] Validar a geração e o download do PDF no preview
+- [ ] Salvar checkpoint e entregar o recurso de exportação
+- [ ] Investigar getDashboardStats em server/db.ts para o cálculo de stabilityRate e changedItems
+- [ ] Ajustar a lógica de estabilidade para que 100% de alterações reflita corretamente 0% de estabilidade (ou vice-versa)
+- [ ] Validar a consistência matemática entre alteredItems, stableItems e stabilityRate
+- [ ] Definir a estabilidade exibida como o complemento da taxa de alterações do último upload
+- [ ] Expor latestChangeRate no contrato de estatísticas e diferenciar alteração do ciclo de alteração acumulada
+- [ ] Cobrir o cenário de 100% de alterações no último upload com estabilidade de 0%

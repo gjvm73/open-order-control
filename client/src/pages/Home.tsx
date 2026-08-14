@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import {
-  Upload, TrendingUp, AlertTriangle, Package, History, Search, LogOut,
+  Upload, Printer, TrendingUp, AlertTriangle, Package, History, Search, LogOut,
   ArrowRight, Minus, ShieldAlert, Clock3, CircleDollarSign, Target,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -82,6 +82,15 @@ export default function Home() {
     toast.success(`Alertas configurados acima de ${parsed} dias.`);
   };
 
+  const handleExportPdf = () => {
+    const previousTitle = document.title;
+    document.title = "Open Order Control - Dashboard Gerencial";
+    window.setTimeout(() => {
+      window.print();
+      window.setTimeout(() => { document.title = previousTitle; }, 250);
+    }, 0);
+  };
+
   const handleResetImports = async () => {
     try {
       const result = await resetMutation.mutateAsync();
@@ -136,7 +145,7 @@ export default function Home() {
   const stats = statsQuery.data || {
     totalItems: 0, changedLastUpload: 0, noSupplier: 0, mostChanged: [], totalOrderValue: 0,
     valueAtRisk: 0, changedItems: 0, stableItems: 0, highPriorityItems: 0, overdueItems: 0,
-    stabilityRate: 0, riskRate: 0, trend: [], actionQueue: [], latestUpload: null,
+    stabilityRate: 0, riskRate: 0, latestChangeRate: 0, latestStabilityRate: 0, trend: [], actionQueue: [], latestUpload: null,
   };
   const items = itemsQuery.data || [];
   const uploadsList = uploadsQuery.data || [];
@@ -146,12 +155,12 @@ export default function Home() {
   const alerts = alertsData.alerts;
   const alertSummary = alertsData.summary;
   const changedItems = items.filter((item) => item.predictionChangesCount > 0);
-  const stabilityRate = stats.stabilityRate ?? 0;
+  const stabilityRate = stats.latestStabilityRate ?? stats.stabilityRate ?? 0;
   const maxTrendChanges = Math.max(...stats.trend.map((entry) => entry.changedRowsCount), 1);
   const strategic = React.useMemo(() => {
     const total = Number(stats.totalItems || 0);
     const rate = (value: number) => total > 0 ? Number(((value / total) * 100).toFixed(1)) : 0;
-    const changeRate = Number(stats.riskRate || 0);
+    const changeRate = Number(stats.latestChangeRate ?? stats.riskRate ?? 0);
     const overdueRate = rate(Number(stats.overdueItems || 0));
     const supplierRate = rate(Number(stats.noSupplier || 0));
     const priorityRate = rate(Number(stats.highPriorityItems || 0));
@@ -194,6 +203,7 @@ export default function Home() {
           <p className="text-xs font-mono uppercase tracking-widest text-zinc-500 mt-1">Dashboard gerencial de previsões de entrega</p>
         </div>
         <div className="flex items-center gap-4">
+          <Button variant="outline" onClick={handleExportPdf} className="no-print rounded-none border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto" aria-label="Exportar dashboard em PDF"><Printer className="w-4 h-4 mr-2" />Exportar PDF</Button>
           <label className="cursor-pointer bg-zinc-950 hover:bg-zinc-800 text-white px-5 py-2.5 text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all"><Upload className="w-4 h-4" />{uploadStatusLabel}<input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleFileUpload} disabled={isUploading} /></label>
           <AlertDialog onOpenChange={(open) => { if (!open) setResetConfirmation(""); }}><AlertDialogTrigger asChild><Button variant="outline" className="rounded-none border-red-600 text-red-600 hover:bg-red-600 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto"><ShieldAlert className="w-4 h-4 mr-2" />Resetar importações</Button></AlertDialogTrigger><AlertDialogContent className="rounded-none border-2 border-red-600 bg-white"><AlertDialogHeader><AlertDialogTitle className="font-black uppercase tracking-tight text-red-700">Resetar todas as importações?</AlertDialogTitle><AlertDialogDescription className="font-mono text-xs leading-6 text-zinc-700">Esta ação excluirá permanentemente todos os uploads, itens cadastrados e o histórico de previsões da base de consulta. Não é possível desfazer esta operação.</AlertDialogDescription></AlertDialogHeader><div className="space-y-2"><label className="text-xs font-mono uppercase tracking-wider text-zinc-600">Digite RESETAR para confirmar</label><Input value={resetConfirmation} onChange={(event) => setResetConfirmation(event.target.value.toUpperCase())} placeholder="RESETAR" className="rounded-none border-zinc-900 font-mono" autoFocus /></div><AlertDialogFooter><AlertDialogCancel className="rounded-none border-zinc-900 font-mono text-xs uppercase">Cancelar</AlertDialogCancel><AlertDialogAction className="rounded-none bg-red-600 hover:bg-red-700 font-mono text-xs uppercase" disabled={resetConfirmation !== "RESETAR" || resetMutation.isPending} onClick={(event) => { event.preventDefault(); void handleResetImports(); }}>{resetMutation.isPending ? "Limpando..." : "Confirmar reset"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
           {isAuthenticated ? <div className="flex items-center gap-3 border border-zinc-900 px-3 py-1.5 bg-zinc-50"><span className="text-xs font-mono">{user?.name || user?.email}</span><Button variant="ghost" size="sm" onClick={() => logout()} className="h-7 px-2 text-red-600 hover:bg-red-50"><LogOut className="w-3.5 h-3.5" /></Button></div> : <Button variant="outline" size="sm" className="border-zinc-900 text-xs font-mono uppercase rounded-none" onClick={() => (window.location.href = "/api/oauth/login")}>Entrar</Button>}
@@ -205,9 +215,9 @@ export default function Home() {
           <div className="border-b border-zinc-900 pb-2 mb-6 flex justify-between items-end"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">01 / Visão executiva</h2><h3 className="text-2xl font-black tracking-tight mt-1">Onde a gestão deve concentrar atenção</h3></div><span className="text-xs font-mono text-zinc-400">Base atualizada: {stats.latestUpload ? formatDateTime(stats.latestUpload.uploadDate) : "sem upload"}</span></div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <MetricCard label="Itens ativos" value={String(stats.totalItems)} detail={`${stats.stableItems} sem alteração acumulada`} icon={<Package className="w-4 h-4" />} accent="red" />
-            <MetricCard label="Estabilidade da carteira" value={`${stats.stabilityRate}%`} detail={`${stats.changedItems} itens com alteração`} icon={<Target className="w-4 h-4" />} accent="black" />
+            <MetricCard label="Estabilidade do último ciclo" value={`${stats.latestStabilityRate ?? stats.stabilityRate}%`} detail={`${stats.changedLastUpload} itens alterados no último upload`} icon={<Target className="w-4 h-4" />} accent="black" />
             <MetricCard label="Valor total dos pedidos" value={formatCurrency(stats.totalOrderValue)} detail={`${stats.highPriorityItems} itens com prioridade alta`} icon={<CircleDollarSign className="w-4 h-4" />} accent="black" />
-            <MetricCard label="Valor sob risco de alteração" value={formatCurrency(stats.valueAtRisk)} detail={`${stats.riskRate}% dos itens tiveram mudança`} icon={<ShieldAlert className="w-4 h-4" />} accent="red" />
+            <MetricCard label="Valor sob risco acumulado" value={formatCurrency(stats.valueAtRisk)} detail={`${stats.riskRate}% dos itens tiveram alguma mudança`} icon={<ShieldAlert className="w-4 h-4" />} accent="red" />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
             <MiniMetric label="Mudaram no último upload" value={String(stats.changedLastUpload)} tone="red" />
@@ -384,7 +394,7 @@ export default function Home() {
           </div>
           <div className="border border-zinc-900 p-6 bg-zinc-950 text-white">
             <div className="flex justify-between items-start mb-6"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-400">03 / Leitura gerencial</h2><h3 className="text-xl font-bold mt-1">Sinais para decisão</h3></div><Clock3 className="w-5 h-5 text-red-500" /></div>
-            <div className="space-y-5 text-sm font-mono"><DecisionLine label="Carteira estável" value={`${stabilityRate}%`} note={stabilityRate >= 80 ? "controle" : "acompanhar"} positive={stabilityRate >= 80} /><DecisionLine label="Itens vencidos" value={String(stats.overdueItems)} note={stats.overdueItems > 0 ? "ação imediata" : "sem ocorrência"} positive={stats.overdueItems === 0} /><DecisionLine label="Sem fornecedor" value={String(stats.noSupplier)} note={stats.noSupplier > 0 ? "cobrar abastecimento" : "regular"} positive={stats.noSupplier === 0} /><DecisionLine label="Alterações recentes" value={String(stats.changedLastUpload)} note={stats.changedLastUpload > 0 ? "revisar impacto" : "sem mudança"} positive={stats.changedLastUpload === 0} /></div>
+            <div className="space-y-5 text-sm font-mono"><DecisionLine label="Estabilidade último upload" value={`${stabilityRate}%`} note={stabilityRate >= 80 ? "controle" : "acompanhar"} positive={stabilityRate >= 80} /><DecisionLine label="Itens vencidos" value={String(stats.overdueItems)} note={stats.overdueItems > 0 ? "ação imediata" : "sem ocorrência"} positive={stats.overdueItems === 0} /><DecisionLine label="Sem fornecedor" value={String(stats.noSupplier)} note={stats.noSupplier > 0 ? "cobrar abastecimento" : "regular"} positive={stats.noSupplier === 0} /><DecisionLine label="Alterações recentes" value={String(stats.changedLastUpload)} note={stats.changedLastUpload > 0 ? "revisar impacto" : "sem mudança"} positive={stats.changedLastUpload === 0} /></div>
           </div>
         </section>
 

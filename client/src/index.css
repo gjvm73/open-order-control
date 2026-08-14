@@ -45,3 +45,27 @@ body {
   background-color: #E63946;
   color: #ffffff;
 }
+
+@media print {
+  header button,
+  header label,
+  .no-print,
+  button {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  section {
+    page-break-inside: avoid;
+    border: 1px solid #000 !important;
+    margin-bottom: 2rem !important;
+    background: white !important;
+  }
+}

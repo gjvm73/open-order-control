@@ -413,6 +413,10 @@ export async function getDashboardStats(shipTo?: string) {
       valueAtRisk: 0,
       changedItems: 0,
       stableItems: 0,
+      stabilityRate: 0,
+      riskRate: 0,
+      latestChangeRate: 0,
+      latestStabilityRate: 0,
       highPriorityItems: 0,
       overdueItems: 0,
       trend: [],
@@ -522,6 +526,9 @@ export async function getDashboardStats(shipTo?: string) {
     changeRate: upload.totalRows > 0 ? Math.round((upload.changedRowsCount / upload.totalRows) * 1000) / 10 : 0,
   }));
 
+  const latestChangeRate = totalItems > 0 ? Math.round((changedLastUpload / totalItems) * 1000) / 10 : 0;
+  const latestStabilityRate = Math.max(0, Math.round((100 - latestChangeRate) * 10) / 10);
+
   return {
     totalItems,
     changedLastUpload,
@@ -535,6 +542,8 @@ export async function getDashboardStats(shipTo?: string) {
     overdueItems,
     stabilityRate: totalItems > 0 ? Math.round((stableItems / totalItems) * 1000) / 10 : 0,
     riskRate: totalItems > 0 ? Math.round((changedItems.length / totalItems) * 1000) / 10 : 0,
+    latestChangeRate,
+    latestStabilityRate,
     trend,
     actionQueue,
     latestUpload,
