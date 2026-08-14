@@ -458,6 +458,12 @@ describe("Open Orders Backend & Upload Logic", () => {
 
     const allStatsAfterClear = await caller.orders.getStats({ shipTo: undefined });
     expect(allStatsAfterClear.totalItems).toBe(2);
+
+    const alertsAfterClear = await caller.orders.getAlerts({ thresholdDays: 7, shipTo: undefined });
+    expect(alertsAfterClear.alerts).toBeDefined();
+
+    const trendAfterClear = await caller.orders.getAlertsTrend({ thresholdDays: 7, shipTo: undefined });
+    expect(trendAfterClear).toBeDefined();
   });
 
   it("uploads order with mapped address and filters correctly by canonical city PORTO ALEGRE", async () => {

@@ -112,8 +112,8 @@
 - [x] Validar testes, build e visualização da tabela após a alteração
 - [x] Salvar checkpoint da melhoria do mapa de alterações
 
-- [ ] Investigar o comportamento do filtro por filial ao selecionar e limpar a opção
-- [ ] Corrigir a sincronização das consultas e indicadores ao limpar o filtro
-- [ ] Adicionar testes para seleção, limpeza e retorno ao conjunto completo de filiais
-- [ ] Validar no preview, executar testes e build
-- [ ] Salvar checkpoint da correção do filtro por filial
+- [x] Investigar o comportamento do filtro por filial ao selecionar e limpar a opção
+- [x] Corrigir a sincronização das consultas e indicadores ao limpar o filtro
+- [x] Adicionar testes para seleção, limpeza e retorno ao conjunto completo de filiais
+- [x] Validar no preview, executar testes e build
+- [x] Salvar checkpoint da correção do filtro por filial
