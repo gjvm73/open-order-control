@@ -411,3 +411,58 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(normalizeShipTo("RUA VALDEMIRO BELINSKI PARALELA A BR 282 SC BR")).toBe("CHAPECÓ");
     expect(normalizeShipTo("OUTRA FILIAL SP BR")).toBe("OUTRA FILIAL SP BR");
   });
+
+  it("uploads order with mapped address and filters correctly by canonical city PORTO ALEGRE", async () => {
+    await db.resetImportedData();
+    const ctx: TrpcContext = {
+      user: {
+        id: 1,
+        openId: "test-admin-city",
+        name: "Test Admin",
+        email: "admin@test.com",
+        loginMethod: "manus",
+        role: "admin",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      },
+      req: { protocol: "https", headers: {} } as any,
+      res: {} as any,
+    };
+    const caller = appRouter.createCaller(ctx);
+    const itemCode = `ITEM-CITY-${Date.now()}`;
+    const customerPo = `PO-CITY-${Date.now()}`;
+    const wsData = [{
+      "Endereco (ship To)": "AVENIDA ASSIS BRASIL RS BR",
+      "Customer PO": customerPo,
+      "Shipment Priority": "High",
+      "Data Criacao da Ordem": new Date("2025-01-01T00:00:00.000Z"),
+      "Item": itemCode,
+      "Descricao do Item": "Teste de cidade mapeada",
+      "Quantidade": 5,
+      "Scheduled Reserved": 0,
+      "Unit Selling Price": 50,
+      "Extended Price": 250,
+      "Previsão": "2025-09-01",
+      "Long Text": "Mapeamento Porto Alegre",
+    }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(wsData), "OpenOrders");
+    const fileBase64 = XLSX.write(wb, { type: "buffer", bookType: "xlsx" }).toString("base64");
+
+    await caller.orders.uploadExcel({ fileName: "city-test.xlsx", fileBase64 });
+
+    const shipToOptions = await caller.orders.listShipTo();
+    expect(shipToOptions).toContain("PORTO ALEGRE");
+    expect(shipToOptions).not.toContain("AVENIDA ASSIS BRASIL RS BR");
+
+    const filteredItems = await caller.orders.listItems({ shipTo: "PORTO ALEGRE" });
+    expect(filteredItems.length).toBe(1);
+    expect(filteredItems[0].shipTo).toBe("PORTO ALEGRE");
+    expect(filteredItems[0].item).toBe(itemCode);
+
+    const branches = await caller.orders.getBranchSummary();
+    const portoBranch = branches.find(b => b.shipTo === "PORTO ALEGRE");
+    expect(portoBranch).toBeDefined();
+    expect(portoBranch?.totalItems).toBe(1);
+  });

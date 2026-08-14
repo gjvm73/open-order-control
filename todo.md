@@ -103,7 +103,7 @@
 - [x] Gerar a apresentação de slides usando o modo html do Manus Slides
 - [x] Exportar a apresentação para PDF/PPT e entregá-la ao usuário
 
-- [ ] Normalizar os cinco endereços solicitados para as cidades correspondentes nos filtros, itens, alertas, histórico e indicadores
-- [ ] Criar testes para o mapeamento de endereços e validar o filtro por filial
-- [ ] Executar testes, checagem TypeScript, build e validação visual após a correção
-- [ ] Salvar checkpoint da correção de normalização de filiais
+- [x] Normalizar os cinco endereços solicitados para as cidades correspondentes nos filtros, itens, alertas, histórico e indicadores
+- [x] Criar testes para o mapeamento de endereços e validar o filtro por filial
+- [x] Executar testes, checagem TypeScript, build e validação visual após a correção
+- [x] Salvar checkpoint da correção de normalização de filiais

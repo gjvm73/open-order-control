@@ -154,6 +154,7 @@ export async function getOrderItems(filters?: { search?: string; item?: string; 
 
   return rows.map(({ order_items: item, uploads: upload }) => ({
     ...item,
+    shipTo: normalizeShipTo(item.shipTo) || "Sem filial informada",
     lastUploadFileName: upload?.fileName ?? null,
     lastUploadDate: upload?.uploadDate ?? null,
   }));
@@ -163,7 +164,11 @@ export async function getOrderItemById(id: number) {
   const db = await getDb();
   if (!db) return null;
   const [item] = await db.select().from(orderItems).where(eq(orderItems.id, id)).limit(1);
-  return item || null;
+  if (!item) return null;
+  return {
+    ...item,
+    shipTo: normalizeShipTo(item.shipTo) || "Sem filial informada",
+  };
 }
 
 export async function getPredictionHistoryByItem(orderItemId: number) {
