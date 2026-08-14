@@ -1,11 +1,10 @@
-import { eq } from "drizzle-orm";
+import { eq, desc, sql, and, or, like, gte, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, uploads, orderItems, predictionHistory, InsertUploadRecord, InsertOrderItem, InsertPredictionHistoryRecord } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
-// Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
@@ -17,6 +16,9 @@ export async function getDb() {
   }
   return _db;
 }
+
+// Exportar tabelas para uso nos routers
+export { users, uploads, orderItems, predictionHistory, sql, eq, desc, and, or, like };
 
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
@@ -79,14 +81,81 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
-  if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
-  }
-
+  if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function createUploadRecord(data: InsertUploadRecord) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const [result] = await db.insert(uploads).values(data);
+  return result.insertId;
+}
+
+export async function getUploadsList() {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(uploads).orderBy(desc(uploads.uploadDate));
+}
+
+export async function getOrderItems(filters?: { search?: string }) {
+  const db = await getDb();
+  if (!db) return [];
+  
+  const conditions = [];
+  if (filters?.search) {
+    const s = `%${filters.search}%`;
+    conditions.push(or(
+      like(orderItems.item, s),
+      like(orderItems.customerPo, s),
+      like(orderItems.itemDescription, s)
+    ));
+  }
+  
+  if (conditions.length > 0) {
+    return await db.select().from(orderItems).where(and(...conditions)).orderBy(desc(orderItems.updatedAt));
+  }
+  
+  return await db.select().from(orderItems).orderBy(desc(orderItems.updatedAt));
+}
+
+export async function getOrderItemById(id: number) {
+  const db = await getDb();
+  if (!db) return null;
+  const [item] = await db.select().from(orderItems).where(eq(orderItems.id, id)).limit(1);
+  return item || null;
+}
+
+export async function getPredictionHistoryByItem(orderItemId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(predictionHistory).where(eq(predictionHistory.orderItemId, orderItemId)).orderBy(desc(predictionHistory.recordedAt));
+}
+
+export async function getDashboardStats() {
+  const db = await getDb();
+  if (!db) return { totalItems: 0, changedLastUpload: 0, noSupplier: 0, mostChanged: [] };
+
+  const allItems = await db.select().from(orderItems);
+  const totalItems = allItems.length;
+
+  const noSupplier = allItems.filter(i => i.currentPrediction && i.currentPrediction.toLowerCase().includes("sem fornecedor")).length;
+
+  const mostChanged = [...allItems].sort((a, b) => b.predictionChangesCount - a.predictionChangesCount).slice(0, 5);
+
+  const uploadList = await db.select().from(uploads).orderBy(desc(uploads.uploadDate)).limit(1);
+  let changedLastUpload = 0;
+  if (uploadList.length > 0) {
+    const lastUploadId = uploadList[0].id;
+    const changedInUpload = await db.select().from(orderItems).where(eq(orderItems.lastUploadId, lastUploadId));
+    changedLastUpload = changedInUpload.filter(i => i.predictionChangesCount > 0 && i.lastUploadId === lastUploadId).length;
+  }
+
+  return {
+    totalItems,
+    changedLastUpload,
+    noSupplier,
+    mostChanged,
+  };
+}
