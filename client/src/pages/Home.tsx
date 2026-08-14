@@ -346,5 +346,104 @@ function DecisionLine({ label, value, note, positive }: { label: string; value: 
 }
 
 function ItemHistoryDialog({ detail, isLoading }: { detail: any; isLoading: boolean }) {
-  return <DialogContent className="max-w-5xl rounded-none border-2 border-zinc-950 bg-white"><DialogHeader className="border-b border-zinc-900 pb-4"><DialogTitle className="font-black text-lg uppercase tracking-tight">Histórico completo — {detail?.item.item || "Item"}</DialogTitle></DialogHeader>{isLoading ? <div className="py-12 text-center font-mono text-xs">Carregando histórico...</div> : detail ? <div className="space-y-6 pt-4 font-mono text-xs"><div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 border border-zinc-900 bg-zinc-50"><div><p className="text-zinc-500 uppercase">Item</p><p className="font-bold text-sm">{detail.item.item}</p></div><div><p className="text-zinc-500 uppercase">Customer PO</p><p className="font-bold text-sm">{detail.item.customerPo || "—"}</p></div><div><p className="text-zinc-500 uppercase">Previsão atual</p><p className="font-bold text-sm text-red-600">{detail.item.currentPrediction || "—"}</p></div><div><p className="text-zinc-500 uppercase">Alterações</p><p className="font-bold text-sm text-red-600">{detail.item.predictionChangesCount}x</p></div></div><div><h4 className="font-bold uppercase tracking-wider text-zinc-700 mb-3">Linha do tempo de uploads</h4><div className="border border-zinc-900 overflow-auto max-h-[420px]"><table className="w-full min-w-[820px] text-left"><thead className="sticky top-0 bg-zinc-950 text-white"><tr className="text-[10px] uppercase tracking-wider"><th className="p-3">#</th><th className="p-3">Upload / arquivo</th><th className="p-3">Data do upload</th><th className="p-3">Previsão registrada</th><th className="p-3">Alteração</th><th className="p-3">Diferença</th></tr></thead><tbody className="divide-y divide-zinc-200">{detail.history.map((h: any) => <tr key={h.id} className={h.changed ? "bg-red-50" : "bg-white"}><td className="p-3 text-zinc-400">{h.sequence}</td><td className="p-3"><p className="font-bold">{h.fileName}</p><p className="text-[10px] text-zinc-500">Upload #{h.uploadId}</p></td><td className="p-3">{formatDateTime(h.uploadDate)}</td><td className="p-3 font-bold text-red-600">{h.prediction}</td><td className="p-3">{h.changed ? <span className="inline-flex items-center gap-1 text-red-700 font-bold"><ArrowRight className="w-3 h-3" /> {h.previousPrediction} <ArrowRight className="w-3 h-3" /> {h.prediction}</span> : <span className="inline-flex items-center gap-1 text-zinc-500"><Minus className="w-3 h-3" /> Sem mudança</span>}</td><td className="p-3">{h.differenceDays === null ? "—" : h.differenceDays > 0 ? <span className="text-red-700 font-bold">+{h.differenceDays} dias</span> : h.differenceDays < 0 ? <span className="text-amber-700 font-bold">{h.differenceDays} dias</span> : "0 dias"}</td></tr>)}</tbody></table></div></div></div> : <div className="py-12 text-center font-mono text-xs">Não foi possível carregar este item.</div>}</DialogContent>;
+  return (
+    <DialogContent className="w-[calc(100vw-2rem)] max-w-none sm:w-[calc(100vw-3rem)] sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-none border-2 border-zinc-950 bg-white p-6 font-mono text-xs">
+      <DialogHeader className="border-b-2 border-zinc-950 pb-4 mb-4">
+        <DialogTitle className="font-black text-xl uppercase tracking-tight text-zinc-950">
+          Histórico completo — {detail?.item?.item || "Item"}
+        </DialogTitle>
+      </DialogHeader>
+
+      {isLoading ? (
+        <div className="py-16 text-center font-mono text-xs text-zinc-500 uppercase tracking-widest">
+          Carregando histórico...
+        </div>
+      ) : detail ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 border border-zinc-900 bg-zinc-50">
+            <div>
+              <span className="text-[10px] uppercase text-zinc-500 block">Item</span>
+              <p className="font-bold text-sm text-zinc-950 mt-0.5 truncate" title={detail.item.item}>{detail.item.item}</p>
+            </div>
+            <div>
+              <span className="text-[10px] uppercase text-zinc-500 block">Customer PO</span>
+              <p className="font-bold text-sm text-zinc-950 mt-0.5 truncate" title={detail.item.customerPo || "—"}>{detail.item.customerPo || "—"}</p>
+            </div>
+            <div>
+              <span className="text-[10px] uppercase text-zinc-500 block">Previsão atual</span>
+              <p className="font-bold text-sm text-red-600 mt-0.5">{detail.item.currentPrediction || "—"}</p>
+            </div>
+            <div>
+              <span className="text-[10px] uppercase text-zinc-500 block">Alterações</span>
+              <p className="font-bold text-sm text-red-600 mt-0.5">{detail.item.predictionChangesCount}x</p>
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-bold uppercase tracking-wider text-zinc-900 mb-3 text-xs flex items-center gap-2">
+              <span className="w-2.5 h-2.5 bg-red-600 inline-block" />
+              Linha do tempo de uploads
+            </h4>
+            <div className="border border-zinc-900 overflow-x-auto max-h-[380px]">
+              <table className="w-full min-w-[760px] text-left border-collapse">
+                <thead className="sticky top-0 bg-zinc-950 text-white z-10">
+                  <tr className="text-[10px] uppercase tracking-wider">
+                    <th className="p-3 border-r border-zinc-800 w-12 text-center">#</th>
+                    <th className="p-3 border-r border-zinc-800">Upload / arquivo</th>
+                    <th className="p-3 border-r border-zinc-800">Data do upload</th>
+                    <th className="p-3 border-r border-zinc-800">Previsão registrada</th>
+                    <th className="p-3 border-r border-zinc-800">Alteração</th>
+                    <th className="p-3">Diferença</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-200 text-xs">
+                  {detail.history.map((h: any) => (
+                    <tr key={h.id} className={h.changed ? "bg-red-50/60" : "bg-white hover:bg-zinc-50"}>
+                      <td className="p-3 border-r border-zinc-200 text-zinc-400 text-center font-bold">{h.sequence}</td>
+                      <td className="p-3 border-r border-zinc-200">
+                        <p className="font-bold text-zinc-950 truncate max-w-[200px]" title={h.fileName}>{h.fileName}</p>
+                        <p className="text-[10px] text-zinc-500 mt-0.5">Upload #{h.uploadId}</p>
+                      </td>
+                      <td className="p-3 border-r border-zinc-200 whitespace-nowrap text-zinc-700">{formatDateTime(h.uploadDate)}</td>
+                      <td className="p-3 border-r border-zinc-200 whitespace-nowrap font-bold text-red-600">{h.prediction}</td>
+                      <td className="p-3 border-r border-zinc-200">
+                        {h.changed ? (
+                          <span className="inline-flex items-center gap-1.5 text-red-700 font-bold text-[11px] flex-wrap">
+                            <ArrowRight className="w-3 h-3 text-red-600 shrink-0" />
+                            <span>{h.previousPrediction}</span>
+                            <span className="text-zinc-400">→</span>
+                            <span className="text-red-700">{h.prediction}</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 text-zinc-500">
+                            <Minus className="w-3 h-3 shrink-0" />
+                            <span>Sem mudança</span>
+                          </span>
+                        )}
+                      </td>
+                      <td className="p-3 whitespace-nowrap">
+                        {h.differenceDays === null ? (
+                          <span className="text-zinc-400">—</span>
+                        ) : h.differenceDays > 0 ? (
+                          <span className="text-red-700 font-bold bg-red-100 px-2 py-0.5 border border-red-200">+{h.differenceDays}d</span>
+                        ) : h.differenceDays < 0 ? (
+                          <span className="text-amber-800 font-bold bg-amber-100 px-2 py-0.5 border border-amber-200">{h.differenceDays}d</span>
+                        ) : (
+                          <span className="text-zinc-600">0 dias</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="py-16 text-center font-mono text-xs text-zinc-500">
+          Não foi possível carregar este item.
+        </div>
+      )}
+    </DialogContent>
+  );
 }

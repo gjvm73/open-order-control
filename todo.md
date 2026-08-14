@@ -68,6 +68,13 @@
 - [x] Validar no browser a exibição do botão e a execução correta da limpeza da base
 - [x] Executar testes, build e salvar checkpoint final
 
-- [ ] Corrigir a comparação de `Ship To` para ignorar espaços nas consultas de itens, indicadores e alertas
-- [ ] Adicionar teste de integração para filial com espaços extras no valor importado
-- [ ] Revalidar filtro por filial e histórico no browser após a correção
+- [x] Corrigir a comparação de `Ship To` para ignorar espaços nas consultas de itens, indicadores e alertas
+- [x] Adicionar teste de integração para filial com espaços extras no valor importado
+- [x] Revalidar filtro por filial e histórico no browser após a correção
+
+- [x] Inspecionar a implementação do modal de histórico em `client/src/pages/Home.tsx`
+- [x] Refatorar a estilização, alinhamento e estrutura do modal para seguir o Estilo Suíço (Swiss Style)
+- [x] Validar visualmente o modal corrigido via captura de tela no preview
+- [x] Validar visualmente o modal de histórico no preview em desktop e largura menor, confirmando alinhamento, largura, overflow e legibilidade da tabela
+- [x] Validar o modal de histórico com evidência verificável no preview em desktop, registrando screenshot/inspeção visual que confirme largura, alinhamento, overflow e legibilidade da tabela
+- [x] Repetir a validação do modal em viewport menor (reduzida de forma explícita) para comprovar comportamento responsivo e ausência de desalinhamento/corte de conteúdo
