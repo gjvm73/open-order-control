@@ -94,3 +94,7 @@
 - [x] Definir a estabilidade exibida como o complemento da taxa de alterações do último upload
 - [x] Expor latestChangeRate no contrato de estatísticas e diferenciar alteração do ciclo de alteração acumulada
 - [x] Cobrir o cenário de 100% de alterações no último upload com estabilidade de 0%
+
+- [x] Criar o documento Word conceitual e de métricas do Open Order Control usando python-docx
+- [x] Validar a geração do arquivo .docx com formatação limpa e seções estruturadas
+- [x] Entregar o documento Word ao usuário
