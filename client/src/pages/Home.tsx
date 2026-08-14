@@ -140,7 +140,9 @@ export default function Home() {
   const uploadsList = uploadsQuery.data || [];
   const shipToOptions = shipToQuery.data || [];
   const branchSummary = branchSummaryQuery.data || [];
-  const alerts = alertsQuery.data || [];
+  const alertsData = alertsQuery.data || { alerts: [], summary: { totalAlerts: 0, criticalCount: 0, attentionCount: 0, criticalRatio: 0, attentionRatio: 0 } };
+  const alerts = alertsData.alerts;
+  const alertSummary = alertsData.summary;
   const changedItems = items.filter((item) => item.predictionChangesCount > 0);
   const stabilityRate = stats.stabilityRate ?? 0;
   const maxTrendChanges = Math.max(...stats.trend.map((entry) => entry.changedRowsCount), 1);
@@ -177,7 +179,87 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="border-2 border-red-600 bg-red-50/30 p-6 space-y-5"><div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4 border-b border-red-200 pb-4"><div><h2 className="text-sm font-mono uppercase tracking-wider text-red-700">01A / Alertas de variação</h2><h3 className="text-xl font-black tracking-tight mt-1">Itens que exigem revisão de prazo</h3><p className="text-xs font-mono text-zinc-600 mt-1">O alerta é acionado quando a previsão muda acima do limite configurado, para mais ou para menos.</p></div><div className="flex items-end gap-2"><div><label htmlFor="alert-threshold" className="block text-[10px] font-mono uppercase tracking-wider text-zinc-600 mb-1">Alertar acima de (dias)</label><Input id="alert-threshold" type="number" min={1} max={3650} value={alertThresholdDraft} onChange={(event) => setAlertThresholdDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") applyAlertThreshold(); }} className="w-32 rounded-none border-zinc-900 bg-white font-mono" /></div><Button type="button" onClick={applyAlertThreshold} className="rounded-none bg-zinc-950 text-white hover:bg-zinc-800 font-mono text-xs uppercase h-10">Aplicar</Button></div></div><div className="flex flex-wrap items-center gap-3"><Badge className="rounded-none bg-red-600 text-white font-mono">{alerts.length} alertas ativos</Badge><span className="text-xs font-mono text-zinc-600">Limiar atual: &gt; {alertThresholdDays} dias</span>{filterShipTo && <Badge className="rounded-none bg-zinc-950 text-white font-mono">Filial: {filterShipTo}</Badge>}</div><div className="border border-zinc-900 bg-white overflow-x-auto"><table className="w-full min-w-[1050px] text-left border-collapse"><thead><tr className="border-b border-zinc-900 bg-zinc-950 text-white text-[10px] font-mono uppercase tracking-wider"><th className="p-3">Severidade</th><th className="p-3">Item / descrição</th><th className="p-3">Filial solicitante</th><th className="p-3">Customer PO</th><th className="p-3">Previsão anterior</th><th className="p-3">Previsão atual</th><th className="p-3 text-right">Variação</th><th className="p-3 text-center">Ação</th></tr></thead><tbody className="divide-y divide-zinc-200 text-xs font-mono">{alerts.length === 0 ? <tr><td colSpan={8} className="p-10 text-center text-zinc-500">Nenhum item ultrapassou o limiar de {alertThresholdDays} dias nesta filial.</td></tr> : alerts.slice(0, 20).map((alert) => <tr key={alert.id} className={alert.severity === "CRÍTICO" ? "bg-red-50" : "bg-white hover:bg-amber-50"}><td className="p-3"><span className={`inline-flex px-2 py-1 text-[10px] font-bold ${riskClass(alert.severity)}`}>{alert.severity}</span><p className="text-[10px] text-zinc-500 mt-1">{alert.direction}</p></td><td className="p-3"><p className="font-bold">{alert.item}</p><p className="text-[10px] text-zinc-500 max-w-[190px] truncate" title={alert.itemDescription || ""}>{alert.itemDescription || "—"}</p></td><td className="p-3 max-w-[180px] truncate" title={alert.shipTo}>{alert.shipTo}</td><td className="p-3">{alert.customerPo || "—"}</td><td className="p-3 text-zinc-600">{alert.previousPrediction || "—"}</td><td className="p-3 font-bold text-red-700">{alert.currentPrediction || "—"}</td><td className="p-3 text-right font-black text-red-700">{alert.differenceDays > 0 ? "+" : ""}{alert.differenceDays} dias</td><td className="p-3 text-center"><Button type="button" variant="outline" size="sm" onClick={() => setSelectedItemId(alert.id)} className="rounded-none border-zinc-900 text-[10px] font-mono uppercase h-8">Ver histórico</Button></td></tr>)}</tbody></table></div>{alerts.length > 20 && <p className="text-[10px] font-mono text-zinc-600">Exibindo os 20 alertas de maior variação. Ajuste a filial ou o limiar para refinar a lista.</p>}</section>
+        <section className="border-2 border-red-600 bg-red-50/30 p-6 space-y-5">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4 border-b border-red-200 pb-4">
+            <div>
+              <h2 className="text-sm font-mono uppercase tracking-wider text-red-700">01A / Alertas de variação</h2>
+              <h3 className="text-xl font-black tracking-tight mt-1">Itens que exigem revisão de prazo</h3>
+              <p className="text-xs font-mono text-zinc-600 mt-1">O alerta é acionado quando a previsão muda acima do limite configurado, para mais ou para menos.</p>
+            </div>
+            <div className="flex items-end gap-2">
+              <div>
+                <label htmlFor="alert-threshold" className="block text-[10px] font-mono uppercase tracking-wider text-zinc-600 mb-1">Alertar acima de (dias)</label>
+                <Input id="alert-threshold" type="number" min={1} max={3650} value={alertThresholdDraft} onChange={(event) => setAlertThresholdDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") applyAlertThreshold(); }} className="w-32 rounded-none border-zinc-900 bg-white font-mono" />
+              </div>
+              <Button type="button" onClick={applyAlertThreshold} className="rounded-none bg-zinc-950 text-white hover:bg-zinc-800 font-mono text-xs uppercase h-10">Aplicar</Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="border border-zinc-900 bg-white p-4 flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Total de alertas</span>
+                <p className="text-2xl font-black tracking-tight mt-1">{alertSummary.totalAlerts}</p>
+              </div>
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-zinc-100">
+                <Badge className="rounded-none bg-red-600 text-white font-mono text-[10px]">{alertSummary.totalAlerts} ativos</Badge>
+                {filterShipTo && <span className="text-[10px] font-mono text-zinc-500 truncate" title={filterShipTo}>Filial: {filterShipTo}</span>}
+              </div>
+            </div>
+
+            <div className="border border-zinc-900 bg-white p-4 flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-red-700 font-bold">Críticos (&ge; {alertThresholdDays * 2}d)</span>
+                  <span className="text-xs font-mono font-bold text-red-700">{alertSummary.criticalRatio}%</span>
+                </div>
+                <p className="text-2xl font-black tracking-tight mt-1 text-red-600">{alertSummary.criticalCount}</p>
+              </div>
+              <div className="w-full bg-zinc-100 h-2 mt-3 overflow-hidden">
+                <div className="bg-red-600 h-full transition-all" style={{ width: `${alertSummary.criticalRatio}%` }} />
+              </div>
+            </div>
+
+            <div className="border border-zinc-900 bg-white p-4 flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-amber-700 font-bold">Atenção (&gt; {alertThresholdDays}d)</span>
+                  <span className="text-xs font-mono font-bold text-amber-700">{alertSummary.attentionRatio}%</span>
+                </div>
+                <p className="text-2xl font-black tracking-tight mt-1 text-amber-600">{alertSummary.attentionCount}</p>
+              </div>
+              <div className="w-full bg-zinc-100 h-2 mt-3 overflow-hidden">
+                <div className="bg-amber-500 h-full transition-all" style={{ width: `${alertSummary.attentionRatio}%` }} />
+              </div>
+            </div>
+          </div>
+
+          <div className="border border-zinc-900 bg-white p-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">Proporção visual de severidade (Limiar: &gt; {alertThresholdDays} dias)</span>
+              <span className="text-[10px] font-mono text-zinc-500">{alertSummary.totalAlerts === 0 ? "Nenhum alerta" : `${alertSummary.criticalCount} críticos / ${alertSummary.attentionCount} atenção`}</span>
+            </div>
+            {alertSummary.totalAlerts === 0 ? (
+              <div className="h-6 bg-zinc-100 flex items-center justify-center text-[10px] font-mono text-zinc-500">
+                Nenhum alerta ativo para o limiar atual
+              </div>
+            ) : (
+              <div className="h-6 w-full flex border border-zinc-900 overflow-hidden">
+                {alertSummary.criticalCount > 0 && (
+                  <div className="bg-red-600 text-white text-[10px] font-mono font-bold flex items-center justify-center transition-all" style={{ width: `${Math.max(alertSummary.criticalRatio, 10)}%` }} title={`Críticos: ${alertSummary.criticalCount} (${alertSummary.criticalRatio}%)`}>
+                    {alertSummary.criticalRatio}% Crítico
+                  </div>
+                )}
+                {alertSummary.attentionCount > 0 && (
+                  <div className="bg-amber-500 text-zinc-950 text-[10px] font-mono font-bold flex items-center justify-center transition-all" style={{ width: `${Math.max(alertSummary.attentionRatio, 10)}%` }} title={`Atenção: ${alertSummary.attentionCount} (${alertSummary.attentionRatio}%)`}>
+                    {alertSummary.attentionRatio}% Atenção
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3"><Badge className="rounded-none bg-red-600 text-white font-mono">{alerts.length} alertas visíveis</Badge><span className="text-xs font-mono text-zinc-600">Limiar atual: &gt; {alertThresholdDays} dias</span>{filterShipTo && <Badge className="rounded-none bg-zinc-950 text-white font-mono">Filial: {filterShipTo}</Badge>}</div><div className="border border-zinc-900 bg-white overflow-x-auto"><table className="w-full min-w-[1050px] text-left border-collapse"><thead><tr className="border-b border-zinc-900 bg-zinc-950 text-white text-[10px] font-mono uppercase tracking-wider"><th className="p-3">Severidade</th><th className="p-3">Item / descrição</th><th className="p-3">Filial solicitante</th><th className="p-3">Customer PO</th><th className="p-3">Previsão anterior</th><th className="p-3">Previsão atual</th><th className="p-3 text-right">Variação</th><th className="p-3 text-center">Ação</th></tr></thead><tbody className="divide-y divide-zinc-200 text-xs font-mono">{alerts.length === 0 ? <tr><td colSpan={8} className="p-10 text-center text-zinc-500">Nenhum item ultrapassou o limiar de {alertThresholdDays} dias nesta filial.</td></tr> : alerts.slice(0, 20).map((alert) => <tr key={alert.id} className={alert.severity === "CRÍTICO" ? "bg-red-50" : "bg-white hover:bg-amber-50"}><td className="p-3"><span className={`inline-flex px-2 py-1 text-[10px] font-bold ${riskClass(alert.severity)}`}>{alert.severity}</span><p className="text-[10px] text-zinc-500 mt-1">{alert.direction}</p></td><td className="p-3"><p className="font-bold">{alert.item}</p><p className="text-[10px] text-zinc-500 max-w-[190px] truncate" title={alert.itemDescription || ""}>{alert.itemDescription || "—"}</p></td><td className="p-3 max-w-[180px] truncate" title={alert.shipTo}>{alert.shipTo}</td><td className="p-3">{alert.customerPo || "—"}</td><td className="p-3 text-zinc-600">{alert.previousPrediction || "—"}</td><td className="p-3 font-bold text-red-700">{alert.currentPrediction || "—"}</td><td className="p-3 text-right font-black text-red-700">{alert.differenceDays > 0 ? "+" : ""}{alert.differenceDays} dias</td><td className="p-3 text-center"><Button type="button" variant="outline" size="sm" onClick={() => setSelectedItemId(alert.id)} className="rounded-none border-zinc-900 text-[10px] font-mono uppercase h-8">Ver histórico</Button></td></tr>)}</tbody></table></div>{alerts.length > 20 && <p className="text-[10px] font-mono text-zinc-600">Exibindo os 20 alertas de maior variação. Ajuste a filial ou o limiar para refinar a lista.</p>}</section>
 
         <section className="space-y-4"><div className="border-b border-zinc-900 pb-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">01B / Consolidação por filial</h2><h3 className="text-xl font-bold tracking-tight">Filiais solicitantes e pressão operacional</h3><p className="text-xs font-mono text-zinc-500 mt-1">Cada linha do upload é consolidada pelo Endereço (Ship To). Clique em uma filial para segmentar todo o dashboard.</p></div><Badge className="rounded-none bg-zinc-950 text-white font-mono">{branchSummary.length} filiais</Badge></div><div className="border border-zinc-900 overflow-x-auto"><table className="w-full text-left border-collapse min-w-[980px]"><thead><tr className="border-b border-zinc-900 bg-zinc-50 text-xs font-mono uppercase tracking-wider"><th className="p-4">Filial solicitante / Endereço</th><th className="p-4 text-right">Itens</th><th className="p-4 text-right">Alterados</th><th className="p-4 text-right">Taxa de alteração</th><th className="p-4 text-right">Vencidos</th><th className="p-4 text-right">Sem fornecedor</th><th className="p-4 text-right">Valor sob risco</th><th className="p-4 text-center">Ação</th></tr></thead><tbody className="divide-y divide-zinc-200 text-sm font-mono">{branchSummary.length === 0 ? <tr><td colSpan={8} className="p-10 text-center text-zinc-500">Nenhuma filial identificada. Faça um upload para iniciar a consolidação.</td></tr> : branchSummary.map((branch) => <tr key={branch.shipTo} className={filterShipTo === branch.shipTo ? "bg-red-50" : "hover:bg-zinc-50"}><td className="p-4 font-bold max-w-[300px] truncate" title={branch.shipTo}>{branch.shipTo}</td><td className="p-4 text-right">{branch.totalItems}</td><td className={`p-4 text-right font-bold ${branch.changedItems > 0 ? "text-red-600" : "text-zinc-500"}`}>{branch.changedItems}</td><td className="p-4 text-right">{branch.changeRate}%</td><td className={`p-4 text-right ${branch.overdueItems > 0 ? "text-red-600 font-bold" : "text-zinc-500"}`}>{branch.overdueItems}</td><td className={`p-4 text-right ${branch.noSupplier > 0 ? "text-amber-700 font-bold" : "text-zinc-500"}`}>{branch.noSupplier}</td><td className="p-4 text-right">{formatCurrency(branch.valueAtRisk)}</td><td className="p-4 text-center"><Button variant="outline" size="sm" className="rounded-none border-zinc-900 text-[10px] font-mono uppercase h-8" onClick={() => setFilterShipTo(filterShipTo === branch.shipTo ? "" : branch.shipTo)}>{filterShipTo === branch.shipTo ? "Limpar" : "Filtrar"}</Button></td></tr>)}</tbody></table></div></section>
 

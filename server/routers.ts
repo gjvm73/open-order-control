@@ -75,7 +75,22 @@ export const appRouter = router({
       thresholdDays: z.number().int().min(1).max(3650).default(7),
       shipTo: z.string().optional(),
     })).query(async ({ input }) => {
-      return await db.getPredictionAlerts(input.thresholdDays, input.shipTo);
+      const alerts = await db.getPredictionAlerts(input.thresholdDays, input.shipTo);
+      const criticalCount = alerts.filter(a => a.severity === "CRÍTICO").length;
+      const attentionCount = alerts.filter(a => a.severity === "ATENÇÃO").length;
+      const totalAlerts = alerts.length;
+      const criticalRatio = totalAlerts > 0 ? Number(((criticalCount / totalAlerts) * 100).toFixed(1)) : 0;
+      const attentionRatio = totalAlerts > 0 ? Number(((attentionCount / totalAlerts) * 100).toFixed(1)) : 0;
+      return {
+        alerts,
+        summary: {
+          totalAlerts,
+          criticalCount,
+          attentionCount,
+          criticalRatio,
+          attentionRatio,
+        },
+      };
     }),
 
     resetImports: adminProcedure.mutation(async () => {

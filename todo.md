@@ -62,3 +62,5 @@ A tabela principal deve mostrar o último upload associado ao item e um resumo d
 - [x] Criar endpoint para retornar alertas de atraso e adiantamento acima do limite configurado
 - [x] Construir o painel visual de alertas configuráveis com ajuste de limiar no dashboard
 - [x] Validar alertas com testes unitários e testes de integração end-to-end
+
+- [x] Calcular proporção de alertas críticos vs atenção e expor totais e percentuais na API tRPC de alertas
