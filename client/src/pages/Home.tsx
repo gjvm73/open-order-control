@@ -148,6 +148,42 @@ export default function Home() {
   const changedItems = items.filter((item) => item.predictionChangesCount > 0);
   const stabilityRate = stats.stabilityRate ?? 0;
   const maxTrendChanges = Math.max(...stats.trend.map((entry) => entry.changedRowsCount), 1);
+  const strategic = React.useMemo(() => {
+    const total = Number(stats.totalItems || 0);
+    const rate = (value: number) => total > 0 ? Number(((value / total) * 100).toFixed(1)) : 0;
+    const changeRate = Number(stats.riskRate || 0);
+    const overdueRate = rate(Number(stats.overdueItems || 0));
+    const supplierRate = rate(Number(stats.noSupplier || 0));
+    const priorityRate = rate(Number(stats.highPriorityItems || 0));
+    const financialExposureRate = Number(stats.totalOrderValue || 0) > 0
+      ? Number(((Number(stats.valueAtRisk || 0) / Number(stats.totalOrderValue || 0)) * 100).toFixed(1))
+      : 0;
+    const executiveRiskIndex = Math.min(100, Number((changeRate * 0.35 + overdueRate * 0.25 + supplierRate * 0.2 + priorityRate * 0.1 + financialExposureRate * 0.1).toFixed(1)));
+    const riskLevel = executiveRiskIndex >= 50 ? "CRÍTICO" : executiveRiskIndex >= 25 ? "ATENÇÃO" : "CONTROLADO";
+    const focus = Number(stats.overdueItems || 0) > 0
+      ? "Atacar previsões vencidas"
+      : Number(stats.changedLastUpload || 0) > 0
+        ? "Conter alterações do último ciclo"
+        : Number(stats.noSupplier || 0) > 0
+          ? "Regularizar itens sem fornecedor"
+          : "Manter a cadência de acompanhamento";
+    const focusNote = Number(stats.overdueItems || 0) > 0
+      ? `${stats.overdueItems} item(ns) exigem confirmação imediata de entrega.`
+      : Number(stats.changedLastUpload || 0) > 0
+        ? `${stats.changedLastUpload} item(ns) mudaram no upload mais recente.`
+        : Number(stats.noSupplier || 0) > 0
+          ? `${stats.noSupplier} item(ns) permanecem sem fornecedor definido.`
+          : "A carteira não apresenta pressão operacional relevante nos indicadores atuais.";
+    const branches = [...branchSummary]
+      .filter((branch) => !filterShipTo || branch.shipTo === filterShipTo)
+      .map((branch) => ({
+        ...branch,
+        pressureScore: branch.changedItems * 4 + branch.overdueItems * 3 + branch.noSupplier * 3 + branch.highPriorityItems * 2,
+      }))
+      .sort((a, b) => b.pressureScore - a.pressureScore || b.valueAtRisk - a.valueAtRisk || a.shipTo.localeCompare(b.shipTo, "pt-BR"))
+      .slice(0, 4);
+    return { executiveRiskIndex, riskLevel, changeRate, overdueRate, supplierRate, priorityRate, financialExposureRate, focus, focusNote, branches };
+  }, [stats, branchSummary, filterShipTo]);
   const uploadStatusLabel = uploadStatus === "reading" ? "Lendo arquivo..." : uploadStatus === "processing" ? "Gravando lotes..." : uploadStatus === "refreshing" ? "Atualizando painel..." : "Upload planilha semanal";
 
   return (
@@ -178,6 +214,50 @@ export default function Home() {
             <MiniMetric label="Previsões vencidas" value={String(stats.overdueItems)} tone="amber" />
             <MiniMetric label="Sem fornecedor" value={String(stats.noSupplier)} tone="amber" />
             <MiniMetric label="Prioridade alta" value={String(stats.highPriorityItems)} tone="black" />
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <div className="border-b border-zinc-900 pb-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+            <div>
+              <h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">01A / Centro de comando estratégico</h2>
+              <h3 className="text-xl font-black tracking-tight mt-1">O que merece decisão nesta semana</h3>
+              <p className="text-xs font-mono text-zinc-500 mt-1">Índice composto por instabilidade, vencimento, disponibilidade de fornecedor, prioridade e exposição financeira.</p>
+            </div>
+            <Badge className={`rounded-none font-mono ${strategic.riskLevel === "CRÍTICO" ? "bg-red-600 text-white" : strategic.riskLevel === "ATENÇÃO" ? "bg-amber-500 text-zinc-950" : "bg-zinc-950 text-white"}`}>{strategic.riskLevel} · {strategic.executiveRiskIndex}/100</Badge>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-[0.8fr_1.2fr_1fr] gap-4">
+            <div className="border-2 border-zinc-950 bg-zinc-950 text-white p-6 flex flex-col justify-between min-h-[220px]">
+              <div className="flex justify-between items-start"><div><span className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">Índice de risco executivo</span><p className="text-xs font-mono text-zinc-400 mt-2">0 = controlado · 100 = crítico</p></div><ShieldAlert className="w-5 h-5 text-red-500" /></div>
+              <div><div className="flex items-end gap-2"><span className="text-6xl font-black tracking-tighter text-red-500">{strategic.executiveRiskIndex}</span><span className="text-sm font-mono text-zinc-400 pb-2">/100</span></div><div className="h-3 bg-zinc-800 mt-4 overflow-hidden"><div className="h-full bg-red-600 transition-all" style={{ width: `${Math.max(strategic.executiveRiskIndex, 3)}%` }} /></div><p className="text-xs font-mono text-zinc-300 mt-3">{strategic.riskLevel === "CONTROLADO" ? "A carteira pode seguir em acompanhamento regular." : "A carteira requer pauta executiva e responsável definido."}</p></div>
+            </div>
+
+            <div className="border border-zinc-900 bg-white p-6 flex flex-col justify-between min-h-[220px]">
+              <div className="flex justify-between items-start"><div><span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Decisão recomendada</span><h4 className="text-2xl font-black tracking-tight mt-2">{strategic.focus}</h4></div><Target className="w-5 h-5 text-red-600" /></div>
+              <div><p className="text-sm font-mono text-zinc-700 leading-6 border-l-4 border-red-600 pl-4">{strategic.focusNote}</p><div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-5"><MiniMetric label="Alteração" value={`${strategic.changeRate}%`} tone="red" /><MiniMetric label="Vencido" value={`${strategic.overdueRate}%`} tone="amber" /><MiniMetric label="Fornecedor" value={`${strategic.supplierRate}%`} tone="amber" /><MiniMetric label="Exposição" value={`${strategic.financialExposureRate}%`} tone="black" /></div></div>
+            </div>
+
+            <div className="border border-zinc-900 bg-zinc-50 p-6 min-h-[220px]">
+              <div className="flex justify-between items-start mb-5"><div><span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Prazos críticos por filial</span><h4 className="text-xl font-bold tracking-tight mt-1">Vencimentos e desvios</h4></div><AlertTriangle className="w-5 h-5 text-red-600" /></div>
+              {strategic.branches.length === 0 ? <p className="text-xs font-mono text-zinc-500 py-10 text-center">Nenhuma filial disponível para análise.</p> : <div className="space-y-3">{strategic.branches.map((branch) => <div key={`crit-${branch.shipTo}`} className="p-3 bg-white border border-zinc-200"><div className="flex justify-between items-center text-xs font-mono mb-1"><span className="font-bold truncate max-w-[160px]" title={branch.shipTo}>{branch.shipTo}</span><Badge className="rounded-none bg-red-600 text-white font-mono text-[9px]">{branch.overdueItems} vencidos</Badge></div><div className="flex justify-between text-[10px] font-mono text-zinc-600"><span>{branch.changedItems} alterados</span><span className="font-bold text-red-700">{formatCurrency(branch.valueAtRisk)} sob risco</span></div></div>)}</div>}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border border-zinc-900 bg-white p-6">
+              <div className="flex justify-between items-start mb-4"><div><span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Projeção de impacto financeiro</span><h4 className="text-lg font-bold tracking-tight mt-1">Exposição monetária de prazos</h4></div><CircleDollarSign className="w-5 h-5 text-red-600" /></div>
+              <div className="grid grid-cols-2 gap-4 my-4">
+                <div className="border border-zinc-200 p-4 bg-zinc-50"><span className="text-[10px] font-mono uppercase text-zinc-500 block">Valor total</span><p className="text-xl font-black mt-1">{formatCurrency(stats.totalOrderValue)}</p></div>
+                <div className="border border-red-200 p-4 bg-red-50/50"><span className="text-[10px] font-mono uppercase text-red-700 block">Valor sob risco</span><p className="text-xl font-black text-red-600 mt-1">{formatCurrency(stats.valueAtRisk)}</p></div>
+              </div>
+              <p className="text-xs font-mono text-zinc-600">Representa <b>{strategic.financialExposureRate}%</b> do valor total da carteira em itens que sofreram alterações de previsão de entrega.</p>
+            </div>
+
+            <div className="border border-zinc-900 bg-white p-6">
+              <div className="flex justify-between items-start mb-4"><div><span className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Resumo de pressão operacional</span><h4 className="text-lg font-bold tracking-tight mt-1">Distribuição de filiais críticas</h4></div><Target className="w-5 h-5 text-red-600" /></div>
+              {strategic.branches.length === 0 ? <p className="text-xs font-mono text-zinc-500 py-6 text-center">Nenhuma filial para consolidar.</p> : <div className="space-y-3">{strategic.branches.map((branch) => { const maxPressure = Math.max(...strategic.branches.map((entry) => entry.pressureScore), 1); return <div key={`press-${branch.shipTo}`}><div className="flex justify-between gap-3 text-xs font-mono mb-1"><span className="font-bold truncate" title={branch.shipTo}>{branch.shipTo}</span><span className="text-red-600 font-black shrink-0">{branch.pressureScore} pts</span></div><div className="h-2 bg-zinc-100 border border-zinc-300 overflow-hidden"><div className="h-full bg-red-600" style={{ width: `${Math.max((branch.pressureScore / maxPressure) * 100, branch.pressureScore > 0 ? 8 : 2)}%` }} /></div><div className="flex justify-between text-[10px] font-mono text-zinc-500 mt-1"><span>{branch.totalItems} itens · {branch.changeRate}% alterados</span><span>{formatCurrency(branch.valueAtRisk)}</span></div></div>; })}</div>}
+            </div>
           </div>
         </section>
 

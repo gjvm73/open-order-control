@@ -78,3 +78,9 @@
 - [x] Validar visualmente o modal de histórico no preview em desktop e largura menor, confirmando alinhamento, largura, overflow e legibilidade da tabela
 - [x] Validar o modal de histórico com evidência verificável no preview em desktop, registrando screenshot/inspeção visual que confirme largura, alinhamento, overflow e legibilidade da tabela
 - [x] Repetir a validação do modal em viewport menor (reduzida de forma explícita) para comprovar comportamento responsivo e ausência de desalinhamento/corte de conteúdo
+
+- [x] Mapear o dashboard atual para estruturar a nova camada de avaliação estratégica e tomada de decisão
+- [x] Criar blocos de inteligência gerencial (Índice de Risco Executivo, Prazos Críticos por Filial, Projeção de Impacto Financeiro e Plano de Ação Recomendado)
+- [x] Implementar os novos painéis estratégicos e refinamentos visuais no Swiss Style
+- [x] Validar cálculos, responsividade e estabilidade dos dados estratégicos
+- [x] Salvar checkpoint e entregar o relatório do dashboard estratégico
