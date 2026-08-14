@@ -98,7 +98,26 @@ export async function getUploadsList() {
   return await db.select().from(uploads).orderBy(desc(uploads.uploadDate));
 }
 
-export async function getOrderItems(filters?: { search?: string; item?: string; customerPo?: string; prediction?: string }) {
+export async function resetImportedData() {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db.transaction(async (tx) => {
+    // As tabelas filhas são removidas primeiro para respeitar as chaves estrangeiras.
+    const historyResult = await tx.delete(predictionHistory);
+    const itemsResult = await tx.delete(orderItems);
+    const uploadsResult = await tx.delete(uploads);
+
+    const affectedRows = (result: unknown) => Number((result as { affectedRows?: number }).affectedRows || 0);
+    return {
+      deletedHistory: affectedRows(historyResult),
+      deletedItems: affectedRows(itemsResult),
+      deletedUploads: affectedRows(uploadsResult),
+    };
+  });
+}
+
+export async function getOrderItems(filters?: { search?: string; item?: string; customerPo?: string; prediction?: string; shipTo?: string }) {
   const db = await getDb();
   if (!db) return [];
   
@@ -120,12 +139,20 @@ export async function getOrderItems(filters?: { search?: string; item?: string; 
   if (filters?.prediction) {
     conditions.push(like(orderItems.currentPrediction, `%${filters.prediction}%`));
   }
-  
-  if (conditions.length > 0) {
-    return await db.select().from(orderItems).where(and(...conditions)).orderBy(desc(orderItems.updatedAt));
+  if (filters?.shipTo) {
+    conditions.push(eq(orderItems.shipTo, filters.shipTo));
   }
   
-  return await db.select().from(orderItems).orderBy(desc(orderItems.updatedAt));
+  const itemsQuery = db.select().from(orderItems).leftJoin(uploads, eq(orderItems.lastUploadId, uploads.id));
+  const rows = conditions.length > 0
+    ? await itemsQuery.where(and(...conditions)).orderBy(desc(orderItems.updatedAt))
+    : await itemsQuery.orderBy(desc(orderItems.updatedAt));
+
+  return rows.map(({ order_items: item, uploads: upload }) => ({
+    ...item,
+    lastUploadFileName: upload?.fileName ?? null,
+    lastUploadDate: upload?.uploadDate ?? null,
+  }));
 }
 
 export async function getOrderItemById(id: number) {
@@ -138,8 +165,8 @@ export async function getOrderItemById(id: number) {
 export async function getPredictionHistoryByItem(orderItemId: number) {
   const db = await getDb();
   if (!db) return [];
-  // Retornar histórico incluindo a data do upload correspondente
-  return await db.select({
+
+  const records = await db.select({
     id: predictionHistory.id,
     orderItemId: predictionHistory.orderItemId,
     uploadId: predictionHistory.uploadId,
@@ -153,44 +180,220 @@ export async function getPredictionHistoryByItem(orderItemId: number) {
   .from(predictionHistory)
   .innerJoin(uploads, eq(predictionHistory.uploadId, uploads.id))
   .where(eq(predictionHistory.orderItemId, orderItemId))
-  .orderBy(desc(predictionHistory.recordedAt));
+  .orderBy(predictionHistory.recordedAt);
+
+  return records.map((record, index) => {
+    const previousPrediction = index > 0 ? records[index - 1].prediction : null;
+    const changed = previousPrediction !== null && previousPrediction !== record.prediction;
+    const previousDate = previousPrediction ? Date.parse(previousPrediction) : Number.NaN;
+    const currentDate = Date.parse(record.prediction);
+    const differenceDays = Number.isNaN(previousDate) || Number.isNaN(currentDate)
+      ? null
+      : Math.round((currentDate - previousDate) / 86400000);
+
+    return {
+      ...record,
+      sequence: index + 1,
+      previousPrediction,
+      changed,
+      differenceDays,
+    };
+  });
 }
 
-export async function getDashboardStats() {
+export async function getShipToOptions() {
   const db = await getDb();
-  if (!db) return { totalItems: 0, changedLastUpload: 0, noSupplier: 0, mostChanged: [] };
+  if (!db) return [];
+  const rows = await db.select({ shipTo: orderItems.shipTo }).from(orderItems);
+  const options = rows
+    .map(row => row.shipTo?.trim())
+    .filter((value): value is string => Boolean(value));
+  return Array.from(new Set(options)).sort((a, b) => a.localeCompare(b, "pt-BR"));
+}
 
+export async function getBranchSummary() {
+  const db = await getDb();
+  if (!db) return [];
   const allItems = await db.select().from(orderItems);
-  const totalItems = allItems.length;
-
-  const noSupplier = allItems.filter(i => i.currentPrediction && i.currentPrediction.toLowerCase().includes("sem fornecedor")).length;
-
-  const mostChanged = [...allItems].sort((a, b) => b.predictionChangesCount - a.predictionChangesCount).slice(0, 5);
-
-  const uploadList = await db.select().from(uploads).orderBy(desc(uploads.uploadDate)).limit(1);
-  let changedLastUpload = 0;
-  if (uploadList.length > 0) {
-    const lastUploadId = uploadList[0].id;
-    // Contar quantas entradas no histórico pertencem ao último upload e representam mudança
-    const historyLastUpload = await db.select()
-      .from(predictionHistory)
-      .innerJoin(orderItems, eq(predictionHistory.orderItemId, orderItems.id))
-      .where(and(
-        eq(predictionHistory.uploadId, lastUploadId),
-        sql`${orderItems.previousPrediction} IS NOT NULL AND ${orderItems.previousPrediction} != ${predictionHistory.prediction}`
-      ));
-    changedLastUpload = historyLastUpload.length;
-    // Fallback se necessário
-    if (changedLastUpload === 0) {
-      const changedInUpload = await db.select().from(orderItems).where(eq(orderItems.lastUploadId, lastUploadId));
-      changedLastUpload = changedInUpload.filter(i => i.predictionChangesCount > 0 && i.lastUploadId === lastUploadId).length;
-    }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const parsePredictionDate = (value: string | null) => {
+    if (!value || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return null;
+    const date = new Date(`${value}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+  const toNumber = (value: unknown) => {
+    const parsed = Number(value || 0);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+  const groups = new Map<string, typeof allItems>();
+  for (const item of allItems) {
+    const branch = item.shipTo?.trim() || "Sem filial informada";
+    const current = groups.get(branch) || [];
+    current.push(item);
+    groups.set(branch, current);
   }
+  const totalItems = allItems.length || 1;
+  return Array.from(groups.entries()).map(([shipTo, items]) => {
+    const changedItems = items.filter(item => item.predictionChangesCount > 0);
+    const overdueItems = items.filter(item => {
+      const date = parsePredictionDate(item.currentPrediction);
+      return Boolean(date && date < today);
+    });
+    const noSupplier = items.filter(item => Boolean(item.currentPrediction?.toLowerCase().includes("sem fornecedor")));
+    const totalOrderValue = items.reduce((sum, item) => sum + toNumber(item.extendedPrice), 0);
+    const valueAtRisk = changedItems.reduce((sum, item) => sum + toNumber(item.extendedPrice), 0);
+    return {
+      shipTo,
+      totalItems: items.length,
+      changedItems: changedItems.length,
+      stableItems: items.length - changedItems.length,
+      noSupplier: noSupplier.length,
+      overdueItems: overdueItems.length,
+      highPriorityItems: items.filter(item => (item.shipmentPriority || "").toLowerCase() === "high").length,
+      totalOrderValue,
+      valueAtRisk,
+      changeRate: items.length > 0 ? Math.round((changedItems.length / items.length) * 1000) / 10 : 0,
+      shareOfItems: Math.round((items.length / totalItems) * 1000) / 10,
+    };
+  }).sort((a, b) => b.changedItems - a.changedItems || b.totalItems - a.totalItems || a.shipTo.localeCompare(b.shipTo, "pt-BR"));
+}
+
+export async function getDashboardStats(shipTo?: string) {
+  const db = await getDb();
+  if (!db) {
+    return {
+      totalItems: 0,
+      changedLastUpload: 0,
+      noSupplier: 0,
+      mostChanged: [],
+      totalOrderValue: 0,
+      valueAtRisk: 0,
+      changedItems: 0,
+      stableItems: 0,
+      highPriorityItems: 0,
+      overdueItems: 0,
+      trend: [],
+      actionQueue: [],
+      latestUpload: null,
+    };
+  }
+
+  const allItems = shipTo
+    ? await db.select().from(orderItems).where(eq(orderItems.shipTo, shipTo))
+    : await db.select().from(orderItems);
+  const uploadList = await db.select().from(uploads).orderBy(desc(uploads.uploadDate)).limit(8);
+  const latestUpload = uploadList[0] || null;
+  let changedLastUpload = latestUpload?.changedRowsCount || 0;
+  if (shipTo && latestUpload) {
+    const scopedHistory = await db.select({
+      orderItemId: predictionHistory.orderItemId,
+      uploadId: predictionHistory.uploadId,
+      prediction: predictionHistory.prediction,
+    }).from(predictionHistory).innerJoin(orderItems, eq(predictionHistory.orderItemId, orderItems.id)).where(eq(orderItems.shipTo, shipTo)).orderBy(predictionHistory.recordedAt);
+    const historyByItem = new Map<number, Array<{ uploadId: number; prediction: string }>>();
+    for (const record of scopedHistory) {
+      const series = historyByItem.get(record.orderItemId) || [];
+      series.push({ uploadId: record.uploadId, prediction: record.prediction });
+      historyByItem.set(record.orderItemId, series);
+    }
+    changedLastUpload = Array.from(historyByItem.values()).filter(series => {
+      const current = series[series.length - 1];
+      const previous = series[series.length - 2];
+      return Boolean(current && previous && current.uploadId === latestUpload.id && current.prediction !== previous.prediction);
+    }).length;
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const toNumber = (value: unknown) => {
+    const parsed = Number(value || 0);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const parsePredictionDate = (value: string | null) => {
+    if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+    const date = new Date(`${value}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const isNoSupplier = (value: string | null) => Boolean(value && value.toLowerCase().includes("sem fornecedor"));
+  const totalItems = allItems.length;
+  const noSupplier = allItems.filter(item => isNoSupplier(item.currentPrediction)).length;
+  const changedItems = allItems.filter(item => item.predictionChangesCount > 0);
+  const stableItems = totalItems - changedItems.length;
+  const highPriorityItems = allItems.filter(item => (item.shipmentPriority || "").toLowerCase() === "high").length;
+  const overdueItems = allItems.filter(item => {
+    const predictionDate = parsePredictionDate(item.currentPrediction);
+    return Boolean(predictionDate && predictionDate < today);
+  }).length;
+  const totalOrderValue = allItems.reduce((sum, item) => sum + toNumber(item.extendedPrice), 0);
+  const valueAtRisk = changedItems.reduce((sum, item) => sum + toNumber(item.extendedPrice), 0);
+
+  const rankItem = (item: typeof allItems[number]) => {
+    const predictionDate = parsePredictionDate(item.currentPrediction);
+    const supplierIssue = isNoSupplier(item.currentPrediction);
+    const overdue = Boolean(predictionDate && predictionDate < today);
+    const highPriority = (item.shipmentPriority || "").toLowerCase() === "high";
+    const score = item.predictionChangesCount * 4 + (supplierIssue ? 5 : 0) + (overdue ? 3 : 0) + (highPriority ? 2 : 0);
+    const reasons = [];
+    if (supplierIssue) reasons.push("Sem fornecedor");
+    if (item.predictionChangesCount > 0) reasons.push(`${item.predictionChangesCount} alterações`);
+    if (overdue) reasons.push("Previsão vencida");
+    if (highPriority) reasons.push("Prioridade alta");
+
+    return {
+      id: item.id,
+      item: item.item,
+      itemDescription: item.itemDescription,
+      customerPo: item.customerPo,
+      shipmentPriority: item.shipmentPriority,
+      currentPrediction: item.currentPrediction,
+      previousPrediction: item.previousPrediction,
+      predictionChangesCount: item.predictionChangesCount,
+      lastPredictionChangeDate: item.lastPredictionChangeDate,
+      extendedPrice: toNumber(item.extendedPrice),
+      riskScore: score,
+      riskLevel: score >= 8 ? "CRÍTICO" : score >= 4 ? "ATENÇÃO" : "MONITORAR",
+      reasons: reasons.length > 0 ? reasons : ["Sem alteração registrada"],
+    };
+  };
+
+  const actionQueue = allItems
+    .map(rankItem)
+    .filter(item => item.riskScore > 0)
+    .sort((a, b) => b.riskScore - a.riskScore || b.predictionChangesCount - a.predictionChangesCount)
+    .slice(0, 10);
+
+  const mostChanged = [...allItems]
+    .sort((a, b) => b.predictionChangesCount - a.predictionChangesCount)
+    .slice(0, 8)
+    .map(rankItem);
+
+  const trend = [...uploadList].reverse().map(upload => ({
+    id: upload.id,
+    fileName: upload.fileName,
+    uploadDate: upload.uploadDate,
+    totalRows: upload.totalRows,
+    changedRowsCount: upload.changedRowsCount,
+    changeRate: upload.totalRows > 0 ? Math.round((upload.changedRowsCount / upload.totalRows) * 1000) / 10 : 0,
+  }));
 
   return {
     totalItems,
     changedLastUpload,
     noSupplier,
     mostChanged,
+    totalOrderValue,
+    valueAtRisk,
+    changedItems: changedItems.length,
+    stableItems,
+    highPriorityItems,
+    overdueItems,
+    stabilityRate: totalItems > 0 ? Math.round((stableItems / totalItems) * 1000) / 10 : 0,
+    riskRate: totalItems > 0 ? Math.round((changedItems.length / totalItems) * 1000) / 10 : 0,
+    trend,
+    actionQueue,
+    latestUpload,
   };
 }

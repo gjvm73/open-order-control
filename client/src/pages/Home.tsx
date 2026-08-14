@@ -5,19 +5,34 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { 
-  Upload, 
-  TrendingUp, 
-  AlertTriangle, 
-  Package, 
-  History, 
-  Search, 
-  FileSpreadsheet, 
-  LogOut,
-  Filter,
-  RefreshCw
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import {
+  Upload, TrendingUp, AlertTriangle, Package, History, Search, LogOut,
+  ArrowRight, Minus, ShieldAlert, Clock3, CircleDollarSign, Target,
 } from "lucide-react";
 import { toast } from "sonner";
+
+function formatDate(value: unknown) {
+  if (!value) return "—";
+  const date = new Date(value as string | number | Date);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("pt-BR");
+}
+
+function formatDateTime(value: unknown) {
+  if (!value) return "—";
+  const date = new Date(value as string | number | Date);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString("pt-BR");
+}
+
+function formatCurrency(value: unknown) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(Number(value || 0));
+}
+
+function riskClass(level: string) {
+  if (level === "CRÍTICO") return "bg-red-600 text-white";
+  if (level === "ATENÇÃO") return "bg-amber-100 text-amber-800";
+  return "bg-zinc-100 text-zinc-700";
+}
 
 export default function Home() {
   const { user, isAuthenticated, logout } = useAuth();
@@ -25,34 +40,42 @@ export default function Home() {
   const [filterItem, setFilterItem] = useState("");
   const [filterPo, setFilterPo] = useState("");
   const [filterPrediction, setFilterPrediction] = useState("");
+  const [filterShipTo, setFilterShipTo] = useState("");
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [resetConfirmation, setResetConfirmation] = useState("");
 
-  // Queries tRPC com filtros
-  const statsQuery = trpc.orders.getStats.useQuery();
-  const itemsQuery = trpc.orders.listItems.useQuery({ 
-    search, 
-    item: filterItem, 
-    customerPo: filterPo, 
-    prediction: filterPrediction 
-  });
+  const statsInput = React.useMemo(() => ({ shipTo: filterShipTo || undefined }), [filterShipTo]);
+  const itemsInput = React.useMemo(() => ({ search, item: filterItem, customerPo: filterPo, prediction: filterPrediction, shipTo: filterShipTo || undefined }), [search, filterItem, filterPo, filterPrediction, filterShipTo]);
+  const statsQuery = trpc.orders.getStats.useQuery(statsInput);
+  const itemsQuery = trpc.orders.listItems.useQuery(itemsInput);
   const uploadsQuery = trpc.orders.listUploads.useQuery();
-  const itemDetailQuery = trpc.orders.getItemDetail.useQuery(
-    { id: selectedItemId! },
-    { enabled: selectedItemId !== null }
-  );
-
+  const shipToQuery = trpc.orders.listShipTo.useQuery();
+  const branchSummaryQuery = trpc.orders.getBranchSummary.useQuery();
+  const itemDetailQuery = trpc.orders.getItemDetail.useQuery({ id: selectedItemId! }, { enabled: selectedItemId !== null });
+  const resetMutation = trpc.orders.resetImports.useMutation();
   const utils = trpc.useUtils();
+  const isAdmin = user?.role === "admin";
+
+  const handleResetImports = async () => {
+    try {
+      const result = await resetMutation.mutateAsync();
+      setResetConfirmation("");
+      setSelectedItemId(null);
+      toast.success(`Importações resetadas: ${result.deletedUploads} uploads, ${result.deletedItems} itens e ${result.deletedHistory} registros históricos removidos.`);
+      await Promise.all([statsQuery.refetch(), itemsQuery.refetch(), uploadsQuery.refetch(), shipToQuery.refetch(), branchSummaryQuery.refetch()]);
+    } catch (err: any) {
+      toast.error(err.message || "Não foi possível resetar as importações.");
+    }
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+    if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
       toast.error("Por favor, envie um arquivo Excel (.xlsx ou .xls)");
       return;
     }
-
     setIsUploading(true);
     const reader = new FileReader();
     reader.onload = async (uploadEvent) => {
@@ -60,20 +83,10 @@ export default function Home() {
         const buffer = uploadEvent.target?.result as ArrayBuffer;
         const bytes = new Uint8Array(buffer);
         let binary = "";
-        for (let i = 0; i < bytes.byteLength; i++) {
-          binary += String.fromCharCode(bytes[i]);
-        }
-        const base64 = btoa(binary);
-
-        const result = await utils.client.orders.uploadExcel.mutate({
-          fileName: file.name,
-          fileBase64: base64,
-        });
-
-        toast.success(`Planilha processada com sucesso! ${result.totalRows} linhas lidas, ${result.changedRowsCount} alterações de previsão identificadas.`);
-        statsQuery.refetch();
-        itemsQuery.refetch();
-        uploadsQuery.refetch();
+        for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+        const result = await utils.client.orders.uploadExcel.mutate({ fileName: file.name, fileBase64: btoa(binary) });
+        toast.success(`${result.totalRows} linhas processadas; ${result.changedRowsCount} alterações identificadas.`);
+        await Promise.all([statsQuery.refetch(), itemsQuery.refetch(), uploadsQuery.refetch(), shipToQuery.refetch(), branchSummaryQuery.refetch()]);
       } catch (err: any) {
         toast.error(err.message || "Erro ao processar o upload do arquivo.");
       } finally {
@@ -84,286 +97,103 @@ export default function Home() {
     reader.readAsArrayBuffer(file);
   };
 
-  const stats = statsQuery.data || { totalItems: 0, changedLastUpload: 0, noSupplier: 0, mostChanged: [] };
+  const stats = statsQuery.data || {
+    totalItems: 0, changedLastUpload: 0, noSupplier: 0, mostChanged: [], totalOrderValue: 0,
+    valueAtRisk: 0, changedItems: 0, stableItems: 0, highPriorityItems: 0, overdueItems: 0,
+    stabilityRate: 0, riskRate: 0, trend: [], actionQueue: [], latestUpload: null,
+  };
   const items = itemsQuery.data || [];
   const uploadsList = uploadsQuery.data || [];
+  const shipToOptions = shipToQuery.data || [];
+  const branchSummary = branchSummaryQuery.data || [];
+  const changedItems = items.filter((item) => item.predictionChangesCount > 0);
+  const stabilityRate = stats.stabilityRate ?? 0;
+  const maxTrendChanges = Math.max(...stats.trend.map((entry) => entry.changedRowsCount), 1);
 
   return (
     <div className="min-h-screen bg-white text-zinc-950 font-sans selection:bg-red-600 selection:text-white">
-      {/* Top Swiss Style Header Bar */}
       <header className="border-b-2 border-zinc-950 px-6 py-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="w-4 h-4 bg-red-600 inline-block"></span>
-            <h1 className="text-2xl font-black uppercase tracking-tight">OPEN ORDER CONTROL</h1>
-          </div>
-          <p className="text-xs font-mono uppercase tracking-widest text-zinc-500 mt-1">
-            Sistema de Rastreamento e Histórico de Previsões de Entrega
-          </p>
+          <div className="flex items-center gap-2"><span className="w-4 h-4 bg-red-600 inline-block" /><h1 className="text-2xl font-black uppercase tracking-tight">OPEN ORDER CONTROL</h1></div>
+          <p className="text-xs font-mono uppercase tracking-widest text-zinc-500 mt-1">Dashboard gerencial de previsões de entrega</p>
         </div>
-
         <div className="flex items-center gap-4">
-          <div className="relative">
-            <label className="cursor-pointer bg-zinc-950 hover:bg-zinc-800 text-white px-5 py-2.5 text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all">
-              <Upload className="w-4 h-4" />
-              {isUploading ? "Processando..." : "Upload Planilha Semanal"}
-              <input 
-                type="file" 
-                accept=".xlsx, .xls" 
-                className="hidden" 
-                onChange={handleFileUpload} 
-                disabled={isUploading}
-              />
-            </label>
-          </div>
-
-          {isAuthenticated ? (
-            <div className="flex items-center gap-3 border border-zinc-900 px-3 py-1.5 bg-zinc-50">
-              <span className="text-xs font-mono">{user?.name || user?.email}</span>
-              <Button variant="ghost" size="sm" onClick={() => logout()} className="h-7 px-2 text-red-600 hover:bg-red-50">
-                <LogOut className="w-3.5 h-3.5" />
-              </Button>
-            </div>
-          ) : (
-            <Button variant="outline" size="sm" className="border-zinc-900 text-xs font-mono uppercase rounded-none" onClick={() => window.location.href = "/api/oauth/login"}>
-              Entrar
-            </Button>
-          )}
+          <label className="cursor-pointer bg-zinc-950 hover:bg-zinc-800 text-white px-5 py-2.5 text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all"><Upload className="w-4 h-4" />{isUploading ? "Processando..." : "Upload planilha semanal"}<input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleFileUpload} disabled={isUploading} /></label>
+          {isAdmin && <AlertDialog onOpenChange={(open) => { if (!open) setResetConfirmation(""); }}><AlertDialogTrigger asChild><Button variant="outline" className="rounded-none border-red-600 text-red-600 hover:bg-red-600 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto"><ShieldAlert className="w-4 h-4 mr-2" />Resetar importações</Button></AlertDialogTrigger><AlertDialogContent className="rounded-none border-2 border-red-600 bg-white"><AlertDialogHeader><AlertDialogTitle className="font-black uppercase tracking-tight text-red-700">Resetar todas as importações?</AlertDialogTitle><AlertDialogDescription className="font-mono text-xs leading-6 text-zinc-700">Esta ação excluirá permanentemente todos os uploads, itens cadastrados e o histórico de previsões da base de consulta. As contas de acesso serão preservadas. Não é possível desfazer esta operação.</AlertDialogDescription></AlertDialogHeader><div className="space-y-2"><label className="text-xs font-mono uppercase tracking-wider text-zinc-600">Digite RESETAR para confirmar</label><Input value={resetConfirmation} onChange={(event) => setResetConfirmation(event.target.value.toUpperCase())} placeholder="RESETAR" className="rounded-none border-zinc-900 font-mono" autoFocus /></div><AlertDialogFooter><AlertDialogCancel className="rounded-none border-zinc-900 font-mono text-xs uppercase">Cancelar</AlertDialogCancel><AlertDialogAction className="rounded-none bg-red-600 hover:bg-red-700 font-mono text-xs uppercase" disabled={resetConfirmation !== "RESETAR" || resetMutation.isPending} onClick={(event) => { event.preventDefault(); void handleResetImports(); }}>{resetMutation.isPending ? "Limpando..." : "Confirmar reset"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>}
+          {isAuthenticated ? <div className="flex items-center gap-3 border border-zinc-900 px-3 py-1.5 bg-zinc-50"><span className="text-xs font-mono">{user?.name || user?.email}</span><Button variant="ghost" size="sm" onClick={() => logout()} className="h-7 px-2 text-red-600 hover:bg-red-50"><LogOut className="w-3.5 h-3.5" /></Button></div> : <Button variant="outline" size="sm" className="border-zinc-900 text-xs font-mono uppercase rounded-none" onClick={() => (window.location.href = "/api/oauth/login")}>Entrar</Button>}
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="p-6 md:p-10 max-w-7xl mx-auto space-y-12">
-        
-        {/* Dashboard Indicators (Swiss Style Grid) */}
+      <main className="p-6 md:p-10 max-w-[1500px] mx-auto space-y-12">
         <section>
-          <div className="border-b border-zinc-900 pb-2 mb-6 flex justify-between items-end">
-            <h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">01 / Indicadores de Desempenho</h2>
-            <span className="text-xs font-mono text-zinc-400">Atualização em Tempo Real</span>
+          <div className="border-b border-zinc-900 pb-2 mb-6 flex justify-between items-end"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">01 / Visão executiva</h2><h3 className="text-2xl font-black tracking-tight mt-1">Onde a gestão deve concentrar atenção</h3></div><span className="text-xs font-mono text-zinc-400">Base atualizada: {stats.latestUpload ? formatDateTime(stats.latestUpload.uploadDate) : "sem upload"}</span></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <MetricCard label="Itens ativos" value={String(stats.totalItems)} detail={`${stats.stableItems} sem alteração acumulada`} icon={<Package className="w-4 h-4" />} accent="red" />
+            <MetricCard label="Estabilidade da carteira" value={`${stats.stabilityRate}%`} detail={`${stats.changedItems} itens com alteração`} icon={<Target className="w-4 h-4" />} accent="black" />
+            <MetricCard label="Valor total dos pedidos" value={formatCurrency(stats.totalOrderValue)} detail={`${stats.highPriorityItems} itens com prioridade alta`} icon={<CircleDollarSign className="w-4 h-4" />} accent="black" />
+            <MetricCard label="Valor sob risco de alteração" value={formatCurrency(stats.valueAtRisk)} detail={`${stats.riskRate}% dos itens tiveram mudança`} icon={<ShieldAlert className="w-4 h-4" />} accent="red" />
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="border border-zinc-900 p-6 bg-white relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-3 h-3 bg-red-600"></div>
-              <p className="text-xs font-mono uppercase tracking-widest text-zinc-500">Total de Itens Ativos</p>
-              <p className="text-4xl font-black mt-2 tracking-tight">{stats.totalItems}</p>
-              <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-500 font-mono">
-                <span>Base cadastrada</span>
-                <Package className="w-4 h-4 text-zinc-400" />
-              </div>
-            </div>
-
-            <div className="border border-zinc-900 p-6 bg-white relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-3 h-3 bg-red-600"></div>
-              <p className="text-xs font-mono uppercase tracking-widest text-zinc-500">Alterados Último Upload</p>
-              <p className="text-4xl font-black mt-2 tracking-tight text-red-600">{stats.changedLastUpload}</p>
-              <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-500 font-mono">
-                <span>Mudança de Previsão</span>
-                <TrendingUp className="w-4 h-4 text-red-600" />
-              </div>
-            </div>
-
-            <div className="border border-zinc-900 p-6 bg-white relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-3 h-3 bg-zinc-950"></div>
-              <p className="text-xs font-mono uppercase tracking-widest text-zinc-500">Itens Sem Fornecedor</p>
-              <p className="text-4xl font-black mt-2 tracking-tight">{stats.noSupplier}</p>
-              <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-500 font-mono">
-                <span>Atenção necessária</span>
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
-              </div>
-            </div>
-
-            <div className="border border-zinc-900 p-6 bg-white relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-3 h-3 bg-zinc-950"></div>
-              <p className="text-xs font-mono uppercase tracking-widest text-zinc-500">Mais Alterados</p>
-              <p className="text-lg font-black mt-2 tracking-tight truncate">
-                {stats.mostChanged?.[0]?.item ? `${stats.mostChanged[0].item} (${stats.mostChanged[0].predictionChangesCount}x)` : "Nenhum"}
-              </p>
-              <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-500 font-mono">
-                <span>Top Instabilidade</span>
-                <History className="w-4 h-4 text-zinc-400" />
-              </div>
-            </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+            <MiniMetric label="Mudaram no último upload" value={String(stats.changedLastUpload)} tone="red" />
+            <MiniMetric label="Previsões vencidas" value={String(stats.overdueItems)} tone="amber" />
+            <MiniMetric label="Sem fornecedor" value={String(stats.noSupplier)} tone="amber" />
+            <MiniMetric label="Prioridade alta" value={String(stats.highPriorityItems)} tone="black" />
           </div>
         </section>
 
-        {/* Upload History & Status Banner */}
-        {uploadsList.length > 0 && (
-          <section className="border border-zinc-900 p-6 bg-zinc-50">
-            <h3 className="text-xs font-mono uppercase tracking-widest text-zinc-500 mb-4">Último Ciclo de Upload Registrado</h3>
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div>
-                <p className="font-bold text-lg">{uploadsList[0].fileName}</p>
-                <p className="text-xs font-mono text-zinc-500">
-                  Enviado em: {new Date(uploadsList[0].uploadDate).toLocaleString()} | Total de linhas: {uploadsList[0].totalRows}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge variant="outline" className="rounded-none border-zinc-900 px-3 py-1 font-mono text-xs bg-white">
-                  {uploadsList[0].changedRowsCount} alterações detectadas
-                </Badge>
-              </div>
-            </div>
-          </section>
-        )}
+        <section className="space-y-4"><div className="border-b border-zinc-900 pb-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">01A / Consolidação por filial</h2><h3 className="text-xl font-bold tracking-tight">Filiais solicitantes e pressão operacional</h3><p className="text-xs font-mono text-zinc-500 mt-1">Cada linha do upload é consolidada pelo Endereço (Ship To). Clique em uma filial para segmentar todo o dashboard.</p></div><Badge className="rounded-none bg-zinc-950 text-white font-mono">{branchSummary.length} filiais</Badge></div><div className="border border-zinc-900 overflow-x-auto"><table className="w-full text-left border-collapse min-w-[980px]"><thead><tr className="border-b border-zinc-900 bg-zinc-50 text-xs font-mono uppercase tracking-wider"><th className="p-4">Filial solicitante / Endereço</th><th className="p-4 text-right">Itens</th><th className="p-4 text-right">Alterados</th><th className="p-4 text-right">Taxa de alteração</th><th className="p-4 text-right">Vencidos</th><th className="p-4 text-right">Sem fornecedor</th><th className="p-4 text-right">Valor sob risco</th><th className="p-4 text-center">Ação</th></tr></thead><tbody className="divide-y divide-zinc-200 text-sm font-mono">{branchSummary.length === 0 ? <tr><td colSpan={8} className="p-10 text-center text-zinc-500">Nenhuma filial identificada. Faça um upload para iniciar a consolidação.</td></tr> : branchSummary.map((branch) => <tr key={branch.shipTo} className={filterShipTo === branch.shipTo ? "bg-red-50" : "hover:bg-zinc-50"}><td className="p-4 font-bold max-w-[300px] truncate" title={branch.shipTo}>{branch.shipTo}</td><td className="p-4 text-right">{branch.totalItems}</td><td className={`p-4 text-right font-bold ${branch.changedItems > 0 ? "text-red-600" : "text-zinc-500"}`}>{branch.changedItems}</td><td className="p-4 text-right">{branch.changeRate}%</td><td className={`p-4 text-right ${branch.overdueItems > 0 ? "text-red-600 font-bold" : "text-zinc-500"}`}>{branch.overdueItems}</td><td className={`p-4 text-right ${branch.noSupplier > 0 ? "text-amber-700 font-bold" : "text-zinc-500"}`}>{branch.noSupplier}</td><td className="p-4 text-right">{formatCurrency(branch.valueAtRisk)}</td><td className="p-4 text-center"><Button variant="outline" size="sm" className="rounded-none border-zinc-900 text-[10px] font-mono uppercase h-8" onClick={() => setFilterShipTo(filterShipTo === branch.shipTo ? "" : branch.shipTo)}>{filterShipTo === branch.shipTo ? "Limpar" : "Filtrar"}</Button></td></tr>)}</tbody></table></div></section>
 
-        {/* Main Table Section with Advanced Filters */}
+        <section className="grid grid-cols-1 xl:grid-cols-[1.25fr_0.75fr] gap-6">
+          <div className="border border-zinc-900 p-6">
+            <div className="flex justify-between items-start mb-6"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">02 / Tendência operacional</h2><h3 className="text-xl font-bold mt-1">Alterações detectadas por upload</h3></div><TrendingUp className="w-5 h-5 text-red-600" /></div>
+            <div className="flex items-end gap-3 h-52 border-b border-zinc-900 pb-1">
+              {stats.trend.length === 0 ? <p className="text-xs font-mono text-zinc-500 self-center">A tendência será formada após os uploads semanais.</p> : stats.trend.map((entry) => <div key={entry.id} className="flex-1 h-full flex flex-col justify-end items-center gap-2 min-w-0"><span className="text-[10px] font-mono text-red-600">{entry.changedRowsCount}</span><div className="w-full max-w-12 bg-red-600" style={{ height: `${Math.max((entry.changedRowsCount / maxTrendChanges) * 75, entry.changedRowsCount > 0 ? 8 : 2)}%` }} /><span className="text-[9px] font-mono text-zinc-500 truncate w-full text-center">{formatDate(entry.uploadDate)}</span></div>)}
+            </div>
+            <div className="flex justify-between mt-4 text-[10px] font-mono uppercase text-zinc-500"><span>Menor pressão</span><span>Maior pressão</span></div>
+          </div>
+          <div className="border border-zinc-900 p-6 bg-zinc-950 text-white">
+            <div className="flex justify-between items-start mb-6"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-400">03 / Leitura gerencial</h2><h3 className="text-xl font-bold mt-1">Sinais para decisão</h3></div><Clock3 className="w-5 h-5 text-red-500" /></div>
+            <div className="space-y-5 text-sm font-mono"><DecisionLine label="Carteira estável" value={`${stabilityRate}%`} note={stabilityRate >= 80 ? "controle" : "acompanhar"} positive={stabilityRate >= 80} /><DecisionLine label="Itens vencidos" value={String(stats.overdueItems)} note={stats.overdueItems > 0 ? "ação imediata" : "sem ocorrência"} positive={stats.overdueItems === 0} /><DecisionLine label="Sem fornecedor" value={String(stats.noSupplier)} note={stats.noSupplier > 0 ? "cobrar abastecimento" : "regular"} positive={stats.noSupplier === 0} /><DecisionLine label="Alterações recentes" value={String(stats.changedLastUpload)} note={stats.changedLastUpload > 0 ? "revisar impacto" : "sem mudança"} positive={stats.changedLastUpload === 0} /></div>
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-6">
+          <div className="border border-zinc-900 overflow-hidden">
+            <div className="p-6 border-b border-zinc-900 flex justify-between items-end"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">04 / Fila de ação</h2><h3 className="text-xl font-bold mt-1">Prioridades para a próxima reunião</h3><p className="text-xs font-mono text-zinc-500 mt-1">Ordenada por instabilidade, vencimento, fornecedor e prioridade.</p></div><AlertTriangle className="w-5 h-5 text-red-600" /></div>
+            <div className="divide-y divide-zinc-200">{stats.actionQueue.length === 0 ? <p className="p-8 text-center text-xs font-mono text-zinc-500">Nenhum item requer ação imediata.</p> : stats.actionQueue.slice(0, 7).map((item) => <div key={item.id} className="p-4 flex flex-col md:flex-row md:items-center gap-3 justify-between hover:bg-red-50"><div className="min-w-0"><div className="flex items-center gap-2"><span className="font-bold font-mono">{item.item}</span><span className={`px-2 py-0.5 text-[10px] font-mono font-bold ${riskClass(item.riskLevel)}`}>{item.riskLevel}</span></div><p className="text-xs text-zinc-500 truncate max-w-[430px]">{item.itemDescription || "Sem descrição"} · PO {item.customerPo || "—"}</p><p className="text-[10px] font-mono text-red-700 mt-1">{item.reasons.join(" • ")}</p></div><div className="flex items-center gap-5 shrink-0 text-xs font-mono"><div><span className="text-zinc-500 block">Previsão</span><b>{item.currentPrediction || "—"}</b></div><div><span className="text-zinc-500 block">Valor</span><b>{formatCurrency(item.extendedPrice)}</b></div><div className="text-right"><span className="text-zinc-500 block">Score</span><b className="text-red-600">{item.riskScore}</b></div></div></div>)}</div>
+          </div>
+          <div className="border border-zinc-900 overflow-hidden">
+            <div className="p-6 border-b border-zinc-900"><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">05 / Instabilidade</h2><h3 className="text-xl font-bold mt-1">Itens com mais alterações</h3></div>
+            <div className="divide-y divide-zinc-200">{stats.mostChanged.length === 0 ? <p className="p-8 text-center text-xs font-mono text-zinc-500">Ainda não há histórico suficiente.</p> : stats.mostChanged.slice(0, 6).map((item, index) => <div key={item.id} className="p-4 flex items-center gap-3"><span className="w-7 h-7 bg-zinc-950 text-white flex items-center justify-center text-xs font-bold">{String(index + 1).padStart(2, "0")}</span><div className="min-w-0 flex-1"><p className="font-bold font-mono truncate">{item.item}</p><p className="text-xs text-zinc-500 truncate">{item.customerPo || "Sem PO"} · {item.currentPrediction || "Sem previsão"}</p></div><div className="text-right"><p className="font-black text-red-600">{item.predictionChangesCount}x</p><p className="text-[10px] font-mono text-zinc-500">{formatCurrency(item.extendedPrice)}</p></div></div>)}</div>
+          </div>
+        </section>
+
         <section className="space-y-4">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-zinc-900 pb-2">
-            <div>
-              <h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">02 / Tabela Principal de Pedidos</h2>
-              <h3 className="text-xl font-bold tracking-tight">Rastreamento de Itens e Alterações de Previsão</h3>
-            </div>
-
-            <div className="w-full md:w-80 relative">
-              <Search className="absolute left-3 top-3 w-4 h-4 text-zinc-400" />
-              <Input
-                placeholder="Busca geral..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 rounded-none border-zinc-900 font-mono text-xs bg-white"
-              />
-            </div>
-          </div>
-
-          {/* Filtros Avançados por Campo */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 border border-zinc-900 bg-zinc-50">
-            <div>
-              <label className="text-xs font-mono uppercase tracking-wider text-zinc-500 block mb-1">Filtrar por Item</label>
-              <Input 
-                placeholder="Ex: 0102-1543" 
-                value={filterItem} 
-                onChange={(e) => setFilterItem(e.target.value)}
-                className="rounded-none border-zinc-900 font-mono text-xs bg-white"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-mono uppercase tracking-wider text-zinc-500 block mb-1">Filtrar por Customer PO</label>
-              <Input 
-                placeholder="Ex: 133923E" 
-                value={filterPo} 
-                onChange={(e) => setFilterPo(e.target.value)}
-                className="rounded-none border-zinc-900 font-mono text-xs bg-white"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-mono uppercase tracking-wider text-zinc-500 block mb-1">Filtrar por Previsão</label>
-              <Input 
-                placeholder="Ex: 2025-06" 
-                value={filterPrediction} 
-                onChange={(e) => setFilterPrediction(e.target.value)}
-                className="rounded-none border-zinc-900 font-mono text-xs bg-white"
-              />
-            </div>
-          </div>
-
-          <div className="border border-zinc-900 bg-white overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-zinc-900 bg-zinc-50 text-xs font-mono uppercase tracking-wider">
-                  <th className="p-4 border-r border-zinc-900">Item</th>
-                  <th className="p-4 border-r border-zinc-900">Customer PO</th>
-                  <th className="p-4 border-r border-zinc-900">Descrição</th>
-                  <th className="p-4 border-r border-zinc-900">Previsão Atual</th>
-                  <th className="p-4 border-r border-zinc-900">Previsão Anterior</th>
-                  <th className="p-4 border-r border-zinc-900 text-center">Nº Alterações</th>
-                  <th className="p-4 text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-200 text-sm font-mono">
-                {items.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="p-12 text-center text-zinc-500">
-                      Nenhum item encontrado com os filtros informados ou base vazia. Faça upload de uma planilha Excel.
-                    </td>
-                  </tr>
-                ) : (
-                  items.map((row) => (
-                    <tr key={row.id} className="hover:bg-zinc-50 transition-colors">
-                      <td className="p-4 border-r border-zinc-200 font-bold">{row.item}</td>
-                      <td className="p-4 border-r border-zinc-200">{row.customerPo || "-"}</td>
-                      <td className="p-4 border-r border-zinc-200 text-xs text-zinc-600 max-w-xs truncate">{row.itemDescription || "-"}</td>
-                      <td className="p-4 border-r border-zinc-200 font-semibold text-red-600">{row.currentPrediction || "-"}</td>
-                      <td className="p-4 border-r border-zinc-200 text-xs text-zinc-500">{row.previousPrediction || "Nenhuma"}</td>
-                      <td className="p-4 border-r border-zinc-200 text-center">
-                        <span className={`inline-block px-2.5 py-0.5 text-xs font-bold ${row.predictionChangesCount > 0 ? 'bg-red-100 text-red-700' : 'bg-zinc-100 text-zinc-700'}`}>
-                          {row.predictionChangesCount}x
-                        </span>
-                      </td>
-                      <td className="p-4 text-center">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="rounded-none border-zinc-900 text-xs font-mono h-8 hover:bg-zinc-950 hover:text-white"
-                              onClick={() => setSelectedItemId(row.id)}
-                            >
-                              <History className="w-3.5 h-3.5 mr-1" /> Histórico
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl rounded-none border-2 border-zinc-950 bg-white">
-                            <DialogHeader className="border-b border-zinc-900 pb-4">
-                              <DialogTitle className="font-black text-lg uppercase tracking-tight">
-                                Histórico Completo — Item: {itemDetailQuery.data?.item.item}
-                              </DialogTitle>
-                            </DialogHeader>
-
-                            {itemDetailQuery.isLoading ? (
-                              <div className="py-12 text-center font-mono text-xs">Carregando histórico...</div>
-                            ) : (
-                              <div className="space-y-6 pt-4 font-mono text-xs">
-                                <div className="grid grid-cols-2 gap-4 p-4 border border-zinc-900 bg-zinc-50">
-                                  <div>
-                                    <p className="text-zinc-500 uppercase">Customer PO:</p>
-                                    <p className="font-bold text-sm">{itemDetailQuery.data?.item.customerPo}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-zinc-500 uppercase">Total de Modificações:</p>
-                                    <p className="font-bold text-sm text-red-600">{itemDetailQuery.data?.item.predictionChangesCount} vezes</p>
-                                  </div>
-                                  <div className="col-span-2">
-                                    <p className="text-zinc-500 uppercase">Descrição:</p>
-                                    <p className="font-bold">{itemDetailQuery.data?.item.itemDescription}</p>
-                                  </div>
-                                </div>
-
-                                <div>
-                                  <h4 className="font-bold uppercase tracking-wider text-zinc-700 mb-3">Linha do Tempo de Previsões por Upload</h4>
-                                  <div className="border border-zinc-900 divide-y divide-zinc-200 max-h-64 overflow-y-auto">
-                                    {itemDetailQuery.data?.history.map((h, idx) => (
-                                      <div key={h.id} className="p-3 flex justify-between items-center bg-white hover:bg-zinc-50">
-                                        <div className="flex items-center gap-3">
-                                          <span className="font-bold text-zinc-400">#{idx + 1}</span>
-                                          <div>
-                                            <span className="font-semibold text-red-600 block">{h.prediction}</span>
-                                            <span className="text-[10px] text-zinc-400">Arquivo: {h.fileName}</span>
-                                          </div>
-                                        </div>
-                                        <span className="text-zinc-500">{new Date(h.recordedAt).toLocaleString()}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </DialogContent>
-                        </Dialog>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+          <div className="border-b border-zinc-900 pb-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">06 / Base operacional</h2><h3 className="text-xl font-bold tracking-tight">Itens, previsões e respectivas alterações</h3><p className="text-xs font-mono text-zinc-500 mt-1">Use os filtros para investigar a fila de ação e abrir o histórico completo.</p></div><div className="w-full md:w-80 relative"><Search className="absolute left-3 top-3 w-4 h-4 text-zinc-400" /><Input placeholder="Busca geral..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 rounded-none border-zinc-900 font-mono text-xs bg-white" /></div></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 p-4 border border-zinc-900 bg-zinc-50"><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Filial solicitante / Ship To</label><select value={filterShipTo} onChange={(e) => setFilterShipTo(e.target.value)} className="h-10 w-full rounded-none border border-zinc-900 bg-white px-3 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-red-600"><option value="">Todas as filiais</option>{shipToOptions.map((shipTo) => <option key={shipTo} value={shipTo}>{shipTo}</option>)}</select></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Item</label><Input placeholder="Ex.: 0102-1543" value={filterItem} onChange={(e) => setFilterItem(e.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Customer PO</label><Input placeholder="Ex.: 133923E" value={filterPo} onChange={(e) => setFilterPo(e.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Previsão atual</label><Input placeholder="Ex.: 2025-06" value={filterPrediction} onChange={(e) => setFilterPrediction(e.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div></div>
+          <div className="border border-zinc-900 bg-white overflow-x-auto"><table className="w-full text-left border-collapse min-w-[1420px]"><thead><tr className="border-b border-zinc-900 bg-zinc-50 text-xs font-mono uppercase tracking-wider"><th className="p-4 border-r border-zinc-900">Filial solicitante</th><th className="p-4 border-r border-zinc-900">Item / descrição</th><th className="p-4 border-r border-zinc-900">Customer PO</th><th className="p-4 border-r border-zinc-900">Previsão anterior</th><th className="p-4 border-r border-zinc-900">Previsão atual</th><th className="p-4 border-r border-zinc-900">Último upload</th><th className="p-4 border-r border-zinc-900">Resumo de alterações</th><th className="p-4 border-r border-zinc-900">Última alteração</th><th className="p-4 border-r border-zinc-900 text-center">Total alterações</th><th className="p-4 text-center">Detalhes</th></tr></thead><tbody className="divide-y divide-zinc-200 text-sm font-mono">{items.length === 0 ? <tr><td colSpan={10} className="p-12 text-center text-zinc-500">Nenhum item encontrado.</td></tr> : items.map((row) => <tr key={row.id} className="hover:bg-zinc-50 align-top"><td className="p-4 border-r border-zinc-200"><p className="font-bold text-xs truncate max-w-[220px]" title={row.shipTo || "Sem filial informada"}>{row.shipTo || "Sem filial informada"}</p></td><td className="p-4 border-r border-zinc-200"><p className="font-bold">{row.item}</p><p className="text-xs text-zinc-500 mt-1 max-w-[240px]">{row.itemDescription || "Sem descrição"}</p></td><td className="p-4 border-r border-zinc-200">{row.customerPo || "—"}</td><td className="p-4 border-r border-zinc-200 text-zinc-500">{row.previousPrediction || "Primeiro registro"}</td><td className="p-4 border-r border-zinc-200"><span className="font-bold text-red-600">{row.currentPrediction || "Sem previsão"}</span></td><td className="p-4 border-r border-zinc-200"><p>{formatDate(row.lastUploadDate)}</p><p className="text-[10px] text-zinc-500 mt-1 truncate max-w-[180px]" title={row.lastUploadFileName || "Sem arquivo"}>{row.lastUploadFileName || "Sem arquivo"}</p></td><td className="p-4 border-r border-zinc-200"><p className={`font-bold ${row.predictionChangesCount > 0 ? "text-red-600" : "text-zinc-500"}`}>{row.predictionChangesCount > 0 ? `${row.predictionChangesCount} alteração(ões) acumulada(s)` : "Sem alteração registrada"}</p><p className="text-[10px] text-zinc-500 mt-1">Anterior: {row.previousPrediction || "Primeiro registro"}</p></td><td className="p-4 border-r border-zinc-200"><p>{row.predictionChangesCount > 0 ? formatDate(row.lastPredictionChangeDate) : "Sem alteração"}</p><p className="text-[10px] text-zinc-500 mt-1">Registro: {formatDate(row.updatedAt)}</p></td><td className="p-4 border-r border-zinc-200 text-center"><span className={`inline-block px-3 py-1 text-xs font-bold border ${row.predictionChangesCount > 0 ? "bg-red-100 text-red-700 border-red-200" : "bg-zinc-100 text-zinc-700 border-zinc-200"}`}>{row.predictionChangesCount}x</span></td><td className="p-4 text-center"><Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-none border-zinc-900 text-xs font-mono h-8 hover:bg-zinc-950 hover:text-white" onClick={() => setSelectedItemId(row.id)}><History className="w-3.5 h-3.5 mr-1" /> Ver histórico</Button></DialogTrigger><ItemHistoryDialog detail={itemDetailQuery.data} isLoading={itemDetailQuery.isLoading} /></Dialog></td></tr>)}</tbody></table></div>
         </section>
 
+        <section className="space-y-4"><div className="border-b border-zinc-900 pb-2"><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">07 / Mapa de alterações</h2><h3 className="text-xl font-bold tracking-tight">Itens que tiveram a previsão modificada</h3></div><div className="border border-zinc-900 overflow-x-auto"><table className="w-full text-left border-collapse min-w-[900px]"><thead><tr className="border-b border-zinc-900 bg-zinc-950 text-white text-xs font-mono uppercase tracking-wider"><th className="p-4">Item</th><th className="p-4">Customer PO</th><th className="p-4">De</th><th className="p-4">Para</th><th className="p-4">Data</th><th className="p-4 text-center">Ocorrências</th><th className="p-4">Ação</th></tr></thead><tbody className="divide-y divide-zinc-200 text-sm font-mono">{changedItems.length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-zinc-500">Nenhuma alteração para os filtros atuais.</td></tr> : changedItems.map((row) => <tr key={`change-${row.id}`} className="hover:bg-red-50"><td className="p-4 font-bold">{row.item}</td><td className="p-4">{row.customerPo || "—"}</td><td className="p-4 text-zinc-500">{row.previousPrediction || "—"}</td><td className="p-4 text-red-600 font-bold">{row.currentPrediction || "—"}</td><td className="p-4">{formatDate(row.lastPredictionChangeDate)}</td><td className="p-4 text-center"><span className="px-2 py-1 bg-red-100 text-red-700 font-bold">{row.predictionChangesCount}x</span></td><td className="p-4"><Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-none border-zinc-900 text-xs font-mono" onClick={() => setSelectedItemId(row.id)}>Linha do tempo</Button></DialogTrigger><ItemHistoryDialog detail={itemDetailQuery.data} isLoading={itemDetailQuery.isLoading} /></Dialog></td></tr>)}</tbody></table></div></section>
       </main>
-
-      {/* Footer Swiss Style */}
-      <footer className="border-t-2 border-zinc-950 mt-20 py-8 px-6 text-center text-xs font-mono uppercase tracking-widest text-zinc-500 bg-zinc-50">
-        Open Order Control • Swiss Style Precision Architecture • 2026
-      </footer>
+      <footer className="border-t-2 border-zinc-950 mt-20 py-8 px-6 text-center text-xs font-mono uppercase tracking-widest text-zinc-500 bg-zinc-50">Open Order Control • Swiss Style Precision Architecture • 2026</footer>
     </div>
   );
+}
+
+function MetricCard({ label, value, detail, icon, accent }: { label: string; value: string; detail: string; icon: React.ReactNode; accent: "red" | "black" }) {
+  return <div className="border border-zinc-900 p-6 relative bg-white"><div className={`absolute top-0 right-0 w-3 h-3 ${accent === "red" ? "bg-red-600" : "bg-zinc-950"}`} /><p className="text-xs font-mono uppercase tracking-widest text-zinc-500">{label}</p><p className="text-3xl font-black mt-3 tracking-tight">{value}</p><div className="mt-5 pt-4 border-t border-zinc-100 flex items-center justify-between gap-3 text-xs text-zinc-500 font-mono"><span>{detail}</span>{icon}</div></div>;
+}
+
+function MiniMetric({ label, value, tone }: { label: string; value: string; tone: "red" | "amber" | "black" }) {
+  const color = tone === "red" ? "text-red-600" : tone === "amber" ? "text-amber-700" : "text-zinc-950";
+  return <div className="border border-zinc-200 p-4 bg-zinc-50"><p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">{label}</p><p className={`text-2xl font-black mt-2 ${color}`}>{value}</p></div>;
+}
+
+function DecisionLine({ label, value, note, positive }: { label: string; value: string; note: string; positive: boolean }) {
+  return <div className="flex items-center justify-between border-b border-zinc-700 pb-3"><div><p className="text-zinc-300">{label}</p><p className={`text-[10px] mt-1 ${positive ? "text-emerald-400" : "text-red-400"}`}>{note}</p></div><strong className={positive ? "text-emerald-400" : "text-red-400"}>{value}</strong></div>;
+}
+
+function ItemHistoryDialog({ detail, isLoading }: { detail: any; isLoading: boolean }) {
+  return <DialogContent className="max-w-5xl rounded-none border-2 border-zinc-950 bg-white"><DialogHeader className="border-b border-zinc-900 pb-4"><DialogTitle className="font-black text-lg uppercase tracking-tight">Histórico completo — {detail?.item.item || "Item"}</DialogTitle></DialogHeader>{isLoading ? <div className="py-12 text-center font-mono text-xs">Carregando histórico...</div> : detail ? <div className="space-y-6 pt-4 font-mono text-xs"><div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-4 border border-zinc-900 bg-zinc-50"><div><p className="text-zinc-500 uppercase">Item</p><p className="font-bold text-sm">{detail.item.item}</p></div><div><p className="text-zinc-500 uppercase">Customer PO</p><p className="font-bold text-sm">{detail.item.customerPo || "—"}</p></div><div><p className="text-zinc-500 uppercase">Previsão atual</p><p className="font-bold text-sm text-red-600">{detail.item.currentPrediction || "—"}</p></div><div><p className="text-zinc-500 uppercase">Alterações</p><p className="font-bold text-sm text-red-600">{detail.item.predictionChangesCount}x</p></div></div><div><h4 className="font-bold uppercase tracking-wider text-zinc-700 mb-3">Linha do tempo de uploads</h4><div className="border border-zinc-900 overflow-auto max-h-[420px]"><table className="w-full min-w-[820px] text-left"><thead className="sticky top-0 bg-zinc-950 text-white"><tr className="text-[10px] uppercase tracking-wider"><th className="p-3">#</th><th className="p-3">Upload / arquivo</th><th className="p-3">Data do upload</th><th className="p-3">Previsão registrada</th><th className="p-3">Alteração</th><th className="p-3">Diferença</th></tr></thead><tbody className="divide-y divide-zinc-200">{detail.history.map((h: any) => <tr key={h.id} className={h.changed ? "bg-red-50" : "bg-white"}><td className="p-3 text-zinc-400">{h.sequence}</td><td className="p-3"><p className="font-bold">{h.fileName}</p><p className="text-[10px] text-zinc-500">Upload #{h.uploadId}</p></td><td className="p-3">{formatDateTime(h.uploadDate)}</td><td className="p-3 font-bold text-red-600">{h.prediction}</td><td className="p-3">{h.changed ? <span className="inline-flex items-center gap-1 text-red-700 font-bold"><ArrowRight className="w-3 h-3" /> {h.previousPrediction} <ArrowRight className="w-3 h-3" /> {h.prediction}</span> : <span className="inline-flex items-center gap-1 text-zinc-500"><Minus className="w-3 h-3" /> Sem mudança</span>}</td><td className="p-3">{h.differenceDays === null ? "—" : h.differenceDays > 0 ? <span className="text-red-700 font-bold">+{h.differenceDays} dias</span> : h.differenceDays < 0 ? <span className="text-amber-700 font-bold">{h.differenceDays} dias</span> : "0 dias"}</td></tr>)}</tbody></table></div></div></div> : <div className="py-12 text-center font-mono text-xs">Não foi possível carregar este item.</div>}</DialogContent>;
 }

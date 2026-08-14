@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { appRouter } from "./routers";
+import * as db from "./db";
 import type { TrpcContext } from "./_core/context";
 import * as XLSX from "xlsx";
 
@@ -15,20 +16,88 @@ describe("Open Orders Backend & Upload Logic", () => {
     const stats = await caller.orders.getStats();
     expect(stats).toHaveProperty("totalItems");
     expect(stats).toHaveProperty("changedLastUpload");
+    expect(stats).toHaveProperty("stabilityRate");
+    expect(stats).toHaveProperty("valueAtRisk");
+    expect(stats).toHaveProperty("actionQueue");
+    expect(stats).toHaveProperty("trend");
+    expect(Array.isArray(stats.actionQueue)).toBe(true);
+    expect(Array.isArray(stats.trend)).toBe(true);
 
     const items = await caller.orders.listItems();
     expect(Array.isArray(items)).toBe(true);
+    const shipToOptions = await caller.orders.listShipTo();
+    expect(Array.isArray(shipToOptions)).toBe(true);
+    const branches = await caller.orders.getBranchSummary();
+    expect(Array.isArray(branches)).toBe(true);
+  });
+
+  it("blocks resetImports for non-admin users", async () => {
+    const ctx: TrpcContext = {
+      user: {
+        id: 2,
+        openId: "regular-user",
+        name: "Regular User",
+        email: "user@test.com",
+        loginMethod: "manus",
+        role: "user",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      },
+      req: { protocol: "https", headers: {} } as any,
+      res: {} as any,
+    };
+    const caller = appRouter.createCaller(ctx);
+    await expect(caller.orders.resetImports()).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("allows admin reset and returns the deleted record counts", async () => {
+    const resetSpy = vi.spyOn(db, "resetImportedData").mockResolvedValue({
+      deletedHistory: 12,
+      deletedItems: 5,
+      deletedUploads: 2,
+    });
+    const ctx: TrpcContext = {
+      user: {
+        id: 1,
+        openId: "admin-reset-test",
+        name: "Admin User",
+        email: "admin-reset@test.com",
+        loginMethod: "manus",
+        role: "admin",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      },
+      req: { protocol: "https", headers: {} } as any,
+      res: {} as any,
+    };
+
+    try {
+      const caller = appRouter.createCaller(ctx);
+      await expect(caller.orders.resetImports()).resolves.toEqual({
+        deletedHistory: 12,
+        deletedItems: 5,
+        deletedUploads: 2,
+      });
+      expect(resetSpy).toHaveBeenCalledOnce();
+    } finally {
+      resetSpy.mockRestore();
+    }
   });
 
   it("processes Excel buffer and tracks prediction history correctly", async () => {
+    const itemCode = `ITEM-TEST-${Date.now()}`;
+    const customerPo = `PO-${Date.now()}`;
+
     // Criar uma planilha Excel em memória para teste
     const wsData = [
       {
         "Endereco (ship To)": "TESTE RS",
-        "Customer PO": "PO-9999",
+        "Customer PO": customerPo,
         "Shipment Priority": "High",
         "Data Criacao da Ordem": "2025-01-01",
-        "Item": "ITEM-TEST-01",
+        "Item": itemCode,
         "Descricao do Item": "PEÇA DE TESTE",
         "Quantidade": 10,
         "Scheduled Reserved": 0,
@@ -73,9 +142,9 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(res1.totalRows).toBe(1);
 
     // Verificar listagem
-    const items = await caller.orders.listItems({ item: "ITEM-TEST-01" });
+    const items = await caller.orders.listItems({ item: itemCode, customerPo, shipTo: "TESTE RS" });
     expect(items.length).toBeGreaterThan(0);
-    const targetItem = items.find(i => i.item === "ITEM-TEST-01");
+    const targetItem = items.find(i => i.item === itemCode && i.customerPo === customerPo);
     expect(targetItem).toBeDefined();
     expect(targetItem?.currentPrediction).toBe("2025-06-01");
     expect(targetItem?.predictionChangesCount).toBe(0);
@@ -84,10 +153,10 @@ describe("Open Orders Backend & Upload Logic", () => {
     const wsData2 = [
       {
         "Endereco (ship To)": "TESTE RS",
-        "Customer PO": "PO-9999",
+        "Customer PO": customerPo,
         "Shipment Priority": "High",
         "Data Criacao da Ordem": "2025-01-01",
-        "Item": "ITEM-TEST-01",
+        "Item": itemCode,
         "Descricao do Item": "PEÇA DE TESTE",
         "Quantidade": 10,
         "Scheduled Reserved": 0,
@@ -113,8 +182,8 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(res2.changedRowsCount).toBe(1);
 
     // Verificar se o contador de alterações foi incrementado
-    const updatedItems = await caller.orders.listItems({ item: "ITEM-TEST-01" });
-    const updatedItem = updatedItems.find(i => i.item === "ITEM-TEST-01");
+    const updatedItems = await caller.orders.listItems({ item: itemCode, customerPo });
+    const updatedItem = updatedItems.find(i => i.item === itemCode && i.customerPo === customerPo);
     expect(updatedItem?.currentPrediction).toBe("2025-07-15");
     expect(updatedItem?.previousPrediction).toBe("2025-06-01");
     expect(updatedItem?.predictionChangesCount).toBe(1);
@@ -122,5 +191,22 @@ describe("Open Orders Backend & Upload Logic", () => {
     // Verificar detalhe e histórico
     const detail = await caller.orders.getItemDetail({ id: updatedItem!.id });
     expect(detail.history.length).toBe(2); // Histórico dos 2 uploads
+
+    const branches = await caller.orders.getBranchSummary();
+    const branch = branches.find((entry) => entry.shipTo === "TESTE RS");
+    expect(branch).toMatchObject({
+      totalItems: expect.any(Number),
+      changedItems: expect.any(Number),
+      changeRate: expect.any(Number),
+      valueAtRisk: expect.any(Number),
+    });
+    expect(branch?.totalItems).toBeGreaterThanOrEqual(1);
+    expect(branch?.changedItems).toBeGreaterThanOrEqual(1);
+    expect(branch?.valueAtRisk).toBeGreaterThanOrEqual(1000);
+
+    const filteredStats = await caller.orders.getStats({ shipTo: "TESTE RS" });
+    expect(filteredStats.totalItems).toBeGreaterThanOrEqual(1);
+    expect(filteredStats.changedItems).toBeGreaterThanOrEqual(1);
+    expect(filteredStats.changedLastUpload).toBeGreaterThanOrEqual(1);
   });
 });

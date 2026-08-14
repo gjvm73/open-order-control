@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { adminProcedure, publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import * as db from "./db";
 import { sql } from "./db";
 import { z } from "zod";
@@ -30,13 +30,23 @@ export const appRouter = router({
       item: z.string().optional(),
       customerPo: z.string().optional(),
       prediction: z.string().optional(),
+      shipTo: z.string().optional(),
     }).optional()).query(async ({ input }) => {
       return await db.getOrderItems({
         search: input?.search,
         item: input?.item,
         customerPo: input?.customerPo,
         prediction: input?.prediction,
+        shipTo: input?.shipTo,
       });
+    }),
+
+    listShipTo: publicProcedure.query(async () => {
+      return await db.getShipToOptions();
+    }),
+
+    getBranchSummary: publicProcedure.query(async () => {
+      return await db.getBranchSummary();
     }),
 
     getItemDetail: publicProcedure.input(z.object({
@@ -48,8 +58,12 @@ export const appRouter = router({
       return { item, history };
     }),
 
-    getStats: publicProcedure.query(async () => {
-      return await db.getDashboardStats();
+    getStats: publicProcedure.input(z.object({ shipTo: z.string().optional() }).optional()).query(async ({ input }) => {
+      return await db.getDashboardStats(input?.shipTo);
+    }),
+
+    resetImports: adminProcedure.mutation(async () => {
+      return await db.resetImportedData();
     }),
 
     uploadExcel: protectedProcedure.input(z.object({
