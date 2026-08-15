@@ -125,10 +125,10 @@
 - [x] Adicionar teste de integração para o ciclo de entrega e validação de build
 - [x] Salvar checkpoint final da nova funcionalidade de itens entregues
 
-- [ ] Adicionar botão de exportar Excel na seção 06 / Base operacional em Home.tsx
-- [ ] Implementar a geração e download do arquivo .xlsx usando SheetJS (xlsx) com todos os campos e filtros ativos
-- [ ] Validar a exportação com testes e build de produção
-- [ ] Salvar checkpoint da nova funcionalidade de exportação em Excel
+- [x] Adicionar botão de exportar Excel na seção 06 / Base operacional em Home.tsx
+- [x] Implementar a geração e download do arquivo .xlsx usando SheetJS (xlsx) com todos os campos e filtros ativos
+- [x] Validar a exportação com testes e build de produção
+- [x] Salvar checkpoint da nova funcionalidade de exportação em Excel
 
 - [x] Implementar procedimento de login ADM local (giovani.martino / M@rtino) com token/sessão segura
 - [x] Restringir uploadExcel e resetImports no backend para exigir ctx.user?.role === 'admin'
