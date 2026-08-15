@@ -81,6 +81,7 @@ describe("operational Excel export", () => {
   it("formats prediction dates in Brazilian format", async () => {
     const { formatBrazilianPredictionDate } = await import("./orderExport");
     expect(formatBrazilianPredictionDate("2026-08-20")).toBe("20/08/2026");
+    expect(formatBrazilianPredictionDate("2026-08")).toBe("08/2026");
     expect(formatBrazilianPredictionDate("20/08/2026")).toBe("20/08/2026");
     expect(formatBrazilianPredictionDate("sem fornecedor")).toBe("sem fornecedor");
     expect(formatBrazilianPredictionDate(null)).toBe("");

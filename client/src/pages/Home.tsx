@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import * as XLSX from "xlsx";
-import { buildOperationalExportFileName, buildOperationalExportRows, filterOperationalItemsWithChanges, generateProfessionalOperationalWorkbook } from "@/lib/orderExport";
+import { buildOperationalExportFileName, buildOperationalExportRows, filterOperationalItemsWithChanges, formatBrazilianPredictionDate, generateProfessionalOperationalWorkbook } from "@/lib/orderExport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,10 @@ function formatDate(value: unknown) {
   if (!value) return "—";
   const date = new Date(value as string | number | Date);
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("pt-BR");
+}
+
+function formatPrediction(value: unknown) {
+  return formatBrazilianPredictionDate(value) || "";
 }
 
 function formatDateTime(value: unknown) {
@@ -68,7 +72,11 @@ export default function Home() {
   }), [deliveredSearch, deliveredItemFilter, deliveredPoFilter, deliveredShipTo]);
 
   const deliveredItemsQuery = trpc.orders.listDeliveredItems.useQuery(deliveredInput);
-  const deliveredItems = deliveredItemsQuery.data ?? [];
+  const deliveredItems = (deliveredItemsQuery.data ?? []).map((item) => ({
+    ...item,
+    previousPrediction: formatPrediction(item.previousPrediction),
+    currentPrediction: formatPrediction(item.currentPrediction),
+  }));
 
   React.useEffect(() => {
     const storedTheme = window.localStorage.getItem("open-order-dark-mode");
@@ -260,17 +268,30 @@ export default function Home() {
     reader.readAsDataURL(file);
   };
 
-  const stats = statsQuery.data || {
+  const rawStats = statsQuery.data || {
     totalItems: 0, changedLastUpload: 0, noSupplier: 0, mostChanged: [], totalOrderValue: 0,
     valueAtRisk: 0, changedItems: 0, stableItems: 0, highPriorityItems: 0, overdueItems: 0,
     stabilityRate: 0, riskRate: 0, latestChangeRate: 0, latestStabilityRate: 0, trend: [], actionQueue: [], latestUpload: null,
   };
-  const items = itemsQuery.data || [];
+  const stats = {
+    ...rawStats,
+    actionQueue: rawStats.actionQueue.map((item) => ({ ...item, currentPrediction: formatPrediction(item.currentPrediction) })),
+    mostChanged: rawStats.mostChanged.map((item) => ({ ...item, currentPrediction: formatPrediction(item.currentPrediction) })),
+  };
+  const items = (itemsQuery.data || []).map((item) => ({
+    ...item,
+    previousPrediction: formatPrediction(item.previousPrediction),
+    currentPrediction: formatPrediction(item.currentPrediction),
+  }));
   const uploadsList = uploadsQuery.data || [];
   const shipToOptions = shipToQuery.data || [];
   const branchSummary = branchSummaryQuery.data || [];
   const alertsData = alertsQuery.data || { alerts: [], summary: { totalAlerts: 0, criticalCount: 0, attentionCount: 0, criticalRatio: 0, attentionRatio: 0 } };
-  const alerts = alertsData.alerts;
+  const alerts = alertsData.alerts.map((alert) => ({
+    ...alert,
+    previousPrediction: formatPrediction(alert.previousPrediction),
+    currentPrediction: formatPrediction(alert.currentPrediction),
+  }));
   const alertSummary = alertsData.summary;
   const changedItems = items.filter((item) => item.predictionChangesCount > 0);
   const stabilityRate = stats.latestStabilityRate ?? stats.stabilityRate ?? 0;
@@ -692,7 +713,21 @@ function DecisionLine({ label, value, note, positive }: { label: string; value: 
   return <div className="flex items-center justify-between border-b border-zinc-700 pb-3"><div><p className="text-zinc-300">{label}</p><p className={`text-[10px] mt-1 ${positive ? "text-emerald-400" : "text-red-400"}`}>{note}</p></div><strong className={positive ? "text-emerald-400" : "text-red-400"}>{value}</strong></div>;
 }
 
-function ItemHistoryDialog({ detail, isLoading }: { detail: any; isLoading: boolean }) {
+function ItemHistoryDialog({ detail: rawDetail, isLoading }: { detail: any; isLoading: boolean }) {
+  const detail = rawDetail ? {
+    ...rawDetail,
+    item: {
+      ...rawDetail.item,
+      previousPrediction: formatPrediction(rawDetail.item.previousPrediction),
+      currentPrediction: formatPrediction(rawDetail.item.currentPrediction),
+    },
+    history: rawDetail.history.map((record: any) => ({
+      ...record,
+      previousPrediction: formatPrediction(record.previousPrediction),
+      prediction: formatPrediction(record.prediction),
+    })),
+  } : rawDetail;
+
   return (
     <DialogContent className="w-[calc(100vw-2rem)] max-w-none sm:w-[calc(100vw-3rem)] sm:max-w-4xl max-h-[90vh] overflow-y-auto rounded-none border-2 border-zinc-950 bg-white p-6 font-mono text-xs">
       <DialogHeader className="border-b-2 border-zinc-950 pb-4 mb-4">

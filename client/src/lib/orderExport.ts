@@ -96,6 +96,12 @@ export function formatBrazilianPredictionDate(value: unknown) {
       return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
     }
 
+    const isoMonthOnly = /^(\d{4})[-\/](\d{1,2})$/.exec(trimmed);
+    if (isoMonthOnly) {
+      const [, year, month] = isoMonthOnly;
+      return `${month.padStart(2, "0")}/${year}`;
+    }
+
     const brazilianDate = /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/.exec(trimmed);
     if (brazilianDate) {
       const [, day, month, year] = brazilianDate;
