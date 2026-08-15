@@ -282,7 +282,7 @@ export default function Home() {
         <span className="text-[10px] font-mono text-zinc-400">Regra: Desaparecidos no upload mais recente são considerados entregues</span>
       </div>
 
-      <main className="p-6 md:p-10 max-w-[1500px] mx-auto space-y-12">
+      <main className="print-report p-6 md:p-10 max-w-[1500px] mx-auto space-y-12">
         {activeTab === "delivered" ? (
           <section className="space-y-6">
             <div className="border-b border-zinc-900 pb-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">

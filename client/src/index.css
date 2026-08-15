@@ -46,26 +46,209 @@ body {
   color: #ffffff;
 }
 
+@page {
+  size: A4 landscape;
+  margin: 12mm;
+}
+
 @media print {
+  html,
+  body {
+    width: 100%;
+    min-width: 0 !important;
+    background: #ffffff !important;
+    color: #111111 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    font-size: 9pt;
+  }
+
+  header,
   header button,
   header label,
   .no-print,
-  button {
+  button,
+  [role="dialog"],
+  [data-radix-popper-content-wrapper] {
     display: none !important;
   }
-  body {
-    background: white !important;
-    color: black !important;
+
+  #root {
+    width: 100% !important;
   }
-  main {
-    max-width: 100% !important;
+
+  main.print-report {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
     padding: 0 !important;
     margin: 0 !important;
+    space-y: 0 !important;
   }
-  section {
+
+  main.print-report > section {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 0 8mm !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: #ffffff !important;
+    box-shadow: none !important;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  main.print-report > section:first-child {
+    break-before: avoid;
+    page-break-before: avoid;
+  }
+
+  main.print-report > section:nth-of-type(1),
+  main.print-report > section:nth-of-type(2),
+  main.print-report > section:nth-of-type(3),
+  main.print-report > section:nth-of-type(4),
+  main.print-report > section:nth-of-type(5) {
+    break-inside: avoid;
     page-break-inside: avoid;
-    border: 1px solid #000 !important;
-    margin-bottom: 2rem !important;
-    background: white !important;
+  }
+
+  main.print-report > section:nth-of-type(7) {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  main.print-report .border,
+  main.print-report .border-2,
+  main.print-report .border-red-600,
+  main.print-report .border-zinc-900 {
+    border-color: #555555 !important;
+  }
+
+  main.print-report .bg-zinc-950 {
+    background: #111111 !important;
+    color: #ffffff !important;
+  }
+
+  main.print-report .bg-red-50\/30,
+  main.print-report .bg-red-50\/50,
+  main.print-report .bg-zinc-50 {
+    background: #f7f7f7 !important;
+  }
+
+  main.print-report .grid {
+    gap: 4mm !important;
+  }
+
+  main.print-report > section > div,
+  main.print-report > section > div > div {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  main.print-report > section:first-of-type > .grid:first-of-type {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  main.print-report > section:first-of-type > .grid:nth-of-type(2) {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  main.print-report > section:nth-of-type(2) > .grid:first-of-type,
+  main.print-report > section:nth-of-type(3) > .grid:first-of-type,
+  main.print-report > section:nth-of-type(4) > .grid:first-of-type,
+  main.print-report > section:nth-of-type(5) > .grid:first-of-type,
+  main.print-report > section:nth-of-type(6) > .grid:first-of-type {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  main.print-report > section:first-of-type > .grid > *,
+  main.print-report > section:nth-of-type(2) > .grid > *,
+  main.print-report > section:nth-of-type(3) > .grid > *,
+  main.print-report > section:nth-of-type(4) > .grid > *,
+  main.print-report > section:nth-of-type(5) > .grid > *,
+  main.print-report > section:nth-of-type(6) > .grid > * {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  main.print-report table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed;
+    border-collapse: collapse !important;
+    font-size: 7.5pt !important;
+  }
+
+  main.print-report thead {
+    display: table-header-group;
+  }
+
+  main.print-report tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  main.print-report th,
+  main.print-report td {
+    padding: 2.2mm 2.4mm !important;
+    overflow-wrap: anywhere;
+    vertical-align: top;
+  }
+
+  main.print-report p,
+  main.print-report span,
+  main.print-report h2,
+  main.print-report h3,
+  main.print-report h4 {
+    overflow-wrap: anywhere;
+  }
+
+  main.print-report .text-6xl {
+    font-size: 30pt !important;
+  }
+
+  main.print-report .text-2xl {
+    font-size: 16pt !important;
+  }
+
+  main.print-report .text-xl {
+    font-size: 13pt !important;
+  }
+
+  main.print-report .text-sm {
+    font-size: 8.5pt !important;
+  }
+
+  main.print-report .text-xs,
+  main.print-report .text-\[10px\],
+  main.print-report .text-\[9px\] {
+    font-size: 7.5pt !important;
+  }
+
+  main.print-report .p-6 {
+    padding: 4mm !important;
+  }
+
+  main.print-report .p-4 {
+    padding: 3mm !important;
+  }
+
+  main.print-report .p-3 {
+    padding: 2mm !important;
+  }
+
+  main.print-report .space-y-12 > :not([hidden]) ~ :not([hidden]),
+  main.print-report .space-y-6 > :not([hidden]) ~ :not([hidden]),
+  main.print-report .space-y-5 > :not([hidden]) ~ :not([hidden]),
+  main.print-report .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 4mm !important;
+  }
+
+  main.print-report .overflow-x-auto {
+    overflow: visible !important;
   }
 }
+
