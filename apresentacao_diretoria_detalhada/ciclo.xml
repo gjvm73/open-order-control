@@ -1,0 +1,35 @@
+<slide id="ciclo">
+  <background color="paper"/>
+  <shape id="accent-line" type="line" x="48" y="54" width="48" height="0" stroke="accent" stroke-width="4"/>
+  <text id="slide-title" x="48" y="76" width="760" height="42" font="heading" size="34" color="graphite" wrap="false"><strong>Ciclo de controle semanal, com rastreabilidade</strong></text>
+  <text id="slide-subtitle" x="48" y="124" width="760" height="38" font="body" size="18" color="ink">Cada carga semanal é comparada ao último estado conhecido do pedido; o histórico não é substituído.</text>
+  <shape id="key-band" type="rect" x="384" y="176" width="512" height="34" fill="mist"/>
+  <text id="key-text" x="399" y="184" width="482" height="18" font="mono" size="13" color="graphite" align="center" wrap="false">CHAVE DE COMPARAÇÃO: SHIP TO + ITEM + CUSTOMER PO</text>
+  <shape id="step-1" type="rect" x="48" y="238" width="254" height="178" fill="paper" stroke="hairline" stroke-width="1"/>
+  <text id="step-1-no" x="72" y="262" width="50" height="30" font="mono" size="20" color="accent" wrap="false">01</text>
+  <icon id="step-1-icon" name="upload" x="226" y="260" width="34" height="34" color="graphite"/>
+  <text id="step-1-text" x="72" y="312" width="190" height="80" font="body" size="18" color="ink"><p><strong color="graphite">Importar planilha</strong></p><p space-before="8">O administrador carrega o arquivo semanal de Open Orders.</p></text>
+  <shape id="arrow-1" type="line" x="314" y="327" width="43" height="0" stroke="accent" stroke-width="2" arrow-end="arrow"/>
+  <shape id="step-2" type="rect" x="371" y="238" width="254" height="178" fill="paper" stroke="hairline" stroke-width="1"/>
+  <text id="step-2-no" x="395" y="262" width="50" height="30" font="mono" size="20" color="accent" wrap="false">02</text>
+  <icon id="step-2-icon" name="database" x="549" y="260" width="34" height="34" color="graphite"/>
+  <text id="step-2-text" x="395" y="312" width="190" height="80" font="body" size="18" color="ink"><p><strong color="graphite">Comparar estado</strong></p><p space-before="8">Previsões são confrontadas com o último registro do mesmo pedido.</p></text>
+  <shape id="arrow-2" type="line" x="637" y="327" width="43" height="0" stroke="accent" stroke-width="2" arrow-end="arrow"/>
+  <shape id="step-3" type="rect" x="694" y="238" width="254" height="178" fill="paper" stroke="hairline" stroke-width="1"/>
+  <text id="step-3-no" x="718" y="262" width="50" height="30" font="mono" size="20" color="accent" wrap="false">03</text>
+  <icon id="step-3-icon" name="history" x="872" y="260" width="34" height="34" color="graphite"/>
+  <text id="step-3-text" x="718" y="312" width="190" height="80" font="body" size="18" color="ink"><p><strong color="graphite">Registrar evidência</strong></p><p space-before="8">Data, arquivo, previsão anterior, nova previsão e contagem são preservados.</p></text>
+  <shape id="arrow-3" type="line" x="960" y="327" width="43" height="0" stroke="accent" stroke-width="2" arrow-end="arrow"/>
+  <shape id="step-4" type="rect" x="1017" y="238" width="215" height="178" fill="graphite"/>
+  <text id="step-4-no" x="1041" y="262" width="50" height="30" font="mono" size="20" color="accent" wrap="false">04</text>
+  <icon id="step-4-icon" name="target" x="1156" y="260" width="34" height="34" color="#FFFFFF"/>
+  <text id="step-4-text" x="1041" y="312" width="167" height="80" font="body" size="18" color="#FFFFFF"><p><strong>Priorizar ação</strong></p><p color="#D4D4D8" space-before="8">Indicadores e alertas orientam a atuação semanal.</p></text>
+  <shape id="delivery-band" type="rect" x="48" y="492" width="1184" height="140" fill="mist"/>
+  <icon id="delivery-icon" name="circle-check" x="76" y="536" width="46" height="46" color="accent"/>
+  <text id="delivery-title" x="146" y="520" width="360" height="26" font="mono" size="14" color="accent" wrap="false">REGRA DE ENCERRAMENTO AUTOMÁTICO</text>
+  <text id="delivery-copy" x="146" y="554" width="952" height="44" font="body" size="21" color="graphite">Se um item ativo existia no upload anterior e não aparece na carga mais nova, o sistema o classifica como <strong>entregue</strong> e preserva sua consulta histórica.</text>
+  <text id="delivery-note" x="146" y="604" width="850" height="18" font="caption" size="13" color="ink" wrap="false">Resultado: carteira ativa mais precisa, sem perda de rastreabilidade dos itens encerrados.</text>
+  <shape id="footer-line" type="line" x="48" y="674" width="1184" height="0" stroke="hairline" stroke-width="1"/>
+  <text id="footer-source" x="48" y="686" width="600" height="18" font="caption" size="12" color="ink" wrap="false">OPEN ORDER CONTROL · CICLO DE GESTÃO</text>
+  <text id="page-number" x="1160" y="684" width="72" height="20" font="mono" size="13" color="ink" align="right" wrap="false">03 / 12</text>
+</slide>

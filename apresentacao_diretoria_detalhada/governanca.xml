@@ -1,0 +1,24 @@
+<slide id="governanca">
+  <background color="paper"/>
+  <shape id="accent-line" type="line" x="48" y="54" width="48" height="0" stroke="accent" stroke-width="4"/>
+  <text id="slide-title" x="48" y="76" width="760" height="42" font="heading" size="34" color="graphite" wrap="false"><strong>Governança, segurança e controles de administração</strong></text>
+  <text id="slide-subtitle" x="48" y="124" width="930" height="38" font="body" size="18" color="ink">A experiência separa consulta e análise das ações que alteram o histórico ou a base de importações.</text>
+  <shape id="access-card" type="rect" x="48" y="220" width="366" height="286" fill="mist"/>
+  <icon id="access-icon" name="lock" x="76" y="249" width="42" height="42" color="accent"/>
+  <text id="access-title" x="76" y="317" width="278" height="26" font="mono" size="14" color="accent" wrap="false">ACESSO ADMINISTRATIVO</text>
+  <text id="access-copy" x="76" y="359" width="286" height="105" font="body" size="18" color="ink"><p><strong color="graphite">Login local ADM</strong> controla as ações críticas.</p><p space-before="10">A consulta do dashboard é mantida separada da manutenção da base.</p></text>
+  <shape id="actions-card" type="rect" x="457" y="220" width="366" height="286" fill="graphite"/>
+  <icon id="actions-icon" name="shield-check" x="485" y="249" width="42" height="42" color="accent"/>
+  <text id="actions-title" x="485" y="317" width="282" height="26" font="mono" size="14" color="accent" wrap="false">AÇÕES SENSÍVEIS</text>
+  <text id="actions-copy" x="485" y="359" width="286" height="105" font="body" size="18" color="#D4D4D8"><p><strong color="#FFFFFF">Upload semanal</strong> e <strong color="#FFFFFF">reset de importações</strong> ficam disponíveis apenas após autenticação administrativa.</p></text>
+  <shape id="experience-card" type="rect" x="866" y="220" width="366" height="286" fill="mist"/>
+  <icon id="experience-icon" name="moon" x="894" y="249" width="42" height="42" color="accent"/>
+  <text id="experience-title" x="894" y="317" width="282" height="26" font="mono" size="14" color="accent" wrap="false">EXPERIÊNCIA DE USO</text>
+  <text id="experience-copy" x="894" y="359" width="286" height="105" font="body" size="18" color="ink"><p><strong color="graphite">Modo noturno</strong> pode ser alternado no menu superior e é preservado no navegador para o próximo acesso.</p></text>
+  <shape id="reset-band" type="rect" x="48" y="540" width="1184" height="92" fill="#FEF2F2"/>
+  <icon id="reset-icon" name="triangle-alert" x="76" y="566" width="36" height="36" color="accent"/>
+  <text id="reset-text" x="136" y="557" width="1040" height="52" font="body" size="18" color="graphite"><p><strong>Controle de reset:</strong> a limpeza exclui histórico, itens e importações. Deve ser realizada somente em reinicializações controladas e após confirmação explícita.</p></text>
+  <shape id="footer-line" type="line" x="48" y="674" width="1184" height="0" stroke="hairline" stroke-width="1"/>
+  <text id="footer-source" x="48" y="686" width="600" height="18" font="caption" size="12" color="ink" wrap="false">OPEN ORDER CONTROL · GOVERNANÇA E CONTROLES</text>
+  <text id="page-number" x="1160" y="684" width="72" height="20" font="mono" size="13" color="ink" align="right" wrap="false">10 / 12</text>
+</slide>

@@ -163,3 +163,5 @@
 - [x] Inserir quebra de linha após "Fórmula:" no texto do Índice de Risco Executivo
 - [x] Incluir todas as datas e previsões de alteração no relatório exportado para o Excel
 - [x] Adicionar botão e lógica para exportar em Excel apenas os itens que sofreram alterações na previsão
+- [x] Produzir apresentação executiva detalhada com as funcionalidades, métricas e controles da aplicação
+- [x] Produzir manual Word ilustrado com telas, roteiros e instruções passo a passo

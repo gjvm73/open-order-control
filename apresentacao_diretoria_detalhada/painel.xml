@@ -1,0 +1,20 @@
+<slide id="painel">
+  <background color="paper"/>
+  <shape id="accent-line" type="line" x="48" y="54" width="48" height="0" stroke="accent" stroke-width="4"/>
+  <text id="slide-title" x="48" y="76" width="760" height="42" font="heading" size="34" color="graphite" wrap="false"><strong>Painel executivo: onde a gestão deve atuar</strong></text>
+  <text id="slide-subtitle" x="48" y="124" width="900" height="38" font="body" size="18" color="ink">A visão central une saúde da carteira, exposição financeira, exceções e recomendação de foco para a semana.</text>
+  <image id="dashboard-capture" src="https://private-us-east-1.manuscdn.com/sessionFile/QgEisnZZrxdPja79UfHdUO/sandbox/slides_resource_i5sff0qo6fvqgtbrjjf2t-918ab9d5-e2b-prod-aws-us-east-1-05_1786798609251_na1fn_L2hvbWUvdWJ1bnR1L29wZW4tb3JkZXItY29udHJvbC9leGVjdXRpdmVfbWF0ZXJpYWxzL2Fzc2V0cy9vcGVuX29yZGVyX2NvbnRyb2xfZGFzaGJvYXJkX3RvcG8.png?x-oss-process=image/resize,w_1560,h_1560/format,webp&Expires=1788220800&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9wcml2YXRlLXVzLWVhc3QtMS5tYW51c2Nkbi5jb20vc2Vzc2lvbkZpbGUvUWdFaXNuWlpyeGRQamE3OVVmSGRVTy9zYW5kYm94L3NsaWRlc19yZXNvdXJjZV9pNXNmZjBxbzZmdnFndGJyampmMnQtOTE4YWI5ZDUtZTJiLXByb2QtYXdzLXVzLWVhc3QtMS0wNV8xNzg2Nzk4NjA5MjUxX25hMWZuX0wyaHZiV1V2ZFdKMWJuUjFMMjl3Wlc0dGIzSmtaWEl0WTI5dWRISnZiQzlsZUdWamRYUnBkbVZmYldGMFpYSnBZV3h6TDJGemMyVjBjeTl2Y0dWdVgyOXlaR1Z5WDJOdmJuUnliMnhmWkdGemFHSnZZWEprWDNSdmNHOC5wbmc~eC1vc3MtcHJvY2Vzcz1pbWFnZS9yZXNpemUsd18xNTYwLGhfMTU2MC9mb3JtYXQsd2VicCIsIkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTc4ODIyMDgwMH19fV19&Key-Pair-Id=K2QY5QTL8JSY6C&Signature=MEUCIQDIR9BHgcMqsvnzcl1tfo91JABwuFkmrxpkFfTZm-EmhwIgFtOhDhDjqiAZevtVUQmbHjNtxtl~YZAJX3vEd-UJ-Ek_" x="48" y="196" width="734" height="430" fit="contain" stroke="hairline" stroke-width="1"/>
+  <text id="capture-caption" x="48" y="636" width="734" height="18" font="caption" size="12" color="ink" wrap="false">TELA REAL DO DASHBOARD · CHECKPOINT 5F125413 · 15/08/2026</text>
+  <text id="side-label" x="814" y="196" width="370" height="22" font="mono" size="14" color="accent" wrap="false">LEITURA PARA A DIRETORIA</text>
+  <shape id="panel-card-1" type="rect" x="814" y="230" width="418" height="86" fill="mist"/>
+  <text id="panel-card-1-text" x="836" y="246" width="372" height="54" font="body" size="16" color="ink"><p font="mono" size="13" color="graphite">SAÚDE DA CARTEIRA</p><p><strong>Itens ativos, estabilidade e alterações do último ciclo.</strong></p></text>
+  <shape id="panel-card-2" type="rect" x="814" y="329" width="418" height="86" fill="mist"/>
+  <text id="panel-card-2-text" x="836" y="345" width="372" height="54" font="body" size="16" color="ink"><p font="mono" size="13" color="graphite">EXPOSIÇÃO</p><p><strong>Valor total, valor sob risco e previsões vencidas.</strong></p></text>
+  <shape id="panel-card-3" type="rect" x="814" y="428" width="418" height="86" fill="mist"/>
+  <text id="panel-card-3-text" x="836" y="444" width="372" height="54" font="body" size="16" color="ink"><p font="mono" size="13" color="graphite">CENTRO DE COMANDO</p><p><strong>Índice, foco recomendado e pressão por filial.</strong></p></text>
+  <shape id="panel-card-4" type="rect" x="814" y="527" width="418" height="99" fill="graphite"/>
+  <text id="panel-card-4-text" x="836" y="543" width="372" height="67" font="body" size="16" color="#FFFFFF"><p font="mono" size="13" color="accent">FILA DE AÇÃO</p><p><strong>Pedidos priorizados por instabilidade, vencimento, fornecedor e prioridade.</strong></p></text>
+  <shape id="footer-line" type="line" x="48" y="674" width="1184" height="0" stroke="hairline" stroke-width="1"/>
+  <text id="footer-source" x="48" y="686" width="600" height="18" font="caption" size="12" color="ink" wrap="false">OPEN ORDER CONTROL · PAINEL EXECUTIVO</text>
+  <text id="page-number" x="1160" y="684" width="72" height="20" font="mono" size="13" color="ink" align="right" wrap="false">04 / 12</text>
+</slide>

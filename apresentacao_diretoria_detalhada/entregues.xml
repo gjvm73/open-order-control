@@ -1,0 +1,24 @@
+<slide id="entregues">
+  <background color="paper"/>
+  <shape id="accent-line" type="line" x="48" y="54" width="48" height="0" stroke="accent" stroke-width="4"/>
+  <text id="slide-title" x="48" y="76" width="760" height="42" font="heading" size="34" color="graphite" wrap="false"><strong>Itens entregues: encerramento automático da carteira</strong></text>
+  <text id="slide-subtitle" x="48" y="124" width="930" height="38" font="body" size="18" color="ink">A regra separa pendências ativas de itens que deixaram de constar no upload mais recente, sem apagar a evidência histórica.</text>
+  <shape id="active-card" type="rect" x="48" y="224" width="483" height="244" fill="mist"/>
+  <icon id="active-icon" name="package" x="78" y="255" width="48" height="48" color="graphite"/>
+  <text id="active-label" x="151" y="258" width="285" height="22" font="mono" size="14" color="ink" wrap="false">CARTEIRA ATIVA</text>
+  <text id="active-title" x="78" y="334" width="395" height="34" font="body" size="25" color="graphite"><strong>O item está presente no upload atual.</strong></text>
+  <text id="active-copy" x="78" y="388" width="382" height="48" font="body" size="18" color="ink">Permanece na Base Operacional, nos KPIs, alertas e filtros da carteira corrente.</text>
+  <shape id="decision-arrow" type="line" x="556" y="345" width="136" height="0" stroke="accent" stroke-width="3" arrow-end="arrow"/>
+  <text id="decision-text" x="552" y="303" width="162" height="26" font="mono" size="13" color="accent" align="center" wrap="false">AUSENTE NO NOVO UPLOAD</text>
+  <shape id="delivered-card" type="rect" x="749" y="224" width="483" height="244" fill="graphite"/>
+  <icon id="delivered-icon" name="circle-check" x="779" y="255" width="48" height="48" color="accent"/>
+  <text id="delivered-label" x="852" y="258" width="285" height="22" font="mono" size="14" color="#D4D4D8" wrap="false">ITENS ENTREGUES</text>
+  <text id="delivered-title" x="779" y="334" width="395" height="34" font="body" size="25" color="#FFFFFF"><strong>O item é classificado como entregue.</strong></text>
+  <text id="delivered-copy" x="779" y="388" width="382" height="48" font="body" size="18" color="#D4D4D8">Sai da carteira ativa e passa a uma aba própria, com histórico preservado.</text>
+  <shape id="delivered-band" type="rect" x="48" y="530" width="1184" height="102" fill="paper" stroke="hairline" stroke-width="1"/>
+  <text id="delivered-band-title" x="74" y="550" width="250" height="20" font="mono" size="13" color="accent" wrap="false">CONSULTA E AUDITORIA</text>
+  <text id="delivered-band-copy" x="74" y="580" width="1090" height="28" font="body" size="19" color="graphite">A aba <strong>Itens Entregues</strong> permite filtrar por filial, item e PO e consultar todas as informações e alterações anteriores do registro.</text>
+  <shape id="footer-line" type="line" x="48" y="674" width="1184" height="0" stroke="hairline" stroke-width="1"/>
+  <text id="footer-source" x="48" y="686" width="600" height="18" font="caption" size="12" color="ink" wrap="false">OPEN ORDER CONTROL · STATUS DE ENTREGA</text>
+  <text id="page-number" x="1160" y="684" width="72" height="20" font="mono" size="13" color="ink" align="right" wrap="false">09 / 12</text>
+</slide>

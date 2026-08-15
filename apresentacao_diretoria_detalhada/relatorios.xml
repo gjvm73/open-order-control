@@ -1,0 +1,28 @@
+<slide id="relatorios">
+  <background color="paper"/>
+  <shape id="accent-line" type="line" x="48" y="54" width="48" height="0" stroke="accent" stroke-width="4"/>
+  <text id="slide-title" x="48" y="76" width="760" height="42" font="heading" size="34" color="graphite" wrap="false"><strong>Relatórios e exportações para cada fórum de decisão</strong></text>
+  <text id="slide-subtitle" x="48" y="124" width="930" height="38" font="body" size="18" color="ink">A mesma base pode ser comunicada de forma compacta, detalhada, operacional ou focada em exceções.</text>
+  <shape id="pdf-exec-card" type="rect" x="48" y="210" width="566" height="145" fill="mist"/>
+  <icon id="pdf-exec-icon" name="file-text" x="76" y="251" width="42" height="42" color="graphite"/>
+  <text id="pdf-exec-title" x="144" y="237" width="390" height="24" font="mono" size="14" color="accent" wrap="false">PDF EXECUTIVO</text>
+  <text id="pdf-exec-copy" x="144" y="274" width="410" height="52" font="body" size="18" color="graphite"><p><strong>Visão compacta para reunião.</strong></p><p color="ink">KPIs, centro de comando, sinais e prioridades.</p></text>
+  <shape id="pdf-full-card" type="rect" x="666" y="210" width="566" height="145" fill="mist"/>
+  <icon id="pdf-full-icon" name="files" x="694" y="251" width="42" height="42" color="graphite"/>
+  <text id="pdf-full-title" x="762" y="237" width="390" height="24" font="mono" size="14" color="accent" wrap="false">PDF COMPLETO</text>
+  <text id="pdf-full-copy" x="762" y="274" width="410" height="52" font="body" size="18" color="graphite"><p><strong>Relatório integral da aplicação.</strong></p><p color="ink">Alertas, tendências, base operacional e mapa.</p></text>
+  <shape id="excel-full-card" type="rect" x="48" y="380" width="566" height="145" fill="paper" stroke="hairline" stroke-width="1"/>
+  <icon id="excel-full-icon" name="table" x="76" y="421" width="42" height="42" color="graphite"/>
+  <text id="excel-full-title" x="144" y="407" width="390" height="24" font="mono" size="14" color="accent" wrap="false">EXCEL · BASE COMPLETA</text>
+  <text id="excel-full-copy" x="144" y="444" width="410" height="52" font="body" size="18" color="graphite"><p><strong>Resumo, Base Operacional e Histórico.</strong></p><p color="ink">Inclui todas as datas e transições de previsão.</p></text>
+  <shape id="excel-changed-card" type="rect" x="666" y="380" width="566" height="145" fill="graphite"/>
+  <icon id="excel-changed-icon" name="filter" x="694" y="421" width="42" height="42" color="accent"/>
+  <text id="excel-changed-title" x="762" y="407" width="390" height="24" font="mono" size="14" color="accent" wrap="false">EXCEL · SOMENTE ALTERADOS</text>
+  <text id="excel-changed-copy" x="762" y="444" width="410" height="52" font="body" size="18" color="#FFFFFF"><p><strong>Foco nos itens que mudaram de previsão.</strong></p><p color="#D4D4D8">Mantém filtros ativos e o histórico completo.</p></text>
+  <shape id="excel-band" type="rect" x="48" y="557" width="1184" height="75" fill="#FEF2F2"/>
+  <text id="excel-band-title" x="72" y="573" width="1110" height="20" font="mono" size="13" color="accent" align="center" wrap="false">PADRÃO DO EXCEL PROFISSIONAL</text>
+  <text id="excel-band-copy" x="72" y="600" width="1110" height="20" font="body" size="16" color="graphite" align="center" wrap="false">Datas no padrão brasileiro · filtros ativos registrados · cabeçalhos formatados · painéis congelados · larguras ajustadas</text>
+  <shape id="footer-line" type="line" x="48" y="674" width="1184" height="0" stroke="hairline" stroke-width="1"/>
+  <text id="footer-source" x="48" y="686" width="600" height="18" font="caption" size="12" color="ink" wrap="false">OPEN ORDER CONTROL · EXPORTAÇÃO E COMPARTILHAMENTO</text>
+  <text id="page-number" x="1160" y="684" width="72" height="20" font="mono" size="13" color="ink" align="right" wrap="false">11 / 12</text>
+</slide>

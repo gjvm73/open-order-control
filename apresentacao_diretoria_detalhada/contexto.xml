@@ -1,0 +1,29 @@
+<slide id="contexto">
+  <background color="paper"/>
+  <shape id="accent-line" type="line" x="48" y="54" width="48" height="0" stroke="accent" stroke-width="4"/>
+  <text id="slide-title" x="48" y="76" width="760" height="42" font="heading" size="34" color="graphite" wrap="false"><strong>Da planilha semanal à decisão executiva</strong></text>
+  <text id="slide-subtitle" x="48" y="124" width="760" height="40" font="body" size="18" color="ink">O sistema converte a variação de previsões em uma rotina rastreável de gestão da carteira de pedidos em aberto.</text>
+  <text id="thesis-label" x="48" y="204" width="520" height="24" font="mono" size="14" color="accent" wrap="false">O QUE MUDA NA GESTÃO</text>
+  <text id="thesis-copy" x="48" y="239" width="520" height="176" font="body" size="25" color="graphite" line-height="1.25"><p><strong>Arquivos semanais deixam de ser fotos isoladas.</strong></p><p color="ink" space-before="14">A aplicação preserva o histórico do item, identifica desvios, quantifica a exposição e organiza a tomada de decisão por risco e filial.</p></text>
+  <shape id="flow-box-1" type="rect" x="660" y="205" width="120" height="110" fill="mist" stroke="hairline" stroke-width="1"/>
+  <text id="flow-text-1" x="673" y="225" width="94" height="70" font="mono" size="14" color="graphite" align="center" anchor="middle"><p>01</p><p><strong>UPLOAD</strong></p></text>
+  <shape id="flow-arrow-1" type="line" x="790" y="260" width="43" height="0" stroke="accent" stroke-width="2" arrow-end="arrow"/>
+  <shape id="flow-box-2" type="rect" x="842" y="205" width="120" height="110" fill="mist" stroke="hairline" stroke-width="1"/>
+  <text id="flow-text-2" x="855" y="225" width="94" height="70" font="mono" size="14" color="graphite" align="center" anchor="middle"><p>02</p><p><strong>COMPARA</strong></p></text>
+  <shape id="flow-arrow-2" type="line" x="972" y="260" width="43" height="0" stroke="accent" stroke-width="2" arrow-end="arrow"/>
+  <shape id="flow-box-3" type="rect" x="1024" y="205" width="120" height="110" fill="mist" stroke="hairline" stroke-width="1"/>
+  <text id="flow-text-3" x="1037" y="225" width="94" height="70" font="mono" size="14" color="graphite" align="center" anchor="middle"><p>03</p><p><strong>MEDE</strong></p></text>
+  <shape id="flow-arrow-3" type="line" x="1154" y="260" width="43" height="0" stroke="accent" stroke-width="2" arrow-end="arrow"/>
+  <shape id="flow-box-4" type="rect" x="1069" y="348" width="120" height="110" fill="graphite"/>
+  <text id="flow-text-4" x="1082" y="368" width="94" height="70" font="mono" size="14" color="#FFFFFF" align="center" anchor="middle"><p>04</p><p><strong>DECIDE</strong></p></text>
+  <shape id="flow-turn" type="elbow" x="1203" y="260" width="-74" height="88" stroke="accent" stroke-width="2" arrow-end="arrow"/>
+  <shape id="benefit-1" type="rect" x="48" y="506" width="365" height="138" fill="paper" stroke="hairline" stroke-width="1"/>
+  <text id="benefit-1-text" x="72" y="529" width="316" height="92" font="body" size="17" color="ink"><p font="mono" size="13" color="accent">RASTREABILIDADE</p><p space-before="7"><strong color="graphite">Preserva cada previsão e cada mudança por item.</strong></p></text>
+  <shape id="benefit-2" type="rect" x="457" y="506" width="365" height="138" fill="paper" stroke="hairline" stroke-width="1"/>
+  <text id="benefit-2-text" x="481" y="529" width="316" height="92" font="body" size="17" color="ink"><p font="mono" size="13" color="accent">PRIORIDADE</p><p space-before="7"><strong color="graphite">Destaca vencimentos, instabilidade e impacto financeiro.</strong></p></text>
+  <shape id="benefit-3" type="rect" x="866" y="506" width="366" height="138" fill="paper" stroke="hairline" stroke-width="1"/>
+  <text id="benefit-3-text" x="890" y="529" width="318" height="92" font="body" size="17" color="ink"><p font="mono" size="13" color="accent">COMPARTILHAMENTO</p><p space-before="7"><strong color="graphite">Gera evidências para a operação e para a diretoria.</strong></p></text>
+  <shape id="footer-line" type="line" x="48" y="674" width="1184" height="0" stroke="hairline" stroke-width="1"/>
+  <text id="footer-source" x="48" y="686" width="600" height="18" font="caption" size="12" color="ink" wrap="false">OPEN ORDER CONTROL · VISÃO EXECUTIVA</text>
+  <text id="page-number" x="1160" y="684" width="72" height="20" font="mono" size="13" color="ink" align="right" wrap="false">02 / 12</text>
+</slide>

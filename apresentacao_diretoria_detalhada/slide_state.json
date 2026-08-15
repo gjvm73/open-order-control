@@ -1,0 +1,144 @@
+{
+  "project_info": {
+    "title": "Open Order Control",
+    "created": 1786798486.802,
+    "last_updated": 1786798773.52,
+    "total_slides": 12
+  },
+  "slides": [
+    {
+      "id": "capa",
+      "state": "edited",
+      "pageNum": 1
+    },
+    {
+      "id": "contexto",
+      "state": "edited",
+      "pageNum": 2
+    },
+    {
+      "id": "ciclo",
+      "state": "edited",
+      "pageNum": 3
+    },
+    {
+      "id": "painel",
+      "state": "edited",
+      "pageNum": 4
+    },
+    {
+      "id": "risco",
+      "state": "edited",
+      "pageNum": 5
+    },
+    {
+      "id": "alertas",
+      "state": "edited",
+      "pageNum": 6
+    },
+    {
+      "id": "filiais",
+      "state": "edited",
+      "pageNum": 7
+    },
+    {
+      "id": "historico",
+      "state": "edited",
+      "pageNum": 8
+    },
+    {
+      "id": "entregues",
+      "state": "edited",
+      "pageNum": 9
+    },
+    {
+      "id": "governanca",
+      "state": "edited",
+      "pageNum": 10
+    },
+    {
+      "id": "relatorios",
+      "state": "edited",
+      "pageNum": 11
+    },
+    {
+      "id": "rotina",
+      "state": "edited",
+      "pageNum": 12
+    }
+  ],
+  "outline": [
+    {
+      "id": "capa",
+      "title": "Open Order Control",
+      "summary": "Capa institucional: controle estratégico de pedidos em aberto, previsões de entrega e riscos operacionais.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "contexto",
+      "title": "Da planilha semanal à decisão executiva",
+      "summary": "O objetivo de negócio, a transformação de arquivos semanais em rastreabilidade e os resultados de gestão esperados.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "ciclo",
+      "title": "Ciclo de controle semanal",
+      "summary": "Fluxo de importação, chave de comparação, histórico por item e regra automática de itens entregues.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "painel",
+      "title": "Painel executivo e centro de comando",
+      "summary": "KPIs, sinais para decisão, pressão por filial e fila de ação apresentados em uma visão de liderança.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "risco",
+      "title": "Índice de Risco Executivo",
+      "summary": "Composição ponderada do índice, classificação e uso para priorização de decisão.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "alertas",
+      "title": "Alertas e tendência de criticidade",
+      "summary": "Limiar configurável, níveis de atenção e crítico, severidade e evolução por upload semanal.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "filiais",
+      "title": "Visão por filial solicitante",
+      "summary": "Consolidação por Ship To, normalização de endereços, indicadores de pressão e filtro global.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "historico",
+      "title": "Rastreabilidade do item",
+      "summary": "Base operacional, linha do tempo, histórico completo, mapa de alterações e filtros.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "entregues",
+      "title": "Controle de itens entregues",
+      "summary": "Regra de desaparecimento entre uploads, separação de carteira ativa e consulta de itens entregues.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "governanca",
+      "title": "Governança, segurança e controles",
+      "summary": "Login administrativo, proteção de upload e reset, confirmação de limpeza e modo noturno.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "relatorios",
+      "title": "Relatórios e exportações",
+      "summary": "PDF executivo, PDF completo, Excel profissional completo e Excel de itens alterados.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "rotina",
+      "title": "Rotina de gestão recomendada",
+      "summary": "Roteiro semanal de importação, análise, priorização, reunião executiva e continuidade do histórico.",
+      "image_plan": "Use a suitable image if needed"
+    }
+  ]
+}

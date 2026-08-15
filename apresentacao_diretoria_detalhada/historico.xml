@@ -1,0 +1,29 @@
+<slide id="historico">
+  <background color="paper"/>
+  <shape id="accent-line" type="line" x="48" y="54" width="48" height="0" stroke="accent" stroke-width="4"/>
+  <text id="slide-title" x="48" y="76" width="760" height="42" font="heading" size="34" color="graphite" wrap="false"><strong>Rastreabilidade do item: do fato ao histórico</strong></text>
+  <text id="slide-subtitle" x="48" y="124" width="900" height="38" font="body" size="18" color="ink">A Base Operacional organiza a consulta atual; o histórico preserva a sequência completa de cada alteração de previsão.</text>
+  <text id="timeline-label" x="48" y="184" width="340" height="20" font="mono" size="13" color="accent" wrap="false">LINHA DO TEMPO DO PEDIDO</text>
+  <shape id="timeline-stem" type="line" x="85" y="230" width="0" height="255" stroke="hairline" stroke-width="2"/>
+  <shape id="timeline-dot-1" type="ellipse" x="72" y="230" width="26" height="26" fill="graphite"/>
+  <text id="timeline-1" x="128" y="227" width="360" height="54" font="body" size="17" color="ink"><p><strong color="graphite">Upload inicial</strong> · primeira previsão registrada</p><p font="mono" size="13" color="ink">ARQUIVO + DATA DO UPLOAD</p></text>
+  <shape id="timeline-dot-2" type="ellipse" x="72" y="331" width="26" height="26" fill="accent"/>
+  <text id="timeline-2" x="128" y="328" width="360" height="54" font="body" size="17" color="ink"><p><strong color="graphite">Alteração identificada</strong> · de previsão anterior para atual</p><p font="mono" size="13" color="accent">VARIAÇÃO EM DIAS</p></text>
+  <shape id="timeline-dot-3" type="ellipse" x="72" y="432" width="26" height="26" fill="graphite"/>
+  <text id="timeline-3" x="128" y="429" width="360" height="54" font="body" size="17" color="ink"><p><strong color="graphite">Novo ciclo</strong> · contagem acumulada é atualizada</p><p font="mono" size="13" color="ink">OCORRÊNCIAS PRESERVADAS</p></text>
+  <text id="grid-label" x="590" y="184" width="420" height="20" font="mono" size="13" color="accent" wrap="false">CAMPOS DISPONÍVEIS PARA AUDITORIA</text>
+  <table id="history-grid" x="590" y="216" width="642" height="309" columns="2,3" rows="42,auto,auto,auto,auto,auto" font="body" size="16" color="graphite" padding="11 14" header-fill="mist" header-border="1 hairline" border-h="1 hairline" border-outer="1 hairline">
+    <tr font="mono" size="12" color="ink"><td>CAMPO</td><td>USO NA GESTÃO</td></tr>
+    <tr><td><strong>Filial / Item / PO</strong></td><td>Identificação única do pedido na carteira.</td></tr>
+    <tr><td><strong>Previsão atual e anterior</strong></td><td>Comparação direta entre ciclos.</td></tr>
+    <tr><td><strong>Último upload e arquivo</strong></td><td>Evidência de origem e recência do dado.</td></tr>
+    <tr><td><strong>Total de alterações</strong></td><td>Leitura da instabilidade acumulada.</td></tr>
+    <tr><td><strong>Resumo do histórico</strong></td><td>Visão rápida das datas de mudança.</td></tr>
+  </table>
+  <shape id="map-band" type="rect" x="48" y="557" width="1184" height="75" fill="mist"/>
+  <icon id="map-icon" name="history" x="76" y="577" width="34" height="34" color="accent"/>
+  <text id="map-text" x="132" y="573" width="1050" height="42" font="body" size="18" color="graphite"><p><strong>Mapa de Alterações:</strong> evidencia cada transição de prazo. O atalho <strong>Ver histórico</strong> abre a linha do tempo completa do pedido selecionado.</p></text>
+  <shape id="footer-line" type="line" x="48" y="674" width="1184" height="0" stroke="hairline" stroke-width="1"/>
+  <text id="footer-source" x="48" y="686" width="600" height="18" font="caption" size="12" color="ink" wrap="false">OPEN ORDER CONTROL · BASE OPERACIONAL E HISTÓRICO</text>
+  <text id="page-number" x="1160" y="684" width="72" height="20" font="mono" size="13" color="ink" align="right" wrap="false">08 / 12</text>
+</slide>

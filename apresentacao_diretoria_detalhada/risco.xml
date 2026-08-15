@@ -1,0 +1,24 @@
+<slide id="risco">
+  <background color="paper"/>
+  <shape id="accent-line" type="line" x="48" y="54" width="48" height="0" stroke="accent" stroke-width="4"/>
+  <text id="slide-title" x="48" y="76" width="700" height="42" font="heading" size="34" color="graphite" wrap="false"><strong>Índice de Risco Executivo: uma leitura única</strong></text>
+  <text id="slide-subtitle" x="48" y="124" width="880" height="38" font="body" size="18" color="ink">Um indicador de 0 a 100 combina os fatores que mais afetam a confiabilidade da carteira de pedidos.</text>
+  <text id="formula-label" x="48" y="210" width="430" height="22" font="mono" size="14" color="accent" wrap="false">FÓRMULA IMPLEMENTADA</text>
+  <text id="formula" x="48" y="247" width="520" height="110" font="body" size="23" color="graphite" line-height="1.28"><p><strong>min(100,</strong> 35% × instabilidade + 25% × vencimento + 20% × sem fornecedor + 10% × prioridade + 10% × exposição financeira<strong>)</strong></p></text>
+  <text id="formula-explanation" x="48" y="390" width="510" height="102" font="body" size="18" color="ink" line-height="1.35"><p>O índice organiza o foco executivo; a decisão permanece auditável nas tabelas de alertas, fila de ação e histórico por item.</p><p space-before="10"><strong color="graphite">Não substitui a análise do pedido: orienta por onde começar.</strong></p></text>
+  <text id="weights-title" x="644" y="205" width="500" height="22" font="mono" size="14" color="accent" wrap="false">PESOS DOS COMPONENTES</text>
+  <chart id="weights-chart" type="bar" x="644" y="236" width="556" height="246" font="body" text-size="13" text-color="ink" categories="Instabilidade,Vencimento,Sem fornecedor,Prioridade,Exposição financeira" color="accent" legend="none" x-axis="true" y-axis="true" gridlines="v" y-min="0" y-max="40" gap-width="70">
+    <series name="Peso" values="35,25,20,10,10" label-expr="{value:.0f}%"/>
+  </chart>
+  <shape id="scale-heading-line" type="line" x="48" y="527" width="1184" height="0" stroke="hairline" stroke-width="1"/>
+  <text id="scale-title" x="48" y="542" width="265" height="20" font="mono" size="13" color="ink" wrap="false">LEITURA DO RESULTADO</text>
+  <shape id="controlled-box" type="rect" x="48" y="574" width="366" height="58" fill="mist"/>
+  <text id="controlled-text" x="68" y="588" width="326" height="30" font="body" size="16" color="graphite" align="center" anchor="middle"><strong>0–24 · CONTROLADO</strong></text>
+  <shape id="attention-box" type="rect" x="433" y="574" width="366" height="58" fill="#FEF3C7"/>
+  <text id="attention-text" x="453" y="588" width="326" height="30" font="body" size="16" color="graphite" align="center" anchor="middle"><strong>25–49 · ATENÇÃO</strong></text>
+  <shape id="critical-box" type="rect" x="818" y="574" width="414" height="58" fill="accent"/>
+  <text id="critical-text" x="838" y="588" width="374" height="30" font="body" size="16" color="#FFFFFF" align="center" anchor="middle"><strong>50–100 · CRÍTICO</strong></text>
+  <shape id="footer-line" type="line" x="48" y="674" width="1184" height="0" stroke="hairline" stroke-width="1"/>
+  <text id="footer-source" x="48" y="686" width="650" height="18" font="caption" size="12" color="ink" wrap="false">OPEN ORDER CONTROL · FÓRMULA IMPLEMENTADA NO DASHBOARD</text>
+  <text id="page-number" x="1160" y="684" width="72" height="20" font="mono" size="13" color="ink" align="right" wrap="false">05 / 12</text>
+</slide>

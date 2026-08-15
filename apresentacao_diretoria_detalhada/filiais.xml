@@ -1,0 +1,26 @@
+<slide id="filiais">
+  <background color="paper"/>
+  <shape id="accent-line" type="line" x="48" y="54" width="48" height="0" stroke="accent" stroke-width="4"/>
+  <text id="slide-title" x="48" y="76" width="760" height="42" font="heading" size="34" color="graphite" wrap="false"><strong>Visão por filial: pressão operacional onde ela ocorre</strong></text>
+  <text id="slide-subtitle" x="48" y="124" width="930" height="38" font="body" size="18" color="ink">O endereço Ship To é consolidado e normalizado para permitir leitura comparável da carteira solicitante.</text>
+  <text id="mapping-label" x="48" y="186" width="520" height="20" font="mono" size="13" color="accent" wrap="false">NORMALIZAÇÕES IMPLEMENTADAS</text>
+  <table id="mapping-table" x="48" y="218" width="625" height="340" columns="4,2" rows="42,auto,auto,auto,auto,auto" font="body" size="15" color="graphite" padding="10 12" header-fill="mist" header-border="1 hairline" border-h="1 hairline" border-outer="1 hairline">
+    <tr font="mono" size="12" color="ink"><td>ENDEREÇO / PADRÃO</td><td>CIDADE EXIBIDA</td></tr>
+    <tr><td>AVENIDA ASSIS BRASIL · RS</td><td><strong>PORTO ALEGRE</strong></td></tr>
+    <tr><td>RUA ABEL SCUISSIATO · PR</td><td><strong>COLOMBO</strong></td></tr>
+    <tr><td>R VIDAL PROCOPIO LOHN · SC</td><td><strong>SÃO JOSÉ</strong></td></tr>
+    <tr><td>AV PREFEITO SINCLER SAMBATTI · PR</td><td><strong>MARINGÁ</strong></td></tr>
+    <tr><td>RUA VALDEMIRO BELINSKI · SC</td><td><strong>CHAPECÓ</strong></td></tr>
+  </table>
+  <shape id="branch-panel" type="rect" x="720" y="218" width="512" height="340" fill="mist"/>
+  <icon id="branch-icon" name="map-pin" x="750" y="247" width="42" height="42" color="accent"/>
+  <text id="branch-panel-title" x="816" y="252" width="340" height="24" font="mono" size="14" color="accent" wrap="false">PRESSÃO POR FILIAL</text>
+  <text id="branch-panel-copy" x="750" y="310" width="432" height="62" font="body" size="20" color="graphite">Cada filial passa a ter um retrato próprio de risco, volume e estabilidade.</text>
+  <shape id="metric-line-1" type="line" x="750" y="400" width="432" height="0" stroke="hairline" stroke-width="1"/>
+  <text id="branch-metrics" x="750" y="418" width="420" height="100" font="body" size="16" color="ink"><p><strong color="graphite">Itens e alterações</strong> · taxa de mudança</p><p space-before="8"><strong color="graphite">Vencidos e sem fornecedor</strong> · exceções de prazo</p><p space-before="8"><strong color="graphite">Valor sob risco</strong> · exposição financeira por local</p></text>
+  <shape id="filter-band" type="rect" x="48" y="585" width="1184" height="47" fill="graphite"/>
+  <text id="filter-text" x="70" y="599" width="1110" height="20" font="body" size="16" color="#FFFFFF" align="center" wrap="false">O botão <strong>Filtrar</strong> segmenta todo o dashboard pela filial selecionada; <strong>Limpar</strong> restaura o conjunto completo.</text>
+  <shape id="footer-line" type="line" x="48" y="674" width="1184" height="0" stroke="hairline" stroke-width="1"/>
+  <text id="footer-source" x="48" y="686" width="600" height="18" font="caption" size="12" color="ink" wrap="false">OPEN ORDER CONTROL · CONSOLIDAÇÃO POR FILIAL</text>
+  <text id="page-number" x="1160" y="684" width="72" height="20" font="mono" size="13" color="ink" align="right" wrap="false">07 / 12</text>
+</slide>

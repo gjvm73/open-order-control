@@ -1,0 +1,14 @@
+<design>
+  <size width="1280" height="720"></size>
+  <color name="paper" value="#FFFFFF"/>
+  <color name="graphite" value="#18181B"/>
+  <color name="ink" value="#52525B"/>
+  <color name="mist" value="#F4F4F5"/>
+  <color name="accent" value="#DC2626"/>
+  <color name="hairline" value="#E4E4E7"/>
+  <font name="display" family="Inter" size="48"/>
+  <font name="heading" family="Inter" size="32"/>
+  <font name="body" family="Inter" size="18"/>
+  <font name="mono" family="JetBrains Mono" size="24"/>
+  <font name="caption" family="Inter" size="14"/>
+</design>

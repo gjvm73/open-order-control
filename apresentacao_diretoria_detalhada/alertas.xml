@@ -1,0 +1,29 @@
+<slide id="alertas">
+  <background color="paper"/>
+  <shape id="accent-line" type="line" x="48" y="54" width="48" height="0" stroke="accent" stroke-width="4"/>
+  <text id="slide-title" x="48" y="76" width="760" height="42" font="heading" size="34" color="graphite" wrap="false"><strong>Alertas: diferenciar atenção de criticidade</strong></text>
+  <text id="slide-subtitle" x="48" y="124" width="900" height="38" font="body" size="18" color="ink">O limite de variação em dias é ajustável e se transforma em uma régua objetiva para análise de desvios.</text>
+  <shape id="threshold-panel" type="rect" x="48" y="192" width="1184" height="50" fill="mist"/>
+  <icon id="threshold-icon" name="settings" x="70" y="203" width="28" height="28" color="accent"/>
+  <text id="threshold-copy" x="118" y="203" width="1030" height="26" font="body" size="17" color="graphite"><strong>Limiar configurável:</strong> de 1 a 3.650 dias. Valor padrão do sistema: 7 dias.</text>
+  <shape id="normal-card" type="rect" x="48" y="277" width="365" height="164" fill="paper" stroke="hairline" stroke-width="1"/>
+  <text id="normal-head" x="72" y="301" width="310" height="24" font="mono" size="14" color="ink" wrap="false">SEM ALERTA</text>
+  <text id="normal-rule" x="72" y="341" width="300" height="44" font="body" size="22" color="graphite"><strong>Variação ≤ limiar</strong></text>
+  <text id="normal-copy" x="72" y="396" width="292" height="24" font="body" size="16" color="ink">A previsão permanece dentro da tolerância.</text>
+  <shape id="attention-card" type="rect" x="458" y="277" width="365" height="164" fill="#FEF3C7"/>
+  <text id="attention-head" x="482" y="301" width="310" height="24" font="mono" size="14" color="#92400E" wrap="false">ATENÇÃO</text>
+  <text id="attention-rule" x="482" y="341" width="300" height="44" font="body" size="22" color="graphite"><strong>Variação &gt; limiar</strong></text>
+  <text id="attention-copy" x="482" y="396" width="292" height="24" font="body" size="16" color="ink">Exige verificação da causa e do impacto.</text>
+  <shape id="critical-card" type="rect" x="868" y="277" width="364" height="164" fill="graphite"/>
+  <text id="critical-head" x="892" y="301" width="310" height="24" font="mono" size="14" color="accent" wrap="false">CRÍTICO</text>
+  <text id="critical-rule" x="892" y="341" width="300" height="44" font="body" size="22" color="#FFFFFF"><strong>Variação ≥ 2 × limiar</strong></text>
+  <text id="critical-copy" x="892" y="396" width="292" height="24" font="body" size="16" color="#D4D4D8">Prioridade para decisão e resposta gerencial.</text>
+  <shape id="trend-panel" type="rect" x="48" y="486" width="1184" height="146" fill="mist"/>
+  <icon id="trend-icon" name="trending-up" x="76" y="529" width="48" height="48" color="accent"/>
+  <text id="trend-title" x="151" y="511" width="850" height="26" font="mono" size="14" color="accent" wrap="false">ACOMPANHAMENTO DE TENDÊNCIA</text>
+  <text id="trend-copy" x="151" y="548" width="930" height="50" font="body" size="20" color="graphite">A tela apresenta a proporção entre alertas críticos e de atenção, além da <strong>tendência histórica de alertas críticos por upload semanal</strong>.</text>
+  <text id="trend-note" x="151" y="607" width="900" height="18" font="caption" size="13" color="ink" wrap="false">Use a curva histórica para identificar persistência de instabilidade, não apenas uma exceção pontual.</text>
+  <shape id="footer-line" type="line" x="48" y="674" width="1184" height="0" stroke="hairline" stroke-width="1"/>
+  <text id="footer-source" x="48" y="686" width="600" height="18" font="caption" size="12" color="ink" wrap="false">OPEN ORDER CONTROL · ALERTAS DE VARIAÇÃO</text>
+  <text id="page-number" x="1160" y="684" width="72" height="20" font="mono" size="13" color="ink" align="right" wrap="false">06 / 12</text>
+</slide>

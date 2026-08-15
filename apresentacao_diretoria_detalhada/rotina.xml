@@ -1,0 +1,31 @@
+<slide id="rotina">
+  <background color="graphite"/>
+  <shape id="accent-line" type="line" x="48" y="54" width="64" height="0" stroke="accent" stroke-width="4"/>
+  <text id="closing-kicker" x="48" y="78" width="500" height="22" font="mono" size="14" color="accent" wrap="false">MANDATO OPERACIONAL</text>
+  <text id="slide-title" x="48" y="108" width="1000" height="46" font="heading" size="36" color="#FFFFFF" wrap="false"><strong>Controle contínuo, decisão mais rápida</strong></text>
+  <text id="slide-subtitle" x="48" y="164" width="970" height="44" font="body" size="20" color="#D4D4D8">Institucionalizar uma rotina semanal conecta importação, análise de risco, priorização e comunicação em uma única cadência de gestão.</text>
+  <shape id="routine-step-1" type="rect" x="48" y="278" width="208" height="200" fill="#27272A" stroke="#3F3F46" stroke-width="1"/>
+  <text id="routine-no-1" x="72" y="302" width="70" height="26" font="mono" size="18" color="accent" wrap="false">01</text>
+  <text id="routine-text-1" x="72" y="349" width="154" height="80" font="body" size="18" color="#FFFFFF"><p><strong>Preparar</strong></p><p color="#D4D4D8" space-before="8">Conferir a planilha semanal.</p></text>
+  <shape id="routine-arrow-1" type="line" x="263" y="378" width="29" height="0" stroke="accent" stroke-width="2" arrow-end="arrow"/>
+  <shape id="routine-step-2" type="rect" x="304" y="278" width="208" height="200" fill="#27272A" stroke="#3F3F46" stroke-width="1"/>
+  <text id="routine-no-2" x="328" y="302" width="70" height="26" font="mono" size="18" color="accent" wrap="false">02</text>
+  <text id="routine-text-2" x="328" y="349" width="154" height="80" font="body" size="18" color="#FFFFFF"><p><strong>Importar</strong></p><p color="#D4D4D8" space-before="8">Registrar o novo ciclo no sistema.</p></text>
+  <shape id="routine-arrow-2" type="line" x="519" y="378" width="29" height="0" stroke="accent" stroke-width="2" arrow-end="arrow"/>
+  <shape id="routine-step-3" type="rect" x="560" y="278" width="208" height="200" fill="#27272A" stroke="#3F3F46" stroke-width="1"/>
+  <text id="routine-no-3" x="584" y="302" width="70" height="26" font="mono" size="18" color="accent" wrap="false">03</text>
+  <text id="routine-text-3" x="584" y="349" width="154" height="80" font="body" size="18" color="#FFFFFF"><p><strong>Analisar</strong></p><p color="#D4D4D8" space-before="8">Revisar índice, alertas e filiais.</p></text>
+  <shape id="routine-arrow-3" type="line" x="775" y="378" width="29" height="0" stroke="accent" stroke-width="2" arrow-end="arrow"/>
+  <shape id="routine-step-4" type="rect" x="816" y="278" width="208" height="200" fill="#27272A" stroke="#3F3F46" stroke-width="1"/>
+  <text id="routine-no-4" x="840" y="302" width="70" height="26" font="mono" size="18" color="accent" wrap="false">04</text>
+  <text id="routine-text-4" x="840" y="349" width="154" height="80" font="body" size="18" color="#FFFFFF"><p><strong>Priorizar</strong></p><p color="#D4D4D8" space-before="8">Atuar sobre a fila crítica.</p></text>
+  <shape id="routine-arrow-4" type="line" x="1031" y="378" width="29" height="0" stroke="accent" stroke-width="2" arrow-end="arrow"/>
+  <shape id="routine-step-5" type="rect" x="1072" y="278" width="160" height="200" fill="accent"/>
+  <text id="routine-no-5" x="1096" y="302" width="70" height="26" font="mono" size="18" color="#FFFFFF" wrap="false">05</text>
+  <text id="routine-text-5" x="1096" y="349" width="112" height="80" font="body" size="18" color="#FFFFFF"><p><strong>Decidir</strong></p><p color="#FFFFFF" space-before="8">Compartilhar e acompanhar.</p></text>
+  <shape id="closing-band" type="rect" x="48" y="545" width="1184" height="83" fill="#27272A"/>
+  <text id="closing-copy" x="72" y="560" width="1136" height="51" font="body" size="22" color="#FFFFFF" align="center" anchor="middle">Próximo passo: <strong color="accent">formalizar o ritual semanal</strong> de upload, revisão por filial, decisão executiva e preservação do histórico.</text>
+  <shape id="footer-line" type="line" x="48" y="674" width="1184" height="0" stroke="#3F3F46" stroke-width="1"/>
+  <text id="footer-source" x="48" y="686" width="600" height="18" font="caption" size="12" color="#D4D4D8" wrap="false">OPEN ORDER CONTROL · ROTINA RECOMENDADA</text>
+  <text id="page-number" x="1160" y="684" width="72" height="20" font="mono" size="13" color="#D4D4D8" align="right" wrap="false">12 / 12</text>
+</slide>
