@@ -12,8 +12,23 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import {
   Upload, Printer, Download, TrendingUp, AlertTriangle, Package, History, Search, LogOut,
   ArrowRight, Minus, ShieldAlert, Clock3, CircleDollarSign, Target, Moon, Sun, CircleHelp,
+  SlidersHorizontal, RotateCcw, Save,
 } from "lucide-react";
 import { toast } from "sonner";
+
+type PrioritizationWeights = {
+  predictionChangeWeight: number;
+  noSupplierWeight: number;
+  overdueWeight: number;
+  highPriorityWeight: number;
+};
+
+const DEFAULT_PRIORITIZATION_WEIGHTS: PrioritizationWeights = {
+  predictionChangeWeight: 4,
+  noSupplierWeight: 5,
+  overdueWeight: 3,
+  highPriorityWeight: 2,
+};
 
 function formatDate(value: unknown) {
   if (!value) return "—";
@@ -64,6 +79,7 @@ export default function Home() {
   const [deliveredPoFilter, setDeliveredPoFilter] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [pdfMode, setPdfMode] = useState<"executive" | "detailed" | null>(null);
+  const [prioritizationOpen, setPrioritizationOpen] = useState(false);
 
   const deliveredInput = React.useMemo(() => ({
     search: deliveredSearch,
@@ -103,6 +119,9 @@ export default function Home() {
   const itemDetailQuery = trpc.orders.getItemDetail.useQuery({ id: selectedItemId! }, { enabled: selectedItemId !== null });
   const resetMutation = trpc.orders.resetImports.useMutation();
   const localLoginMutation = trpc.auth.localLogin.useMutation();
+  const prioritizationSettingsQuery = trpc.orders.getPrioritizationSettings.useQuery();
+  const updatePrioritizationMutation = trpc.orders.updatePrioritizationSettings.useMutation();
+  const resetPrioritizationMutation = trpc.orders.resetPrioritizationSettings.useMutation();
   const utils = trpc.useUtils();
   const clearShipToFilter = React.useCallback(() => {
     setFilterShipTo("");
@@ -114,6 +133,7 @@ export default function Home() {
     ]);
   }, [utils]);
   const isAdmin = user?.role === "admin";
+  const prioritizationWeights = prioritizationSettingsQuery.data ?? DEFAULT_PRIORITIZATION_WEIGHTS;
 
   React.useEffect(() => {
     if (isDarkMode) {
@@ -227,6 +247,33 @@ export default function Home() {
       await Promise.all([statsQuery.refetch(), itemsQuery.refetch(), uploadsQuery.refetch(), shipToQuery.refetch(), branchSummaryQuery.refetch(), alertsQuery.refetch(), alertsTrendQuery.refetch()]);
     } catch (err: any) {
       toast.error(err.message || "Não foi possível resetar as importações.");
+    }
+  };
+
+  const handleSavePrioritizationSettings = async (weights: PrioritizationWeights) => {
+    try {
+      await updatePrioritizationMutation.mutateAsync(weights);
+      await Promise.all([
+        utils.orders.getPrioritizationSettings.invalidate(),
+        utils.orders.getStats.invalidate(),
+      ]);
+      toast.success("Pesos de priorização atualizados e aplicados à Fila de Ação.");
+      setPrioritizationOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Não foi possível atualizar os pesos de priorização.");
+    }
+  };
+
+  const handleResetPrioritizationSettings = async () => {
+    try {
+      await resetPrioritizationMutation.mutateAsync();
+      await Promise.all([
+        utils.orders.getPrioritizationSettings.invalidate(),
+        utils.orders.getStats.invalidate(),
+      ]);
+      toast.success("Pesos de priorização restaurados ao padrão.");
+    } catch (err: any) {
+      toast.error(err.message || "Não foi possível restaurar os pesos de priorização.");
     }
   };
 
@@ -347,6 +394,7 @@ export default function Home() {
           <Button variant="outline" onClick={() => handleExportPdf("executive")} className="no-print rounded-none border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto" aria-label="Exportar relatório executivo em PDF"><Printer className="w-4 h-4 mr-2" />PDF executivo</Button>
           <Button variant="outline" onClick={() => handleExportPdf("detailed")} className="no-print rounded-none border-red-600 text-red-600 hover:bg-red-600 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto" aria-label="Exportar relatório detalhado completo em PDF"><Download className="w-4 h-4 mr-2" />PDF completo</Button>
           {isAdmin && <>
+            <Button variant="outline" onClick={() => setPrioritizationOpen(true)} className="no-print rounded-none border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto" aria-label="Configurar pesos da Fila de Ação"><SlidersHorizontal className="w-4 h-4 mr-2" />Configurações</Button>
             <label className="cursor-pointer bg-zinc-950 hover:bg-zinc-800 text-white px-5 py-2.5 text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all"><Upload className="w-4 h-4" />{uploadStatusLabel}<input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleFileUpload} disabled={isUploading} /></label>
             <AlertDialog onOpenChange={(open) => { if (!open) setResetConfirmation(""); }}><AlertDialogTrigger asChild><Button variant="outline" className="rounded-none border-red-600 text-red-600 hover:bg-red-600 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto"><ShieldAlert className="w-4 h-4 mr-2" />Resetar importações</Button></AlertDialogTrigger><AlertDialogContent className="rounded-none border-2 border-red-600 bg-white"><AlertDialogHeader><AlertDialogTitle className="font-black uppercase tracking-tight text-red-700">Resetar todas as importações?</AlertDialogTitle><AlertDialogDescription className="font-mono text-xs leading-6 text-zinc-700">Esta ação excluirá permanentemente todos os uploads, itens cadastrados e o histórico de previsões da base de consulta. Não é possível desfazer esta operação.</AlertDialogDescription></AlertDialogHeader><div className="space-y-2"><label className="text-xs font-mono uppercase tracking-wider text-zinc-600">Digite RESETAR para confirmar</label><Input value={resetConfirmation} onChange={(event) => setResetConfirmation(event.target.value.toUpperCase())} placeholder="RESETAR" className="rounded-none border-zinc-900 font-mono" autoFocus /></div><AlertDialogFooter><AlertDialogCancel className="rounded-none border-zinc-900 font-mono text-xs uppercase">Cancelar</AlertDialogCancel><AlertDialogAction className="rounded-none bg-red-600 hover:bg-red-700 font-mono text-xs uppercase" disabled={resetConfirmation !== "RESETAR" || resetMutation.isPending} onClick={(event) => { event.preventDefault(); void handleResetImports(); }}>{resetMutation.isPending ? "Limpando..." : "Confirmar reset"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
           </>}
@@ -354,6 +402,16 @@ export default function Home() {
 
         </div>
       </header>
+      {isAdmin && <PrioritizationSettingsDialog
+        open={prioritizationOpen}
+        onOpenChange={setPrioritizationOpen}
+        weights={prioritizationWeights}
+        isLoading={prioritizationSettingsQuery.isLoading}
+        isSaving={updatePrioritizationMutation.isPending}
+        isResetting={resetPrioritizationMutation.isPending}
+        onSave={handleSavePrioritizationSettings}
+        onReset={handleResetPrioritizationSettings}
+      />}
 
       <div className="border-b border-zinc-900 bg-zinc-950 text-white px-6 py-3 flex items-center justify-between no-print">
         <div className="flex items-center gap-6 text-xs font-mono uppercase tracking-wider">
@@ -677,7 +735,7 @@ export default function Home() {
         <section className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-6">
           <div className="border border-zinc-900 overflow-hidden">
             <div className="p-6 border-b border-zinc-900 flex justify-between items-end"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">04 / Fila de ação</h2><h3 className="text-xl font-bold mt-1">Prioridades para a próxima reunião</h3><p className="text-xs font-mono text-zinc-500 mt-1">Ordenada por instabilidade, vencimento, fornecedor e prioridade.</p></div><AlertTriangle className="w-5 h-5 text-red-600" /></div>
-            <div className="px-6 pt-4"><ActionScoreHelp /></div>
+            <div className="px-6 pt-4"><ActionScoreHelp weights={prioritizationWeights} /></div>
             <div className="divide-y divide-zinc-200">{stats.actionQueue.length === 0 ? <p className="p-8 text-center text-xs font-mono text-zinc-500">Nenhum item requer ação imediata.</p> : (pdfMode === "detailed" ? stats.actionQueue : stats.actionQueue.slice(0, 7)).map((item) => <div key={item.id} className="p-4 flex flex-col md:flex-row md:items-center gap-3 justify-between hover:bg-red-50"><div className="min-w-0"><div className="flex items-center gap-2"><span className="font-bold font-mono">{item.item}</span><span className={`px-2 py-0.5 text-[10px] font-mono font-bold ${riskClass(item.riskLevel)}`}>{item.riskLevel}</span></div><p className="text-xs text-zinc-500 truncate max-w-[430px]">{item.itemDescription || "Sem descrição"} · PO {item.customerPo || "—"}</p><p className="text-[10px] font-mono text-red-700 mt-1">{item.reasons.join(" • ")}</p></div><div className="flex items-center gap-5 shrink-0 text-xs font-mono"><div><span className="text-zinc-500 block">Previsão</span><b>{item.currentPrediction || "—"}</b></div><div><span className="text-zinc-500 block">Valor</span><b>{formatCurrency(item.extendedPrice)}</b></div><div className="text-right"><span className="text-zinc-500 block">Score</span><b className="text-red-600">{item.riskScore}</b></div></div></div>)}</div>
           </div>
           <div className="border border-zinc-900 overflow-hidden">
@@ -706,7 +764,89 @@ function MetricCard({ label, value, detail, icon, accent }: { label: string; val
   return <div className="border border-zinc-900 p-6 relative bg-white"><div className={`absolute top-0 right-0 w-3 h-3 ${accent === "red" ? "bg-red-600" : "bg-zinc-950"}`} /><p className="text-xs font-mono uppercase tracking-widest text-zinc-500">{label}</p><p className="text-3xl font-black mt-3 tracking-tight">{value}</p><div className="mt-5 pt-4 border-t border-zinc-100 flex items-center justify-between gap-3 text-xs text-zinc-500 font-mono"><span>{detail}</span>{icon}</div></div>;
 }
 
-function ActionScoreHelp() {
+function PrioritizationSettingsDialog({
+  open,
+  onOpenChange,
+  weights,
+  isLoading,
+  isSaving,
+  isResetting,
+  onSave,
+  onReset,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  weights: PrioritizationWeights;
+  isLoading: boolean;
+  isSaving: boolean;
+  isResetting: boolean;
+  onSave: (weights: PrioritizationWeights) => Promise<void>;
+  onReset: () => Promise<void>;
+}) {
+  const [draft, setDraft] = React.useState<PrioritizationWeights>(weights);
+
+  React.useEffect(() => {
+    if (open) setDraft(weights);
+  }, [open, weights]);
+
+  const updateWeight = (field: keyof PrioritizationWeights, value: string) => {
+    const parsed = Number(value);
+    setDraft((current) => ({ ...current, [field]: Number.isInteger(parsed) && parsed >= 0 ? parsed : 0 }));
+  };
+
+  const totalWeight = Object.values(draft).reduce((sum, value) => sum + value, 0);
+  const isInvalid = totalWeight === 0 || Object.values(draft).some((value) => value > 100);
+  const fields: Array<{ key: keyof PrioritizationWeights; label: string; description: string; multiplier?: boolean }> = [
+    { key: "predictionChangeWeight", label: "Alteração de previsão", description: "Pontos por cada alteração acumulada de previsão.", multiplier: true },
+    { key: "noSupplierWeight", label: "Sem fornecedor", description: "Pontos quando a previsão informa ausência de fornecedor." },
+    { key: "overdueWeight", label: "Previsão vencida", description: "Pontos quando a previsão está anterior à data atual." },
+    { key: "highPriorityWeight", label: "Prioridade alta", description: "Pontos quando a prioridade de embarque é alta." },
+  ];
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-none sm:w-[calc(100vw-3rem)] sm:max-w-2xl rounded-none border-2 border-zinc-950 bg-white p-6">
+        <DialogHeader className="border-b-2 border-zinc-950 pb-4">
+          <DialogTitle className="flex items-center gap-3 font-black uppercase tracking-tight text-zinc-950"><SlidersHorizontal className="h-5 w-5 text-red-600" />Configurações de priorização</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-5 pt-2">
+          <div className="border-l-4 border-red-600 bg-zinc-50 p-4 text-sm leading-6 text-zinc-700">
+            Ajuste os pesos usados para ordenar a Fila de Ação. A classificação permanece em <strong>Crítico: 8 ou mais</strong>, <strong>Atenção: 4 a 7</strong> e <strong>Monitorar: 1 a 3</strong>.
+          </div>
+          {isLoading ? (
+            <div className="py-10 text-center text-xs font-mono uppercase tracking-widest text-zinc-500">Carregando pesos...</div>
+          ) : (
+            <div className="divide-y-2 divide-zinc-950 border-y-2 border-zinc-950">
+              {fields.map((field) => (
+                <div key={field.key} className="grid grid-cols-1 gap-4 py-4 sm:grid-cols-[1fr_110px] sm:items-center">
+                  <div>
+                    <label htmlFor={field.key} className="text-xs font-black uppercase tracking-wider text-zinc-950">{field.label}</label>
+                    <p className="mt-1 text-xs leading-5 text-zinc-500">{field.description}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input id={field.key} type="number" min={0} max={100} step={1} value={draft[field.key]} onChange={(event) => updateWeight(field.key, event.target.value)} className="rounded-none border-zinc-950 text-right font-mono font-bold" aria-describedby={`${field.key}-hint`} />
+                    <span id={`${field.key}-hint`} className="w-10 text-xs font-mono text-zinc-600">{field.multiplier ? "cada" : "pts"}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex flex-col gap-3 border border-zinc-950 bg-zinc-950 p-4 text-white sm:flex-row sm:items-center sm:justify-between">
+            <div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">Simulação</p><p className="mt-1 text-sm font-bold">1 alteração + sem fornecedor + vencido + prioridade alta = {draft.predictionChangeWeight + draft.noSupplierWeight + draft.overdueWeight + draft.highPriorityWeight} pontos</p></div>
+            <Badge className="w-fit rounded-none bg-red-600 text-white hover:bg-red-600">{totalWeight === 0 ? "CONFIGURAÇÃO INVÁLIDA" : "PESOS ATIVOS"}</Badge>
+          </div>
+          {isInvalid && <p className="text-xs font-mono text-red-600">Informe valores inteiros entre 0 e 100 e mantenha pelo menos um peso maior que zero.</p>}
+          <div className="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-5 sm:flex-row sm:justify-between">
+            <Button type="button" variant="outline" onClick={() => void onReset()} disabled={isResetting || isSaving} className="rounded-none border-zinc-950 font-mono text-xs uppercase"><RotateCcw className="mr-2 h-4 w-4" />{isResetting ? "Restaurando..." : "Restaurar padrão"}</Button>
+            <Button type="button" onClick={() => void onSave(draft)} disabled={isLoading || isInvalid || isSaving || isResetting} className="rounded-none bg-red-600 font-mono text-xs uppercase hover:bg-red-700"><Save className="mr-2 h-4 w-4" />{isSaving ? "Salvando..." : "Salvar pesos"}</Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ActionScoreHelp({ weights }: { weights: PrioritizationWeights }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -717,12 +857,12 @@ function ActionScoreHelp() {
       </TooltipTrigger>
       <TooltipContent side="bottom" align="start" sideOffset={8} className="w-[360px] rounded-none border border-zinc-900 bg-zinc-950 p-4 text-zinc-50 shadow-xl">
         <p className="text-[11px] font-bold uppercase tracking-wider text-white">Composição do score</p>
-        <p className="mt-2 text-[11px] leading-relaxed text-zinc-200">Score = 4 × alterações + 5 sem fornecedor + 3 previsão vencida + 2 prioridade alta.</p>
+        <p className="mt-2 text-[11px] leading-relaxed text-zinc-200">Score = {weights.predictionChangeWeight} × alterações + {weights.noSupplierWeight} sem fornecedor + {weights.overdueWeight} previsão vencida + {weights.highPriorityWeight} prioridade alta.</p>
         <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 border-y border-zinc-700 py-3 text-[10px] text-zinc-200">
-          <span>Alteração de previsão</span><strong>+4 cada</strong>
-          <span>Sem fornecedor</span><strong>+5</strong>
-          <span>Previsão vencida</span><strong>+3</strong>
-          <span>Prioridade alta</span><strong>+2</strong>
+          <span>Alteração de previsão</span><strong>+{weights.predictionChangeWeight} cada</strong>
+          <span>Sem fornecedor</span><strong>+{weights.noSupplierWeight}</strong>
+          <span>Previsão vencida</span><strong>+{weights.overdueWeight}</strong>
+          <span>Prioridade alta</span><strong>+{weights.highPriorityWeight}</strong>
         </div>
         <p className="mt-3 text-[10px] leading-relaxed text-zinc-300"><strong className="text-red-300">Crítico:</strong> 8 ou mais · <strong className="text-amber-200">Atenção:</strong> 4 a 7 · <strong className="text-zinc-100">Monitorar:</strong> 1 a 3. A fila prioriza maior score e, em empate, mais alterações.</p>
       </TooltipContent>

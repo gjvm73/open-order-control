@@ -168,3 +168,6 @@
 - [x] Verificar e salvar a personalização do rodapé com o nome Giovani Martino
 - [x] Corrigir a exibição da previsão atual para o formato brasileiro em toda a aplicação e nos relatórios
 - [x] Adicionar balão explicativo com fórmula e faixas de classificação do score na Fila de Ação
+- [x] Criar configurações administrativas persistentes para os pesos da Fila de Ação
+- [x] Aplicar os pesos configuráveis ao cálculo e às explicações de score
+- [x] Adicionar interface de Configurações para ajuste e restauração dos pesos padrão

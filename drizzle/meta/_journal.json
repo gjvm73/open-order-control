@@ -36,6 +36,13 @@
       "when": 1786752333561,
       "tag": "0004_bumpy_george_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1786802407044,
+      "tag": "0005_curious_white_tiger",
+      "breakpoints": true
     }
   ]
 }

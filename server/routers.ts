@@ -142,6 +142,25 @@ export const appRouter = router({
   }),
 
   orders: router({
+    getPrioritizationSettings: publicProcedure.query(async () => {
+      return await db.getPrioritizationSettings();
+    }),
+
+    updatePrioritizationSettings: adminProcedure.input(z.object({
+      predictionChangeWeight: z.number().int().min(0).max(100),
+      noSupplierWeight: z.number().int().min(0).max(100),
+      overdueWeight: z.number().int().min(0).max(100),
+      highPriorityWeight: z.number().int().min(0).max(100),
+    }).refine((weights) => Object.values(weights).some((weight) => weight > 0), {
+      message: "Defina pelo menos um peso maior que zero.",
+    })).mutation(async ({ input }) => {
+      return await db.savePrioritizationSettings(input);
+    }),
+
+    resetPrioritizationSettings: adminProcedure.mutation(async () => {
+      return await db.resetPrioritizationSettings();
+    }),
+
     listUploads: publicProcedure.query(async () => {
       return await db.getUploadsList();
     }),

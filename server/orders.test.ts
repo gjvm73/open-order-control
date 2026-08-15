@@ -49,6 +49,64 @@ describe("Open Orders Backend & Upload Logic", () => {
     await expect(caller.orders.uploadExcel({ fileName: "forbidden.xlsx", fileBase64: "AA==" })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
+  it("permite ao administrador salvar e restaurar os pesos de priorização", async () => {
+    const anonymousContext: TrpcContext = {
+      user: null,
+      req: { protocol: "https", headers: {} } as any,
+      res: {} as any,
+    };
+    const anonymousCaller = appRouter.createCaller(anonymousContext);
+    await expect(anonymousCaller.orders.updatePrioritizationSettings({
+      predictionChangeWeight: 7,
+      noSupplierWeight: 6,
+      overdueWeight: 5,
+      highPriorityWeight: 4,
+    })).rejects.toMatchObject({ code: "FORBIDDEN" });
+
+    const adminContext: TrpcContext = {
+      user: {
+        id: 1,
+        openId: "admin-prioritization-settings",
+        name: "Admin User",
+        email: "admin-settings@test.com",
+        loginMethod: "manus",
+        role: "admin",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      },
+      req: { protocol: "https", headers: {} } as any,
+      res: {} as any,
+    };
+    const adminCaller = appRouter.createCaller(adminContext);
+
+    try {
+      const saved = await adminCaller.orders.updatePrioritizationSettings({
+        predictionChangeWeight: 7,
+        noSupplierWeight: 6,
+        overdueWeight: 5,
+        highPriorityWeight: 4,
+      });
+      expect(saved).toMatchObject({
+        predictionChangeWeight: 7,
+        noSupplierWeight: 6,
+        overdueWeight: 5,
+        highPriorityWeight: 4,
+      });
+
+      const readBack = await anonymousCaller.orders.getPrioritizationSettings();
+      expect(readBack).toMatchObject({
+        predictionChangeWeight: 7,
+        noSupplierWeight: 6,
+        overdueWeight: 5,
+        highPriorityWeight: 4,
+      });
+    } finally {
+      const restored = await adminCaller.orders.resetPrioritizationSettings();
+      expect(restored).toMatchObject(db.DEFAULT_PRIORITIZATION_WEIGHTS);
+    }
+  });
+
   it("allows admin reset, executes real DB cleanup, and validates resulting empty dashboard and tables", async () => {
     const ctx: TrpcContext = {
       user: {
@@ -259,6 +317,20 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(filteredStats.latestStabilityRate).toBe(0);
     expect(filteredStats.stabilityRate).toBe(0);
     expect(filteredStats.riskRate).toBe(100);
+
+    try {
+      await caller.orders.updatePrioritizationSettings({
+        predictionChangeWeight: 7,
+        noSupplierWeight: 0,
+        overdueWeight: 0,
+        highPriorityWeight: 0,
+      });
+      const weightedStats = await caller.orders.getStats({ shipTo: "TESTE RS" });
+      const weightedItem = weightedStats.actionQueue.find((entry) => entry.item === itemCode && entry.customerPo === customerPo);
+      expect(weightedItem?.riskScore).toBe(14);
+    } finally {
+      await caller.orders.resetPrioritizationSettings();
+    }
 
     const alertResponse = await caller.orders.getAlerts({ thresholdDays: 30, shipTo: "TESTE RS" });
     const targetAlert = alertResponse.alerts.find((alert) => alert.item === itemCode && alert.customerPo === customerPo);

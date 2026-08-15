@@ -71,3 +71,16 @@ export const predictionHistory = mysqlTable("prediction_history", {
 
 export type PredictionHistoryRecord = typeof predictionHistory.$inferSelect;
 export type InsertPredictionHistoryRecord = typeof predictionHistory.$inferInsert;
+
+// Configuração administrativa única para os pesos usados na Fila de Ação.
+export const prioritizationSettings = mysqlTable("prioritization_settings", {
+  id: int("id").primaryKey(),
+  predictionChangeWeight: int("predictionChangeWeight").notNull().default(4),
+  noSupplierWeight: int("noSupplierWeight").notNull().default(5),
+  overdueWeight: int("overdueWeight").notNull().default(3),
+  highPriorityWeight: int("highPriorityWeight").notNull().default(2),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PrioritizationSettings = typeof prioritizationSettings.$inferSelect;
+export type InsertPrioritizationSettings = typeof prioritizationSettings.$inferInsert;

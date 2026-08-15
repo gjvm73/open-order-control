@@ -1,6 +1,6 @@
 import { eq, desc, asc, sql, and, or, like, gte, lte, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, uploads, orderItems, predictionHistory, InsertUploadRecord, InsertOrderItem, InsertPredictionHistoryRecord } from "../drizzle/schema";
+import { InsertUser, users, uploads, orderItems, predictionHistory, prioritizationSettings, InsertUploadRecord, InsertOrderItem, InsertPredictionHistoryRecord } from "../drizzle/schema";
 import { ENV } from './_core/env';
 import { normalizeShipTo } from './shipTo';
 
@@ -18,7 +18,56 @@ export async function getDb() {
   return _db;
 }
 
-export { users, uploads, orderItems, predictionHistory, sql, eq, desc, and, or, like };
+export { users, uploads, orderItems, predictionHistory, prioritizationSettings, sql, eq, desc, and, or, like };
+
+export const DEFAULT_PRIORITIZATION_WEIGHTS = {
+  predictionChangeWeight: 4,
+  noSupplierWeight: 5,
+  overdueWeight: 3,
+  highPriorityWeight: 2,
+} as const;
+
+export type PrioritizationWeights = {
+  predictionChangeWeight: number;
+  noSupplierWeight: number;
+  overdueWeight: number;
+  highPriorityWeight: number;
+};
+
+export type PrioritizationSettingsResponse = PrioritizationWeights & {
+  updatedAt: Date | null;
+};
+
+export async function getPrioritizationSettings(): Promise<PrioritizationSettingsResponse> {
+  const db = await getDb();
+  if (!db) return { ...DEFAULT_PRIORITIZATION_WEIGHTS, updatedAt: null };
+
+  const [settings] = await db.select().from(prioritizationSettings).where(eq(prioritizationSettings.id, 1)).limit(1);
+  if (!settings) return { ...DEFAULT_PRIORITIZATION_WEIGHTS, updatedAt: null };
+
+  return {
+    predictionChangeWeight: settings.predictionChangeWeight,
+    noSupplierWeight: settings.noSupplierWeight,
+    overdueWeight: settings.overdueWeight,
+    highPriorityWeight: settings.highPriorityWeight,
+    updatedAt: settings.updatedAt,
+  };
+}
+
+export async function savePrioritizationSettings(weights: PrioritizationWeights): Promise<PrioritizationSettingsResponse> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.insert(prioritizationSettings).values({ id: 1, ...weights }).onDuplicateKeyUpdate({
+    set: weights,
+  });
+
+  return await getPrioritizationSettings();
+}
+
+export async function resetPrioritizationSettings(): Promise<PrioritizationSettingsResponse> {
+  return await savePrioritizationSettings({ ...DEFAULT_PRIORITIZATION_WEIGHTS });
+}
 
 export async function upsertUser(user: InsertUser): Promise<void> {
   if (!user.openId) {
@@ -476,6 +525,7 @@ export async function getDashboardStats(shipTo?: string) {
   const allItems = shipTo
     ? await db.select().from(orderItems).where(and(sql`status = 'active'`, sql`TRIM(${orderItems.shipTo}) = ${normalizeShipTo(shipTo)}`))
     : await db.select().from(orderItems).where(sql`status = 'active'`);
+  const prioritizationWeights = await getPrioritizationSettings();
   const uploadList = await db.select().from(uploads).orderBy(desc(uploads.uploadDate), desc(uploads.id)).limit(8);
   const latestUpload = uploadList[0] || null;
   let changedLastUpload = latestUpload?.changedRowsCount || 0;
@@ -530,7 +580,10 @@ export async function getDashboardStats(shipTo?: string) {
     const supplierIssue = isNoSupplier(item.currentPrediction);
     const overdue = Boolean(predictionDate && predictionDate < today);
     const highPriority = (item.shipmentPriority || "").toLowerCase() === "high";
-    const score = item.predictionChangesCount * 4 + (supplierIssue ? 5 : 0) + (overdue ? 3 : 0) + (highPriority ? 2 : 0);
+    const score = item.predictionChangesCount * prioritizationWeights.predictionChangeWeight
+      + (supplierIssue ? prioritizationWeights.noSupplierWeight : 0)
+      + (overdue ? prioritizationWeights.overdueWeight : 0)
+      + (highPriority ? prioritizationWeights.highPriorityWeight : 0);
     const reasons = [];
     if (supplierIssue) reasons.push("Sem fornecedor");
     if (item.predictionChangesCount > 0) reasons.push(`${item.predictionChangesCount} alterações`);
