@@ -148,5 +148,5 @@
 - [x] Executar testes, checagem TypeScript, build e validar no preview
 - [x] Salvar checkpoint da funcionalidade de modo noturno
 
-- [ ] Validar no preview o modo noturno ativado e garantir que diálogos, portales e modais herdem corretamente o tema escuro
-- [ ] Salvar checkpoint da funcionalidade de modo noturno completa
+- [x] Validar no preview o modo noturno ativado e garantir que diálogos, portales e modais herdem corretamente o tema escuro
+- [x] Salvar checkpoint da funcionalidade de modo noturno completa
