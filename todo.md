@@ -141,4 +141,4 @@
 - [x] Validar visualmente a impressão e executar testes/build
 - [x] Salvar checkpoint da melhoria da exportação PDF
 
-- [ ] Compactar a exportação PDF do dashboard para eliminar quebras excessivas e unificar o relatório em um formato executivo coeso
+- [x] Compactar a exportação PDF do dashboard para eliminar quebras excessivas e unificar o relatório em um formato executivo coeso
