@@ -171,6 +171,20 @@ export const appRouter = router({
       return await db.getDashboardStats(input?.shipTo);
     }),
 
+    listDeliveredItems: publicProcedure.input(z.object({
+      search: z.string().optional(),
+      item: z.string().optional(),
+      customerPo: z.string().optional(),
+      shipTo: z.string().optional(),
+    }).optional()).query(async ({ input }) => {
+      return await db.getDeliveredItems({
+        search: input?.search,
+        item: input?.item,
+        customerPo: input?.customerPo,
+        shipTo: input?.shipTo,
+      });
+    }),
+
     getAlerts: publicProcedure.input(z.object({
       thresholdDays: z.number().int().min(1).max(3650).default(7),
       shipTo: z.string().optional(),
@@ -394,6 +408,20 @@ export const appRouter = router({
               previousPrediction: sql`CASE ${db.orderItems.id} ${previousPredictionCases} ELSE ${db.orderItems.previousPrediction} END`,
               predictionChangesCount: sql`CASE ${db.orderItems.id} ${changesCountCases} ELSE ${db.orderItems.predictionChangesCount} END`,
             }).where(inArray(db.orderItems.id, changedExistingRows.map((change) => change.id)));
+          }
+
+          // Itens que estavam ativos (status = 'active') na base mas NÃO vieram no upload atual são considerados entregues
+          const allActiveBeforeUpload = await tx.select().from(db.orderItems).where(sql`status = 'active'`);
+          const uploadedKeysSet = new Set(comparisonKeys);
+          const deliveredItemsList = allActiveBeforeUpload.filter((item) => !uploadedKeysSet.has(item.comparisonKey));
+
+          if (deliveredItemsList.length > 0) {
+            const deliveredIds = deliveredItemsList.map((item) => item.id);
+            await tx.update(db.orderItems).set({
+              status: "delivered",
+              deliveredAt: new Date(),
+              updatedAt: sql`NOW()`,
+            }).where(inArray(db.orderItems.id, deliveredIds));
           }
 
           const refreshedRows = comparisonKeys.length > 0

@@ -47,6 +47,21 @@ export default function Home() {
   const [resetConfirmation, setResetConfirmation] = useState("");
   const [alertThresholdDays, setAlertThresholdDays] = useState(7);
   const [alertThresholdDraft, setAlertThresholdDraft] = useState("7");
+  const [activeTab, setActiveTab] = useState<"active" | "delivered">("active");
+  const [deliveredSearch, setDeliveredSearch] = useState("");
+  const [deliveredShipTo, setDeliveredShipTo] = useState("");
+  const [deliveredItemFilter, setDeliveredItemFilter] = useState("");
+  const [deliveredPoFilter, setDeliveredPoFilter] = useState("");
+
+  const deliveredInput = React.useMemo(() => ({
+    search: deliveredSearch,
+    item: deliveredItemFilter,
+    customerPo: deliveredPoFilter,
+    shipTo: deliveredShipTo.trim() || undefined,
+  }), [deliveredSearch, deliveredItemFilter, deliveredPoFilter, deliveredShipTo]);
+
+  const deliveredItemsQuery = trpc.orders.listDeliveredItems.useQuery(deliveredInput);
+  const deliveredItems = deliveredItemsQuery.data ?? [];
 
   React.useEffect(() => {
     const stored = Number(window.localStorage.getItem("open-order-alert-threshold-days"));
@@ -220,22 +235,101 @@ export default function Home() {
         </div>
       </header>
 
+      <div className="border-b border-zinc-900 bg-zinc-950 text-white px-6 py-3 flex items-center justify-between no-print">
+        <div className="flex items-center gap-6 text-xs font-mono uppercase tracking-wider">
+          <button type="button" onClick={() => setActiveTab("active")} className={`pb-1 border-b-2 transition-all ${activeTab === "active" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Dashboard Ativo</button>
+          <button type="button" onClick={() => setActiveTab("delivered")} className={`pb-1 border-b-2 transition-all ${activeTab === "delivered" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Itens Entregues ({deliveredItems.length})</button>
+        </div>
+        <span className="text-[10px] font-mono text-zinc-400">Regra: Desaparecidos no upload mais recente são considerados entregues</span>
+      </div>
+
       <main className="p-6 md:p-10 max-w-[1500px] mx-auto space-y-12">
-        <section>
-          <div className="border-b border-zinc-900 pb-2 mb-6 flex justify-between items-end"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">01 / Visão executiva</h2><h3 className="text-2xl font-black tracking-tight mt-1">Onde a gestão deve concentrar atenção</h3></div><span className="text-xs font-mono text-zinc-400">Base atualizada: {stats.latestUpload ? formatDateTime(stats.latestUpload.uploadDate) : "sem upload"}</span></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-            <MetricCard label="Itens ativos" value={String(stats.totalItems)} detail={`${stats.stableItems} sem alteração acumulada`} icon={<Package className="w-4 h-4" />} accent="red" />
-            <MetricCard label="Estabilidade do último ciclo" value={`${stats.latestStabilityRate ?? stats.stabilityRate}%`} detail={`${stats.changedLastUpload} itens alterados no último upload`} icon={<Target className="w-4 h-4" />} accent="black" />
-            <MetricCard label="Valor total dos pedidos" value={formatCurrency(stats.totalOrderValue)} detail={`${stats.highPriorityItems} itens com prioridade alta`} icon={<CircleDollarSign className="w-4 h-4" />} accent="black" />
-            <MetricCard label="Valor sob risco acumulado" value={formatCurrency(stats.valueAtRisk)} detail={`${stats.riskRate}% dos itens tiveram alguma mudança`} icon={<ShieldAlert className="w-4 h-4" />} accent="red" />
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-            <MiniMetric label="Mudaram no último upload" value={String(stats.changedLastUpload)} tone="red" />
-            <MiniMetric label="Previsões vencidas" value={String(stats.overdueItems)} tone="amber" />
-            <MiniMetric label="Sem fornecedor" value={String(stats.noSupplier)} tone="amber" />
-            <MiniMetric label="Prioridade alta" value={String(stats.highPriorityItems)} tone="black" />
-          </div>
-        </section>
+        {activeTab === "delivered" ? (
+          <section className="space-y-6">
+            <div className="border-b border-zinc-900 pb-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+              <div>
+                <h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">Histórico de entrega</h2>
+                <h3 className="text-2xl font-black tracking-tight mt-1">Itens entregues por ausência em upload recente</h3>
+                <p className="text-xs font-mono text-zinc-500 mt-1">Itens que existiam no histórico e deixaram de figurar nas planilhas semanais mais recentes.</p>
+              </div>
+              <div className="w-full md:w-80 relative">
+                <Search className="absolute left-3 top-3 w-4 h-4 text-zinc-400" />
+                <Input placeholder="Buscar item entregue..." value={deliveredSearch} onChange={(e) => setDeliveredSearch(e.target.value)} className="pl-9 rounded-none border-zinc-900 font-mono text-xs bg-white" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-4 border border-zinc-900 bg-zinc-50">
+              <div>
+                <label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Filial / Ship To</label>
+                <select value={deliveredShipTo} onChange={(e) => setDeliveredShipTo(e.target.value)} className="h-10 w-full rounded-none border border-zinc-900 bg-white px-3 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-red-600">
+                  <option value="">Todas as filiais</option>
+                  {shipToOptions.map((st) => <option key={st} value={st}>{st}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Item</label>
+                <Input placeholder="Ex.: 0102-1543" value={deliveredItemFilter} onChange={(e) => setDeliveredItemFilter(e.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" />
+              </div>
+              <div>
+                <label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Customer PO</label>
+                <Input placeholder="Ex.: 133923E" value={deliveredPoFilter} onChange={(e) => setDeliveredPoFilter(e.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" />
+              </div>
+            </div>
+
+            <div className="border border-zinc-900 bg-white overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[1300px]">
+                <thead>
+                  <tr className="border-b border-zinc-900 bg-zinc-50 text-xs font-mono uppercase tracking-wider">
+                    <th className="p-4 border-r border-zinc-900">Filial solicitante</th>
+                    <th className="p-4 border-r border-zinc-900">Item / descrição</th>
+                    <th className="p-4 border-r border-zinc-900">Customer PO</th>
+                    <th className="p-4 border-r border-zinc-900">Última previsão</th>
+                    <th className="p-4 border-r border-zinc-900">Data de entrega (Baixa)</th>
+                    <th className="p-4 border-r border-zinc-900 text-center">Quantidade</th>
+                    <th className="p-4 border-r border-zinc-900 text-right">Valor estendido</th>
+                    <th className="p-4 text-center">Histórico</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-200 text-sm font-mono">
+                  {deliveredItems.length === 0 ? (
+                    <tr><td colSpan={8} className="p-16 text-center text-zinc-500">Nenhum item entregue registrado com os filtros atuais.</td></tr>
+                  ) : (
+                    deliveredItems.map((row) => (
+                      <tr key={row.id} className="hover:bg-zinc-50 align-top">
+                        <td className="p-4 border-r border-zinc-200 font-bold text-xs">{row.shipTo}</td>
+                        <td className="p-4 border-r border-zinc-200"><p className="font-bold">{row.item}</p><p className="text-xs text-zinc-500 mt-1 max-w-[260px]">{row.itemDescription || "Sem descrição"}</p></td>
+                        <td className="p-4 border-r border-zinc-200">{row.customerPo || "—"}</td>
+                        <td className="p-4 border-r border-zinc-200 text-zinc-600">{row.currentPrediction || "—"}</td>
+                        <td className="p-4 border-r border-zinc-200 font-bold text-emerald-700">{formatDate(row.deliveredAt)}</td>
+                        <td className="p-4 border-r border-zinc-200 text-center">{Number(row.quantity || 0).toLocaleString("pt-BR")}</td>
+                        <td className="p-4 border-r border-zinc-200 text-right font-bold">{formatCurrency(row.extendedPrice)}</td>
+                        <td className="p-4 text-center">
+                          <Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-none border-zinc-900 text-xs font-mono h-8 hover:bg-zinc-950 hover:text-white" onClick={() => setSelectedItemId(row.id)}><History className="w-3.5 h-3.5 mr-1" /> Linha do tempo</Button></DialogTrigger><ItemHistoryDialog detail={itemDetailQuery.data} isLoading={itemDetailQuery.isLoading} /></Dialog>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : (
+          <>
+            <section>
+            <div className="border-b border-zinc-900 pb-2 mb-6 flex justify-between items-end"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">01 / Visão executiva</h2><h3 className="text-2xl font-black tracking-tight mt-1">Onde a gestão deve concentrar atenção</h3></div><span className="text-xs font-mono text-zinc-400">Base atualizada: {stats.latestUpload ? formatDateTime(stats.latestUpload.uploadDate) : "sem upload"}</span></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              <MetricCard label="Itens ativos" value={String(stats.totalItems)} detail={`${stats.stableItems} sem alteração acumulada`} icon={<Package className="w-4 h-4" />} accent="red" />
+              <MetricCard label="Estabilidade do último ciclo" value={`${stats.latestStabilityRate ?? stats.stabilityRate}%`} detail={`${stats.changedLastUpload} itens alterados no último upload`} icon={<Target className="w-4 h-4" />} accent="black" />
+              <MetricCard label="Valor total dos pedidos" value={formatCurrency(stats.totalOrderValue)} detail={`${stats.highPriorityItems} itens com prioridade alta`} icon={<CircleDollarSign className="w-4 h-4" />} accent="black" />
+              <MetricCard label="Valor sob risco acumulado" value={formatCurrency(stats.valueAtRisk)} detail={`${stats.riskRate}% dos itens tiveram alguma mudança`} icon={<ShieldAlert className="w-4 h-4" />} accent="red" />
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+              <MiniMetric label="Mudaram no último upload" value={String(stats.changedLastUpload)} tone="red" />
+              <MiniMetric label="Previsões vencidas" value={String(stats.overdueItems)} tone="amber" />
+              <MiniMetric label="Sem fornecedor" value={String(stats.noSupplier)} tone="amber" />
+              <MiniMetric label="Prioridade alta" value={String(stats.highPriorityItems)} tone="black" />
+            </div>
+          </section>
 
         <section className="space-y-4">
           <div className="border-b border-zinc-900 pb-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
@@ -426,6 +520,8 @@ export default function Home() {
         </section>
 
         <section className="space-y-4"><div className="border-b border-zinc-900 pb-2"><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">07 / Mapa de alterações</h2><h3 className="text-xl font-bold tracking-tight">Itens que tiveram a previsão modificada</h3></div><div className="border border-zinc-900 overflow-x-auto"><table className="w-full text-left border-collapse min-w-[900px]"><thead><tr className="border-b border-zinc-900 bg-zinc-950 text-white text-xs font-mono uppercase tracking-wider"><th className="p-4">Item / nome</th><th className="p-4">Customer PO</th><th className="p-4">De</th><th className="p-4">Para</th><th className="p-4">Data</th><th className="p-4 text-center">Ocorrências</th><th className="p-4">Ação</th></tr></thead><tbody className="divide-y divide-zinc-200 text-sm font-mono">{changedItems.length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-zinc-500">Nenhuma alteração para os filtros atuais.</td></tr> : changedItems.map((row) => <tr key={`change-${row.id}`} className="hover:bg-red-50"><td className="p-4"><p className="font-bold">{row.item}</p><p className="text-xs text-zinc-500 mt-1 max-w-[280px]">{row.itemDescription || "Sem descrição"}</p></td><td className="p-4">{row.customerPo || "—"}</td><td className="p-4 text-zinc-500">{row.previousPrediction || "—"}</td><td className="p-4 text-red-600 font-bold">{row.currentPrediction || "—"}</td><td className="p-4">{formatDate(row.lastPredictionChangeDate)}</td><td className="p-4 text-center"><span className="px-2 py-1 bg-red-100 text-red-700 font-bold">{row.predictionChangesCount}x</span></td><td className="p-4"><Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-none border-zinc-900 text-xs font-mono" onClick={() => setSelectedItemId(row.id)}>Linha do tempo</Button></DialogTrigger><ItemHistoryDialog detail={itemDetailQuery.data} isLoading={itemDetailQuery.isLoading} /></Dialog></td></tr>)}</tbody></table></div></section>
+          </>
+        )}
       </main>
       <footer className="border-t-2 border-zinc-950 mt-20 py-8 px-6 text-center text-xs font-mono uppercase tracking-widest text-zinc-500 bg-zinc-50">Open Order Control • Swiss Style Precision Architecture • 2026</footer>
     </div>

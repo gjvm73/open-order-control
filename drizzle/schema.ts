@@ -48,6 +48,8 @@ export const orderItems = mysqlTable("order_items", {
   predictionChangesCount: int("predictionChangesCount").notNull().default(0),
   lastPredictionChangeDate: timestamp("lastPredictionChangeDate"),
   lastUploadId: int("lastUploadId"),
+  status: varchar("status", { length: 20 }).notNull().default("active"), // 'active' ou 'delivered'
+  deliveredAt: timestamp("deliveredAt"),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, (table) => ({
   comparisonKeyUnique: uniqueIndex("order_items_comparison_key_unique").on(table.comparisonKey),

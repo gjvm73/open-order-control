@@ -520,3 +520,54 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(portoBranch).toBeDefined();
     expect(portoBranch?.totalItems).toBe(1);
   });
+
+  it("marks items as delivered when they disappear from a newer upload", async () => {
+    await db.resetImportedData();
+    const ctx: TrpcContext = {
+      user: { id: 1, openId: "admin", name: "Admin", email: "admin@test.com", loginMethod: "oauth", role: "admin", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() },
+      req: {} as any,
+      res: {} as any,
+    };
+    const caller = appRouter.createCaller(ctx);
+
+    const wb1 = XLSX.utils.book_new();
+    const ws1 = XLSX.utils.aoa_to_sheet([
+      ["Filial", "Item", "Customer PO", "Previsão"],
+      ["PORTO ALEGRE", "ITEM-A", "PO-1", "2025-06"],
+      ["PORTO ALEGRE", "ITEM-B", "PO-2", "2025-07"],
+    ]);
+    XLSX.utils.book_append_sheet(wb1, ws1, "Orders");
+    const buf1 = XLSX.write(wb1, { type: "buffer", bookType: "xlsx" });
+
+    await caller.orders.uploadExcel({
+      fileName: "upload_week1.xlsx",
+      fileBase64: buf1.toString("base64"),
+    });
+
+    const activeBefore = await caller.orders.listItems();
+    expect(activeBefore).toHaveLength(2);
+
+    // Upload semana 2: ITEM-B desapareceu (deve ser marcado como entregue), ITEM-A continua
+    const wb2 = XLSX.utils.book_new();
+    const ws2 = XLSX.utils.aoa_to_sheet([
+      ["Filial", "Item", "Customer PO", "Previsão"],
+      ["PORTO ALEGRE", "ITEM-A", "PO-1", "2025-06"],
+    ]);
+    XLSX.utils.book_append_sheet(wb2, ws2, "Orders");
+    const buf2 = XLSX.write(wb2, { type: "buffer", bookType: "xlsx" });
+
+    await caller.orders.uploadExcel({
+      fileName: "upload_week2.xlsx",
+      fileBase64: buf2.toString("base64"),
+    });
+
+    const activeAfter = await caller.orders.listItems();
+    expect(activeAfter).toHaveLength(1);
+    expect(activeAfter[0].item).toBe("ITEM-A");
+
+    const delivered = await caller.orders.listDeliveredItems();
+    expect(delivered).toHaveLength(1);
+    expect(delivered[0].item).toBe("ITEM-B");
+    expect(delivered[0].status).toBe("delivered");
+    expect(delivered[0].deliveredAt).toBeDefined();
+  });

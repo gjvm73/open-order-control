@@ -122,7 +122,7 @@ export async function getOrderItems(filters?: { search?: string; item?: string; 
   const db = await getDb();
   if (!db) return [];
   
-  const conditions = [];
+  const conditions: any[] = [sql`status = 'active'`];
   if (filters?.search) {
     const s = `%${filters.search}%`;
     conditions.push(or(
@@ -215,10 +215,11 @@ export async function getPredictionAlerts(thresholdDays: number, shipTo?: string
   if (!db) return [];
 
   const normalizedShipTo = shipTo ? normalizeShipTo(shipTo) : undefined;
-  const conditions = normalizedShipTo ? [sql`TRIM(${orderItems.shipTo}) = ${normalizedShipTo}`] : [];
-  const items = conditions.length > 0
-    ? await db.select().from(orderItems).where(and(...conditions))
-    : await db.select().from(orderItems);
+  const conditions: any[] = [sql`status = 'active'`];
+  if (normalizedShipTo) {
+    conditions.push(sql`TRIM(${orderItems.shipTo}) = ${normalizedShipTo}`);
+  }
+  const items = await db.select().from(orderItems).where(and(...conditions));
   const threshold = Math.max(1, Math.floor(thresholdDays));
 
   const parseDate = (value: string | null) => {
@@ -362,7 +363,7 @@ export async function getShipToOptions() {
 export async function getBranchSummary() {
   const db = await getDb();
   if (!db) return [];
-  const allItems = await db.select().from(orderItems);
+  const allItems = await db.select().from(orderItems).where(sql`status = 'active'`);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const parsePredictionDate = (value: string | null) => {
@@ -432,8 +433,8 @@ export async function getDashboardStats(shipTo?: string) {
   }
 
   const allItems = shipTo
-    ? await db.select().from(orderItems).where(sql`TRIM(${orderItems.shipTo}) = ${normalizeShipTo(shipTo)}`)
-    : await db.select().from(orderItems);
+    ? await db.select().from(orderItems).where(and(sql`status = 'active'`, sql`TRIM(${orderItems.shipTo}) = ${normalizeShipTo(shipTo)}`))
+    : await db.select().from(orderItems).where(sql`status = 'active'`);
   const uploadList = await db.select().from(uploads).orderBy(desc(uploads.uploadDate), desc(uploads.id)).limit(8);
   const latestUpload = uploadList[0] || null;
   let changedLastUpload = latestUpload?.changedRowsCount || 0;
@@ -554,4 +555,41 @@ export async function getDashboardStats(shipTo?: string) {
     actionQueue,
     latestUpload,
   };
+}
+
+export async function getDeliveredItems(filters?: { search?: string; item?: string; customerPo?: string; shipTo?: string }) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const conditions: any[] = [sql`status = 'delivered'`];
+  if (filters?.search) {
+    const s = `%${filters.search}%`;
+    conditions.push(or(
+      like(orderItems.item, s),
+      like(orderItems.customerPo, s),
+      like(orderItems.itemDescription, s)
+    ));
+  }
+  if (filters?.item) {
+    conditions.push(like(orderItems.item, `%${filters.item}%`));
+  }
+  if (filters?.customerPo) {
+    conditions.push(like(orderItems.customerPo, `%${filters.customerPo}%`));
+  }
+  if (filters?.shipTo) {
+    const normalizedShipTo = normalizeShipTo(filters.shipTo);
+    if (normalizedShipTo) {
+      conditions.push(sql`TRIM(${orderItems.shipTo}) = ${normalizedShipTo}`);
+    }
+  }
+
+  const itemsQuery = db.select().from(orderItems).leftJoin(uploads, eq(orderItems.lastUploadId, uploads.id));
+  const rows = await itemsQuery.where(conditions.length > 1 ? and(...conditions) : conditions[0]).orderBy(desc(orderItems.deliveredAt), desc(orderItems.updatedAt));
+
+  return rows.map(({ order_items: item, uploads: upload }) => ({
+    ...item,
+    shipTo: normalizeShipTo(item.shipTo) || "Sem filial informada",
+    lastUploadFileName: upload?.fileName ?? null,
+    lastUploadDate: upload?.uploadDate ?? null,
+  }));
 }
