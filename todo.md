@@ -142,3 +142,11 @@
 - [x] Salvar checkpoint da melhoria da exportação PDF
 
 - [x] Compactar a exportação PDF do dashboard para eliminar quebras excessivas e unificar o relatório em um formato executivo coeso
+
+- [x] Implementar suporte a modo noturno com estado persistente no localStorage e botão de alternância no menu superior
+- [x] Adaptar o design Swiss Style para o tema escuro (fundo preto/cinza escuro, textos claros, bordas contrastantes e acentos vermelhos)
+- [x] Executar testes, checagem TypeScript, build e validar no preview
+- [x] Salvar checkpoint da funcionalidade de modo noturno
+
+- [ ] Validar no preview o modo noturno ativado e garantir que diálogos, portales e modais herdem corretamente o tema escuro
+- [ ] Salvar checkpoint da funcionalidade de modo noturno completa

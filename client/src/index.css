@@ -50,6 +50,107 @@ body {
   display: none;
 }
 
+.dark-mode {
+  color-scheme: dark;
+  background-color: #111111 !important;
+  color: #f4f4f5 !important;
+}
+
+.dark-mode .bg-white,
+.dark-mode .bg-zinc-50 {
+  background-color: #18181b !important;
+}
+
+.dark-mode .bg-zinc-950 {
+  background-color: #050505 !important;
+}
+
+.dark-mode .text-zinc-950,
+.dark-mode .text-zinc-900,
+.dark-mode .text-zinc-800,
+.dark-mode .text-zinc-700,
+.dark-mode .text-zinc-600 {
+  color: #f4f4f5 !important;
+}
+
+.dark-mode .text-zinc-500,
+.dark-mode .text-zinc-400 {
+  color: #a1a1aa !important;
+}
+
+.dark-mode .border-zinc-950,
+.dark-mode .border-zinc-900,
+.dark-mode .border-zinc-800,
+.dark-mode .border-zinc-700,
+.dark-mode .border-zinc-200,
+.dark-mode .border-zinc-100 {
+  border-color: #52525b !important;
+}
+
+.dark-mode .border-b,
+.dark-mode .border-t,
+.dark-mode .border-r {
+  border-color: #3f3f46 !important;
+}
+
+.dark-mode input,
+.dark-mode select,
+.dark-mode textarea {
+  background-color: #18181b !important;
+  border-color: #71717a !important;
+  color: #f4f4f5 !important;
+}
+
+.dark-mode input::placeholder,
+.dark-mode textarea::placeholder {
+  color: #a1a1aa !important;
+}
+
+.dark-mode table thead,
+.dark-mode .bg-zinc-100 {
+  background-color: #27272a !important;
+}
+
+.dark-mode .divide-zinc-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #3f3f46 !important;
+}
+
+.dark-mode .bg-red-50 {
+  background-color: #2b1114 !important;
+}
+
+.dark-mode .bg-red-100 {
+  background-color: #58151a !important;
+  color: #fecaca !important;
+  border-color: #991b1b !important;
+}
+
+.dark-mode .bg-amber-100 {
+  background-color: #4a2f05 !important;
+  color: #fde68a !important;
+}
+
+.dark-mode .bg-emerald-50 {
+  background-color: #08251b !important;
+  color: #a7f3d0 !important;
+}
+
+.dark-mode .text-emerald-700,
+.dark-mode .text-emerald-600 {
+  color: #6ee7b7 !important;
+}
+
+.dark-mode [role="dialog"] {
+  background-color: #18181b !important;
+  border-color: #71717a !important;
+  color: #f4f4f5 !important;
+}
+
+.dark-mode [role="dialog"] .text-zinc-700,
+.dark-mode [role="dialog"] .text-zinc-600 {
+  color: #d4d4d8 !important;
+}
+
 @page {
   size: A4 landscape;
   margin: 8mm;

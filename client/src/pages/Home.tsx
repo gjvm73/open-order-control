@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import {
   Upload, Printer, Download, TrendingUp, AlertTriangle, Package, History, Search, LogOut,
-  ArrowRight, Minus, ShieldAlert, Clock3, CircleDollarSign, Target,
+  ArrowRight, Minus, ShieldAlert, Clock3, CircleDollarSign, Target, Moon, Sun,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -57,6 +57,7 @@ export default function Home() {
   const [deliveredShipTo, setDeliveredShipTo] = useState("");
   const [deliveredItemFilter, setDeliveredItemFilter] = useState("");
   const [deliveredPoFilter, setDeliveredPoFilter] = useState("");
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const deliveredInput = React.useMemo(() => ({
     search: deliveredSearch,
@@ -69,6 +70,8 @@ export default function Home() {
   const deliveredItems = deliveredItemsQuery.data ?? [];
 
   React.useEffect(() => {
+    const storedTheme = window.localStorage.getItem("open-order-dark-mode");
+    if (storedTheme === "true") setIsDarkMode(true);
     const stored = Number(window.localStorage.getItem("open-order-alert-threshold-days"));
     if (Number.isInteger(stored) && stored >= 1 && stored <= 3650) {
       setAlertThresholdDays(stored);
@@ -101,6 +104,22 @@ export default function Home() {
     ]);
   }, [utils]);
   const isAdmin = user?.role === "admin";
+
+  React.useEffect(() => {
+    if (isDarkMode) {
+      document.body.classList.add("dark-mode");
+    } else {
+      document.body.classList.remove("dark-mode");
+    }
+  }, [isDarkMode]);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode((current) => {
+      const next = !current;
+      window.localStorage.setItem("open-order-dark-mode", String(next));
+      return next;
+    });
+  };
 
   const applyAlertThreshold = () => {
     const parsed = Number(alertThresholdDraft);
@@ -257,13 +276,14 @@ export default function Home() {
   const uploadStatusLabel = uploadStatus === "reading" ? "Lendo arquivo..." : uploadStatus === "processing" ? "Gravando lotes..." : uploadStatus === "refreshing" ? "Atualizando painel..." : "Upload planilha semanal";
 
   return (
-    <div className="min-h-screen bg-white text-zinc-950 font-sans selection:bg-red-600 selection:text-white">
+    <div className={`min-h-screen bg-white text-zinc-950 font-sans selection:bg-red-600 selection:text-white ${isDarkMode ? "dark-mode" : ""}`}>
       <header className="border-b-2 border-zinc-950 px-6 py-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white">
         <div>
           <div className="flex items-center gap-2"><span className="w-4 h-4 bg-red-600 inline-block" /><h1 className="text-2xl font-black uppercase tracking-tight">OPEN ORDER CONTROL</h1></div>
           <p className="text-xs font-mono uppercase tracking-widest text-zinc-500 mt-1">Dashboard gerencial de previsões de entrega</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" onClick={toggleDarkMode} className="no-print rounded-none border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white px-3 py-2.5 text-xs font-mono uppercase tracking-wider h-auto" aria-label={isDarkMode ? "Ativar modo claro" : "Ativar modo noturno"} aria-pressed={isDarkMode}><span className="inline-flex items-center gap-2">{isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}<span className="hidden sm:inline">{isDarkMode ? "Modo claro" : "Modo noturno"}</span></span></Button>
           <Button variant="outline" onClick={handleExportPdf} className="no-print rounded-none border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto" aria-label="Exportar dashboard em PDF"><Printer className="w-4 h-4 mr-2" />Exportar PDF</Button>
           {isAdmin && <>
             <label className="cursor-pointer bg-zinc-950 hover:bg-zinc-800 text-white px-5 py-2.5 text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all"><Upload className="w-4 h-4" />{uploadStatusLabel}<input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleFileUpload} disabled={isUploading} /></label>
