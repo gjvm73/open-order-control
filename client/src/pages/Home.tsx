@@ -6,11 +6,12 @@ import { buildOperationalExportFileName, buildOperationalExportRows, filterOpera
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import {
   Upload, Printer, Download, TrendingUp, AlertTriangle, Package, History, Search, LogOut,
-  ArrowRight, Minus, ShieldAlert, Clock3, CircleDollarSign, Target, Moon, Sun,
+  ArrowRight, Minus, ShieldAlert, Clock3, CircleDollarSign, Target, Moon, Sun, CircleHelp,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -676,6 +677,7 @@ export default function Home() {
         <section className="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-6">
           <div className="border border-zinc-900 overflow-hidden">
             <div className="p-6 border-b border-zinc-900 flex justify-between items-end"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">04 / Fila de ação</h2><h3 className="text-xl font-bold mt-1">Prioridades para a próxima reunião</h3><p className="text-xs font-mono text-zinc-500 mt-1">Ordenada por instabilidade, vencimento, fornecedor e prioridade.</p></div><AlertTriangle className="w-5 h-5 text-red-600" /></div>
+            <div className="px-6 pt-4"><ActionScoreHelp /></div>
             <div className="divide-y divide-zinc-200">{stats.actionQueue.length === 0 ? <p className="p-8 text-center text-xs font-mono text-zinc-500">Nenhum item requer ação imediata.</p> : (pdfMode === "detailed" ? stats.actionQueue : stats.actionQueue.slice(0, 7)).map((item) => <div key={item.id} className="p-4 flex flex-col md:flex-row md:items-center gap-3 justify-between hover:bg-red-50"><div className="min-w-0"><div className="flex items-center gap-2"><span className="font-bold font-mono">{item.item}</span><span className={`px-2 py-0.5 text-[10px] font-mono font-bold ${riskClass(item.riskLevel)}`}>{item.riskLevel}</span></div><p className="text-xs text-zinc-500 truncate max-w-[430px]">{item.itemDescription || "Sem descrição"} · PO {item.customerPo || "—"}</p><p className="text-[10px] font-mono text-red-700 mt-1">{item.reasons.join(" • ")}</p></div><div className="flex items-center gap-5 shrink-0 text-xs font-mono"><div><span className="text-zinc-500 block">Previsão</span><b>{item.currentPrediction || "—"}</b></div><div><span className="text-zinc-500 block">Valor</span><b>{formatCurrency(item.extendedPrice)}</b></div><div className="text-right"><span className="text-zinc-500 block">Score</span><b className="text-red-600">{item.riskScore}</b></div></div></div>)}</div>
           </div>
           <div className="border border-zinc-900 overflow-hidden">
@@ -702,6 +704,30 @@ export default function Home() {
 
 function MetricCard({ label, value, detail, icon, accent }: { label: string; value: string; detail: string; icon: React.ReactNode; accent: "red" | "black" }) {
   return <div className="border border-zinc-900 p-6 relative bg-white"><div className={`absolute top-0 right-0 w-3 h-3 ${accent === "red" ? "bg-red-600" : "bg-zinc-950"}`} /><p className="text-xs font-mono uppercase tracking-widest text-zinc-500">{label}</p><p className="text-3xl font-black mt-3 tracking-tight">{value}</p><div className="mt-5 pt-4 border-t border-zinc-100 flex items-center justify-between gap-3 text-xs text-zinc-500 font-mono"><span>{detail}</span>{icon}</div></div>;
+}
+
+function ActionScoreHelp() {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button type="button" className="inline-flex items-center gap-2 border border-zinc-900 bg-white px-3 py-2 text-[10px] font-mono font-bold uppercase tracking-wide text-zinc-900 transition-colors hover:bg-zinc-950 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2" aria-label="Entenda como o score da fila de ação é calculado">
+          <CircleHelp className="h-4 w-4" aria-hidden="true" />
+          Como o score é calculado?
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" align="start" sideOffset={8} className="w-[360px] rounded-none border border-zinc-900 bg-zinc-950 p-4 text-zinc-50 shadow-xl">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-white">Composição do score</p>
+        <p className="mt-2 text-[11px] leading-relaxed text-zinc-200">Score = 4 × alterações + 5 sem fornecedor + 3 previsão vencida + 2 prioridade alta.</p>
+        <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 border-y border-zinc-700 py-3 text-[10px] text-zinc-200">
+          <span>Alteração de previsão</span><strong>+4 cada</strong>
+          <span>Sem fornecedor</span><strong>+5</strong>
+          <span>Previsão vencida</span><strong>+3</strong>
+          <span>Prioridade alta</span><strong>+2</strong>
+        </div>
+        <p className="mt-3 text-[10px] leading-relaxed text-zinc-300"><strong className="text-red-300">Crítico:</strong> 8 ou mais · <strong className="text-amber-200">Atenção:</strong> 4 a 7 · <strong className="text-zinc-100">Monitorar:</strong> 1 a 3. A fila prioriza maior score e, em empate, mais alterações.</p>
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
 function MiniMetric({ label, value, tone }: { label: string; value: string; tone: "red" | "amber" | "black" }) {

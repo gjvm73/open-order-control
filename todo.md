@@ -167,3 +167,4 @@
 - [x] Produzir manual Word ilustrado com telas, roteiros e instruções passo a passo
 - [x] Verificar e salvar a personalização do rodapé com o nome Giovani Martino
 - [x] Corrigir a exibição da previsão atual para o formato brasileiro em toda a aplicação e nos relatórios
+- [x] Adicionar balão explicativo com fórmula e faixas de classificação do score na Fila de Ação
