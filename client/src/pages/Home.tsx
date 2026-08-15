@@ -674,7 +674,7 @@ export default function Home() {
         )}
         </div>
       </main>
-      <footer className="border-t-2 border-zinc-950 mt-20 py-8 px-6 text-center text-xs font-mono uppercase tracking-widest text-zinc-500 bg-zinc-50">Open Order Control • Swiss Style Precision Architecture • 2026</footer>
+      <footer className="border-t-2 border-zinc-950 mt-20 py-8 px-6 text-center text-xs font-mono uppercase tracking-widest text-zinc-500 bg-zinc-50">Open Order Control • 2026 • Giovani Martino</footer>
     </div>
   );
 }

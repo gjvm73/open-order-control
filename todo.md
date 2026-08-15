@@ -165,3 +165,4 @@
 - [x] Adicionar botão e lógica para exportar em Excel apenas os itens que sofreram alterações na previsão
 - [x] Produzir apresentação executiva detalhada com as funcionalidades, métricas e controles da aplicação
 - [x] Produzir manual Word ilustrado com telas, roteiros e instruções passo a passo
+- [x] Verificar e salvar a personalização do rodapé com o nome Giovani Martino
