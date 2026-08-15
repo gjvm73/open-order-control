@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildOperationalExportFileName, buildOperationalExportRows } from "./orderExport";
+import { buildOperationalExportFileName, buildOperationalExportRows, generateProfessionalOperationalWorkbook } from "./orderExport";
 
 describe("operational Excel export", () => {
   it("maps the filtered operational items to complete spreadsheet rows", () => {
@@ -43,5 +43,27 @@ describe("operational Excel export", () => {
 
   it("uses a deterministic date-based filename", () => {
     expect(buildOperationalExportFileName(new Date("2026-08-14T12:00:00.000Z"))).toBe("open-order-base-operacional-2026-08-14.xlsx");
+  });
+
+  it("generates a professional workbook with executive summary and operational sheets", () => {
+    const workbook = generateProfessionalOperationalWorkbook(
+      [
+        {
+          shipTo: "PORTO ALEGRE",
+          item: "ITEM-001",
+          itemDescription: "Componente de teste",
+          customerPo: "PO-001",
+          quantity: 10,
+          extendedPrice: 1000,
+          predictionChangesCount: 1,
+        },
+      ],
+      { branch: "PORTO ALEGRE", search: "PO-001" }
+    );
+
+    expect(workbook.SheetNames).toEqual(["Resumo Executivo", "Base Operacional"]);
+    expect(workbook.Sheets["Resumo Executivo"]).toBeDefined();
+    expect(workbook.Sheets["Base Operacional"]).toBeDefined();
+    expect(workbook.Sheets["Base Operacional"]["!freeze"]).toEqual({ xSplit: 0, ySplit: 4 });
   });
 });

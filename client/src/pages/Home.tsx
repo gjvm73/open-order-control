@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import * as XLSX from "xlsx";
-import { buildOperationalExportFileName, buildOperationalExportRows } from "@/lib/orderExport";
+import { buildOperationalExportFileName, buildOperationalExportRows, generateProfessionalOperationalWorkbook } from "@/lib/orderExport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -170,16 +170,12 @@ export default function Home() {
       toast.info("Não há itens para exportar com os filtros atuais.");
       return;
     }
-    const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.json_to_sheet(buildOperationalExportRows(items));
-    worksheet["!cols"] = [
-      { wch: 28 }, { wch: 18 }, { wch: 36 }, { wch: 18 }, { wch: 20 }, { wch: 16 },
-      { wch: 12 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 18 },
-      { wch: 16 }, { wch: 32 }, { wch: 18 }, { wch: 22 }, { wch: 48 },
-    ];
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Base operacional");
+    const workbook = generateProfessionalOperationalWorkbook(items, {
+      branch: selectedShipTo || "Todas as filiais",
+      search: [search, filterItem, filterPo, filterPrediction].filter(Boolean).join(" | ") || undefined,
+    });
     XLSX.writeFile(workbook, buildOperationalExportFileName());
-    toast.success(`${items.length} item(ns) exportado(s) conforme os filtros atuais.`);
+    toast.success(`${items.length} item(ns) exportado(s) com Resumo Executivo e Base Operacional formatados.`);
   };
 
   const handleAdminLogin = async (event: React.FormEvent<HTMLFormElement>) => {
