@@ -46,16 +46,28 @@ body {
   color: #ffffff;
 }
 
+.print-only-report {
+  display: none;
+}
+
 @page {
   size: A4 landscape;
-  margin: 12mm;
+  margin: 8mm;
 }
 
 @media print {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box !important;
+  }
+
   html,
   body {
     width: 100%;
     min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
     background: #ffffff !important;
     color: #111111 !important;
     -webkit-print-color-adjust: exact;
@@ -63,10 +75,12 @@ body {
   }
 
   body {
-    font-size: 9pt;
+    font-size: 7.4pt;
+    line-height: 1.25;
   }
 
   header,
+  footer,
   header button,
   header label,
   .no-print,
@@ -84,15 +98,251 @@ body {
     display: block !important;
     width: 100% !important;
     max-width: none !important;
-    padding: 0 !important;
     margin: 0 !important;
-    space-y: 0 !important;
+    padding: 0 !important;
+  }
+
+  main.print-report > .screen-dashboard {
+    display: none !important;
+  }
+
+  main.print-report > .print-only-report {
+    display: block !important;
+    width: 100% !important;
+    color: #111111 !important;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+  }
+
+  .print-summary-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8mm;
+    border-bottom: 1.5px solid #111111;
+    padding-bottom: 3mm;
+    margin-bottom: 3.5mm;
+  }
+
+  .print-kicker,
+  .print-panel-kicker {
+    margin: 0 0 1mm;
+    color: #666666;
+    font: 700 6.5pt/1.15 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .print-summary-header h2 {
+    margin: 0;
+    font-size: 17pt;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+
+  .print-summary-subtitle,
+  .print-summary-meta,
+  .print-panel-note,
+  .print-section-heading span,
+  .print-summary-footer {
+    color: #666666;
+    font: 6.5pt/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  .print-summary-subtitle {
+    margin: 1.5mm 0 0;
+  }
+
+  .print-summary-meta {
+    min-width: 38mm;
+    text-align: right;
+  }
+
+  .print-summary-meta strong {
+    color: #111111;
+  }
+
+  .print-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2.5mm;
+    margin-bottom: 3mm;
+  }
+
+  .print-kpi,
+  .print-summary-panel {
+    border: 0.8px solid #444444;
+    background: #ffffff;
+    padding: 3mm;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .print-kpi {
+    min-height: 24mm;
+  }
+
+  .print-kpi span,
+  .print-kpi small {
+    display: block;
+    color: #666666;
+    font: 6.3pt/1.25 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  .print-kpi strong {
+    display: block;
+    margin: 2mm 0 1mm;
+    color: #111111;
+    font-size: 16pt;
+    line-height: 1;
+  }
+
+  .print-kpi-risk {
+    border-top: 2.5px solid #d71920;
+  }
+
+  .print-kpi-risk strong,
+  .print-summary-panel-dark .print-risk-row strong,
+  .print-summary-panel-dark .print-panel-note strong {
+    color: #d71920;
+  }
+
+  .print-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2.5mm;
+    margin-bottom: 3mm;
+  }
+
+  .print-summary-panel-dark {
+    background: #111111;
+    color: #ffffff;
+    border-color: #111111;
+  }
+
+  .print-summary-panel-dark .print-panel-kicker,
+  .print-summary-panel-dark .print-panel-note,
+  .print-summary-panel-dark .print-risk-row span {
+    color: #cfcfcf;
+  }
+
+  .print-risk-row {
+    display: flex;
+    align-items: baseline;
+    gap: 2mm;
+    margin: 2mm 0;
+  }
+
+  .print-risk-row strong {
+    font-size: 25pt;
+    line-height: 1;
+  }
+
+  .print-risk-row span {
+    font: 7pt ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  .print-risk-track {
+    height: 3mm;
+    background: #333333;
+    margin: 2mm 0;
+  }
+
+  .print-risk-track i {
+    display: block;
+    height: 100%;
+    background: #e30613;
+  }
+
+  .print-panel-note {
+    margin: 2mm 0 0;
+  }
+
+  .print-signal-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 4mm;
+    border-bottom: 0.6px solid #dddddd;
+    padding: 1.8mm 0;
+    font: 6.8pt/1.2 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  .print-signal-row:last-child {
+    border-bottom: 0;
+  }
+
+  .print-signal-row strong {
+    color: #d71920;
+    white-space: nowrap;
+  }
+
+  .print-summary-panel-table {
+    margin-bottom: 3mm;
+  }
+
+  .print-section-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 4mm;
+    margin-bottom: 2mm;
+  }
+
+  .print-section-heading h3 {
+    margin: 0;
+    color: #111111;
+    font-size: 11pt;
+    line-height: 1.05;
+  }
+
+  .print-summary-panel-dark .print-section-heading h3 {
+    color: #ffffff;
+  }
+
+  .print-summary-panel table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font: 6.5pt/1.25 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  .print-summary-panel th,
+  .print-summary-panel td {
+    border-top: 0.6px solid #cccccc;
+    padding: 1.5mm 1.5mm;
+    text-align: left;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+
+  .print-summary-panel th {
+    color: #666666;
+    font-size: 5.8pt;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .print-summary-panel td strong {
+    color: #111111;
+  }
+
+  .print-summary-panel td small {
+    color: #666666;
+    font-size: 5.9pt;
+  }
+
+  .print-summary-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 4mm;
+    border-top: 1px solid #111111;
+    padding-top: 2mm;
+    margin-top: 1mm;
   }
 
   main.print-report > section {
     width: 100% !important;
     max-width: none !important;
-    margin: 0 0 8mm !important;
+    margin: 0 0 3.5mm !important;
     padding: 0 !important;
     border: 0 !important;
     background: #ffffff !important;
@@ -101,23 +351,24 @@ body {
     page-break-inside: auto;
   }
 
-  main.print-report > section:first-child {
-    break-before: avoid;
-    page-break-before: avoid;
+  /* O PDF é um resumo executivo; a base completa permanece disponível no Excel. */
+  main.print-report > section:nth-of-type(7),
+  main.print-report > section:nth-of-type(8) {
+    display: none !important;
   }
 
-  main.print-report > section:nth-of-type(1),
-  main.print-report > section:nth-of-type(2),
-  main.print-report > section:nth-of-type(3),
-  main.print-report > section:nth-of-type(4),
-  main.print-report > section:nth-of-type(5) {
-    break-inside: avoid;
-    page-break-inside: avoid;
+  main.print-report > section {
+    break-before: auto !important;
+    break-after: auto !important;
+    break-inside: auto !important;
+    page-break-before: auto !important;
+    page-break-after: auto !important;
+    page-break-inside: auto !important;
   }
 
-  main.print-report > section:nth-of-type(7) {
-    break-before: page;
-    page-break-before: always;
+  main.print-report > section:first-of-type {
+    break-before: avoid !important;
+    page-break-before: avoid !important;
   }
 
   main.print-report .border,
@@ -139,32 +390,43 @@ body {
   }
 
   main.print-report .grid {
-    gap: 4mm !important;
+    gap: 2.5mm !important;
   }
 
   main.print-report > section > div,
-  main.print-report > section > div > div {
-    break-inside: auto;
-    page-break-inside: auto;
+  main.print-report > section > div > div,
+  main.print-report > section > div > div > div {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
-  main.print-report > section:first-of-type > .grid:first-of-type {
+  main.print-report > section:nth-of-type(1) > .grid:first-of-type {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
 
-  main.print-report > section:first-of-type > .grid:nth-of-type(2) {
+  main.print-report > section:nth-of-type(1) > .grid:nth-of-type(2) {
     grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   }
 
-  main.print-report > section:nth-of-type(2) > .grid:first-of-type,
-  main.print-report > section:nth-of-type(3) > .grid:first-of-type,
-  main.print-report > section:nth-of-type(4) > .grid:first-of-type,
-  main.print-report > section:nth-of-type(5) > .grid:first-of-type,
-  main.print-report > section:nth-of-type(6) > .grid:first-of-type {
+  main.print-report > section:nth-of-type(2) > .grid:first-of-type {
+    grid-template-columns: 0.85fr 1.15fr 0.95fr !important;
+  }
+
+  main.print-report > section:nth-of-type(2) > .grid:nth-of-type(2) {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
-  main.print-report > section:first-of-type > .grid > *,
+  main.print-report > section:nth-of-type(3) > .grid:first-of-type {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+
+  main.print-report > section:nth-of-type(4) > div:first-of-type,
+  main.print-report > section:nth-of-type(5) > div:first-of-type,
+  main.print-report > section:nth-of-type(6) > div:first-of-type {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  main.print-report > section:nth-of-type(1) > .grid > *,
   main.print-report > section:nth-of-type(2) > .grid > *,
   main.print-report > section:nth-of-type(3) > .grid > *,
   main.print-report > section:nth-of-type(4) > .grid > *,
@@ -174,12 +436,69 @@ body {
     page-break-inside: avoid;
   }
 
+  /* No PDF executivo, o detalhamento operacional permanece na tela e no Excel. */
+  main.print-report > section:nth-of-type(2) > div:nth-of-type(3),
+  main.print-report > section:nth-of-type(3) > div:last-of-type {
+    display: none !important;
+  }
+
+  main.print-report > section:nth-of-type(3) > div:first-of-type > div:last-child {
+    display: none !important;
+  }
+
+  main.print-report > section:nth-of-type(4) tbody tr:nth-child(n+9) {
+    display: none !important;
+  }
+
+  main.print-report .p-6 {
+    padding: 3mm !important;
+  }
+
+  main.print-report .p-4 {
+    padding: 2mm !important;
+  }
+
+  main.print-report .p-3 {
+    padding: 1.4mm !important;
+  }
+
+  main.print-report .p-2 {
+    padding: 1mm !important;
+  }
+
+  main.print-report .space-y-12 > :not([hidden]) ~ :not([hidden]),
+  main.print-report .space-y-6 > :not([hidden]) ~ :not([hidden]),
+  main.print-report .space-y-5 > :not([hidden]) ~ :not([hidden]),
+  main.print-report .space-y-4 > :not([hidden]) ~ :not([hidden]),
+  main.print-report .space-y-3 > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 2mm !important;
+  }
+
+  main.print-report [class~="min-h-[220px]"] {
+    min-height: 0 !important;
+  }
+
+  main.print-report [class~="h-52"] {
+    min-height: 0 !important;
+    height: 30mm !important;
+  }
+
+  main.print-report [class~="h-32"] {
+    min-height: 0 !important;
+    height: 18mm !important;
+  }
+
+  main.print-report [class~="h-28"] {
+    min-height: 0 !important;
+    height: 14mm !important;
+  }
+
   main.print-report table {
     width: 100% !important;
     min-width: 0 !important;
     table-layout: fixed;
     border-collapse: collapse !important;
-    font-size: 7.5pt !important;
+    font-size: 6.6pt !important;
   }
 
   main.print-report thead {
@@ -193,7 +512,7 @@ body {
 
   main.print-report th,
   main.print-report td {
-    padding: 2.2mm 2.4mm !important;
+    padding: 1.25mm 1.4mm !important;
     overflow-wrap: anywhere;
     vertical-align: top;
   }
@@ -206,45 +525,51 @@ body {
     overflow-wrap: anywhere;
   }
 
-  main.print-report .text-6xl {
-    font-size: 30pt !important;
+  main.print-report h2 {
+    font-size: 8pt !important;
   }
 
-  main.print-report .text-2xl {
-    font-size: 16pt !important;
-  }
-
-  main.print-report .text-xl {
+  main.print-report h3 {
     font-size: 13pt !important;
   }
 
+  main.print-report h4 {
+    font-size: 10pt !important;
+  }
+
+  main.print-report .text-6xl {
+    font-size: 24pt !important;
+  }
+
+  main.print-report .text-3xl {
+    font-size: 16pt !important;
+  }
+
+  main.print-report .text-2xl {
+    font-size: 12pt !important;
+  }
+
+  main.print-report .text-xl {
+    font-size: 10pt !important;
+  }
+
   main.print-report .text-sm {
-    font-size: 8.5pt !important;
+    font-size: 7.2pt !important;
   }
 
   main.print-report .text-xs,
   main.print-report .text-\[10px\],
   main.print-report .text-\[9px\] {
-    font-size: 7.5pt !important;
+    font-size: 6.5pt !important;
   }
 
-  main.print-report .p-6 {
-    padding: 4mm !important;
+  /* Limitar listas extensas ao recorte executivo; o Excel preserva a base completa. */
+  main.print-report > section:nth-of-type(4) table tbody tr:nth-child(n+9) {
+    display: none !important;
   }
 
-  main.print-report .p-4 {
-    padding: 3mm !important;
-  }
-
-  main.print-report .p-3 {
-    padding: 2mm !important;
-  }
-
-  main.print-report .space-y-12 > :not([hidden]) ~ :not([hidden]),
-  main.print-report .space-y-6 > :not([hidden]) ~ :not([hidden]),
-  main.print-report .space-y-5 > :not([hidden]) ~ :not([hidden]),
-  main.print-report .space-y-4 > :not([hidden]) ~ :not([hidden]) {
-    margin-top: 4mm !important;
+  main.print-report > section:nth-of-type(6) .divide-y > div:nth-child(n+6) {
+    display: none !important;
   }
 
   main.print-report .overflow-x-auto {
@@ -252,3 +577,13 @@ body {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -283,6 +283,58 @@ export default function Home() {
       </div>
 
       <main className="print-report p-6 md:p-10 max-w-[1500px] mx-auto space-y-12">
+        <div className="print-only-report">
+          <div className="print-summary-header">
+            <div>
+              <p className="print-kicker">OPEN ORDER CONTROL / RELATÓRIO EXECUTIVO</p>
+              <h2>Controle de previsões e exposição operacional</h2>
+              <p className="print-summary-subtitle">Resumo para decisão baseado no último upload disponível e nos filtros aplicados.</p>
+            </div>
+            <div className="print-summary-meta">Base atualizada<br /><strong>{stats.latestUpload ? formatDateTime(stats.latestUpload.uploadDate) : "Sem upload"}</strong><br />Filial: <strong>{selectedShipTo || "Todas"}</strong></div>
+          </div>
+
+          <div className="print-kpi-grid">
+            <div className="print-kpi"><span>Itens ativos</span><strong>{stats.totalItems}</strong><small>{stats.stableItems} sem alteração acumulada</small></div>
+            <div className="print-kpi"><span>Estabilidade último ciclo</span><strong>{stabilityRate}%</strong><small>{stats.changedLastUpload} alterado(s) no último upload</small></div>
+            <div className="print-kpi"><span>Valor total dos pedidos</span><strong>{formatCurrency(stats.totalOrderValue)}</strong><small>{stats.highPriorityItems} item(ns) com prioridade alta</small></div>
+            <div className="print-kpi print-kpi-risk"><span>Índice de risco executivo</span><strong>{strategic.executiveRiskIndex}/100</strong><small>{strategic.riskLevel} · {formatCurrency(stats.valueAtRisk)} sob risco</small></div>
+          </div>
+
+          <div className="print-summary-grid">
+            <section className="print-summary-panel print-summary-panel-dark">
+              <p className="print-panel-kicker">CENTRO DE COMANDO</p>
+              <div className="print-risk-row"><strong>{strategic.executiveRiskIndex}</strong><span>/100 · {strategic.riskLevel}</span></div>
+              <div className="print-risk-track"><i style={{ width: `${Math.max(0, Math.min(100, strategic.executiveRiskIndex))}%` }} /></div>
+              <p className="print-panel-note">Foco recomendado: <strong>{strategic.focus}</strong>. {strategic.focusNote}</p>
+            </section>
+            <section className="print-summary-panel">
+              <p className="print-panel-kicker">SINAIS PARA DECISÃO</p>
+              <div className="print-signal-row"><span>Alterações no último ciclo</span><strong>{stats.changedLastUpload} · {strategic.changeRate}%</strong></div>
+              <div className="print-signal-row"><span>Previsões vencidas</span><strong>{stats.overdueItems} · {strategic.overdueRate}%</strong></div>
+              <div className="print-signal-row"><span>Itens sem fornecedor</span><strong>{stats.noSupplier} · {strategic.supplierRate}%</strong></div>
+              <div className="print-signal-row"><span>Alertas críticos / atenção</span><strong>{alertSummary.criticalCount} / {alertSummary.attentionCount}</strong></div>
+            </section>
+          </div>
+
+          <section className="print-summary-panel print-summary-panel-table">
+            <div className="print-section-heading"><div><p className="print-panel-kicker">PRESSÃO POR FILIAL</p><h3>Praças que concentram atenção</h3></div><span>{strategic.branches.length} filial(is) prioritária(s)</span></div>
+            <table><thead><tr><th>Filial</th><th>Itens</th><th>Alterados</th><th>Vencidos</th><th>Sem fornecedor</th><th>Valor sob risco</th><th>Pressão</th></tr></thead><tbody>{strategic.branches.length === 0 ? <tr><td colSpan={7}>Nenhuma filial encontrada nos filtros atuais.</td></tr> : strategic.branches.map((branch) => <tr key={`print-branch-${branch.shipTo}`}><td><strong>{branch.shipTo}</strong></td><td>{branch.totalItems}</td><td>{branch.changedItems}</td><td>{branch.overdueItems}</td><td>{branch.noSupplier}</td><td>{formatCurrency(branch.valueAtRisk)}</td><td><strong>{branch.pressureScore}</strong></td></tr>)}</tbody></table>
+          </section>
+
+          <div className="print-summary-grid">
+            <section className="print-summary-panel print-summary-panel-table">
+              <div className="print-section-heading"><div><p className="print-panel-kicker">FILA DE AÇÃO</p><h3>Prioridades imediatas</h3></div><span>{stats.actionQueue.length} item(ns)</span></div>
+              <table><thead><tr><th>Item / descrição</th><th>Previsão</th><th>Valor</th><th>Score</th></tr></thead><tbody>{stats.actionQueue.slice(0, 5).map((item) => <tr key={`print-action-${item.id}`}><td><strong>{item.item}</strong><br /><small>{item.itemDescription || "Sem descrição"}</small></td><td>{item.currentPrediction || "—"}</td><td>{formatCurrency(item.extendedPrice)}</td><td><strong>{item.riskScore}</strong></td></tr>)}</tbody></table>
+            </section>
+            <section className="print-summary-panel print-summary-panel-table">
+              <div className="print-section-heading"><div><p className="print-panel-kicker">INSTABILIDADE</p><h3>Itens com mais alterações</h3></div><span>{changedItems.length} item(ns)</span></div>
+              <table><thead><tr><th>Item / descrição</th><th>PO</th><th>Alterações</th></tr></thead><tbody>{changedItems.slice(0, 5).map((item) => <tr key={`print-change-${item.id}`}><td><strong>{item.item}</strong><br /><small>{item.itemDescription || "Sem descrição"}</small></td><td>{item.customerPo || "—"}</td><td><strong>{item.predictionChangesCount}x</strong></td></tr>)}</tbody></table>
+            </section>
+          </div>
+
+          <div className="print-summary-footer"><span>Relatório executivo gerado pelo Open Order Control</span><span>Detalhamento operacional disponível na tela e no Excel</span></div>
+        </div>
+        <div className="screen-dashboard">
         {activeTab === "delivered" ? (
           <section className="space-y-6">
             <div className="border-b border-zinc-900 pb-4 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
@@ -561,6 +613,7 @@ export default function Home() {
         <section className="space-y-4"><div className="border-b border-zinc-900 pb-2"><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">07 / Mapa de alterações</h2><h3 className="text-xl font-bold tracking-tight">Itens que tiveram a previsão modificada</h3></div><div className="border border-zinc-900 overflow-x-auto"><table className="w-full text-left border-collapse min-w-[900px]"><thead><tr className="border-b border-zinc-900 bg-zinc-950 text-white text-xs font-mono uppercase tracking-wider"><th className="p-4">Item / nome</th><th className="p-4">Customer PO</th><th className="p-4">De</th><th className="p-4">Para</th><th className="p-4">Data</th><th className="p-4 text-center">Ocorrências</th><th className="p-4">Ação</th></tr></thead><tbody className="divide-y divide-zinc-200 text-sm font-mono">{changedItems.length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-zinc-500">Nenhuma alteração para os filtros atuais.</td></tr> : changedItems.map((row) => <tr key={`change-${row.id}`} className="hover:bg-red-50"><td className="p-4"><p className="font-bold">{row.item}</p><p className="text-xs text-zinc-500 mt-1 max-w-[280px]">{row.itemDescription || "Sem descrição"}</p></td><td className="p-4">{row.customerPo || "—"}</td><td className="p-4 text-zinc-500">{row.previousPrediction || "—"}</td><td className="p-4 text-red-600 font-bold">{row.currentPrediction || "—"}</td><td className="p-4">{formatDate(row.lastPredictionChangeDate)}</td><td className="p-4 text-center"><span className="px-2 py-1 bg-red-100 text-red-700 font-bold">{row.predictionChangesCount}x</span></td><td className="p-4"><Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-none border-zinc-900 text-xs font-mono" onClick={() => setSelectedItemId(row.id)}>Linha do tempo</Button></DialogTrigger><ItemHistoryDialog detail={itemDetailQuery.data} isLoading={itemDetailQuery.isLoading} /></Dialog></td></tr>)}</tbody></table></div></section>
           </>
         )}
+        </div>
       </main>
       <footer className="border-t-2 border-zinc-950 mt-20 py-8 px-6 text-center text-xs font-mono uppercase tracking-widest text-zinc-500 bg-zinc-50">Open Order Control • Swiss Style Precision Architecture • 2026</footer>
     </div>
