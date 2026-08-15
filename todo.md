@@ -155,3 +155,5 @@
 - [x] Ajustar as classes CSS para ocultar/exibir seções conforme o modo de impressão selecionado
 - [x] Executar testes, checagem TypeScript, build e validar no preview
 - [x] Salvar checkpoint da nova versatilidade de exportação PDF
+
+- [x] Aprimorar a formatação CSS do PDF Completo (tabelas legíveis, quebras limpas e hierarquia visual) sem suprimir dados
