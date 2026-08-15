@@ -107,6 +107,10 @@ export function formatBrazilianPredictionDate(value: unknown) {
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("pt-BR");
 }
 
+export function filterOperationalItemsWithChanges(items: OperationalExportItem[]) {
+  return items.filter((item) => toNumber(item.predictionChangesCount) > 0);
+}
+
 export function buildOperationalExportRows(items: OperationalExportItem[], history: OperationalPredictionHistory[] = []) {
   const historyMap = historyByItemId(history);
   return items.map((row) => {
@@ -142,7 +146,7 @@ export function buildOperationalExportFileName(now = new Date()) {
 
 export function generateProfessionalOperationalWorkbook(
   items: OperationalExportItem[],
-  filterSummary?: { branch?: string; search?: string },
+  filterSummary?: { branch?: string; search?: string; scope?: string },
   history: OperationalPredictionHistory[] = [],
 ) {
   const workbook = XLSX.utils.book_new();
@@ -161,6 +165,7 @@ export function generateProfessionalOperationalWorkbook(
     ["Data de Geração:", new Date().toLocaleDateString("pt-BR"), ""],
     ["Filtrado por Filial:", filterSummary?.branch || "Todas as filiais", ""],
     ["Termo de Busca:", filterSummary?.search || "Nenhum", ""],
+    ["Escopo da Exportação:", filterSummary?.scope || "Todos os itens filtrados", ""],
     ["", "", ""],
     ["MÉTRICA CHAVE", "VALOR CONSOLIDADO", "OBSERVAÇÃO"],
     ["Total de Itens na Base", totalItems, "Itens ativos filtrados"],
@@ -178,7 +183,7 @@ export function generateProfessionalOperationalWorkbook(
   // 2. Aba de Base Operacional Detalhada
   const headerRows = [
     ["OPEN ORDER CONTROL — BASE OPERACIONAL DETALHADA DE PEDIDOS E PREVISÕES"],
-    [`Gerado em: ${new Date().toLocaleString("pt-BR")} | Total de registros: ${totalItems}`],
+    [`Gerado em: ${new Date().toLocaleString("pt-BR")} | Total de registros: ${totalItems} | ${filterSummary?.scope || "Todos os itens filtrados"}`],
     [],
     [
       "Filial solicitante",

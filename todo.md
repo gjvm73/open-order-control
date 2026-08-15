@@ -162,3 +162,4 @@
 - [x] Ajustar formatação da coluna "Previsão atual" (e anterior) para o padrão brasileiro de data na exportação Excel
 - [x] Inserir quebra de linha após "Fórmula:" no texto do Índice de Risco Executivo
 - [x] Incluir todas as datas e previsões de alteração no relatório exportado para o Excel
+- [x] Adicionar botão e lógica para exportar em Excel apenas os itens que sofreram alterações na previsão

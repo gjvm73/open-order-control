@@ -1,7 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { buildOperationalExportFileName, buildOperationalExportRows, generateProfessionalOperationalWorkbook } from "./orderExport";
+import { buildOperationalExportFileName, buildOperationalExportRows, filterOperationalItemsWithChanges, generateProfessionalOperationalWorkbook } from "./orderExport";
 
 describe("operational Excel export", () => {
+  it("selects only items with accumulated prediction changes", () => {
+    const selected = filterOperationalItemsWithChanges([
+      { id: 1, item: "ITEM-001", predictionChangesCount: 0 },
+      { id: 2, item: "ITEM-002", predictionChangesCount: 2 },
+      { id: 3, item: "ITEM-003", predictionChangesCount: "1" },
+    ]);
+
+    expect(selected.map((item) => item.item)).toEqual(["ITEM-002", "ITEM-003"]);
+  });
+
   it("maps the filtered operational items to complete spreadsheet rows", () => {
     const rows = buildOperationalExportRows([
       {

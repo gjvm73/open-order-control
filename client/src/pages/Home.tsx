@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import * as XLSX from "xlsx";
-import { buildOperationalExportFileName, buildOperationalExportRows, generateProfessionalOperationalWorkbook } from "@/lib/orderExport";
+import { buildOperationalExportFileName, buildOperationalExportRows, filterOperationalItemsWithChanges, generateProfessionalOperationalWorkbook } from "@/lib/orderExport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -165,21 +165,31 @@ export default function Home() {
     setPdfMode(mode);
   };
 
-  const handleExportOperationalBase = async () => {
-    if (items.length === 0) {
-      toast.info("Não há itens para exportar com os filtros atuais.");
+  const handleExportOperationalBase = async (onlyChanged = false) => {
+    const exportItems = onlyChanged
+      ? filterOperationalItemsWithChanges(items)
+      : items;
+
+    if (exportItems.length === 0) {
+      toast.info(onlyChanged
+        ? "Nenhum item com alteração de previsão foi encontrado nos filtros atuais."
+        : "Não há itens para exportar com os filtros atuais.");
       return;
     }
 
     try {
-      const history = await utils.orders.listPredictionHistory.fetch({ orderItemIds: operationalItemIds });
-      const workbook = generateProfessionalOperationalWorkbook(items, {
+      const exportItemIds = exportItems
+        .map((item) => item.id)
+        .filter((id): id is number => typeof id === "number");
+      const history = await utils.orders.listPredictionHistory.fetch({ orderItemIds: exportItemIds });
+      const workbook = generateProfessionalOperationalWorkbook(exportItems, {
         branch: selectedShipTo || "Todas as filiais",
         search: [search, filterItem, filterPo, filterPrediction].filter(Boolean).join(" | ") || undefined,
+        scope: onlyChanged ? "Somente itens com alteração de previsão" : "Todos os itens filtrados",
       }, history);
       XLSX.writeFile(workbook, buildOperationalExportFileName());
       const changeCount = history.filter((record) => record.changed).length;
-      toast.success(`${items.length} item(ns) exportado(s) com ${changeCount} data(s) de alteração e histórico completo.`);
+      toast.success(`${exportItems.length} item(ns) exportado(s) com ${changeCount} data(s) de alteração e histórico completo.`);
     } catch (error) {
       console.error("Falha ao carregar o histórico para exportação:", error);
       toast.error("Não foi possível carregar todas as datas de alteração para o Excel.");
@@ -256,10 +266,6 @@ export default function Home() {
     stabilityRate: 0, riskRate: 0, latestChangeRate: 0, latestStabilityRate: 0, trend: [], actionQueue: [], latestUpload: null,
   };
   const items = itemsQuery.data || [];
-  const operationalItemIds = React.useMemo(
-    () => items.map((item) => item.id).filter((id): id is number => typeof id === "number"),
-    [items],
-  );
   const uploadsList = uploadsQuery.data || [];
   const shipToOptions = shipToQuery.data || [];
   const branchSummary = branchSummaryQuery.data || [];
@@ -658,7 +664,7 @@ export default function Home() {
         </section>
 
         <section className="space-y-4">
-          <div className="border-b border-zinc-900 pb-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">06 / Base operacional</h2><h3 className="text-xl font-bold tracking-tight">Itens, previsões e respectivas alterações</h3><p className="text-xs font-mono text-zinc-500 mt-1">Use os filtros para investigar a fila de ação e abrir o histórico completo.</p></div><div className="w-full md:w-auto flex flex-col sm:flex-row gap-2"><Button type="button" variant="outline" onClick={handleExportOperationalBase} className="rounded-none border-zinc-900 text-xs font-mono uppercase h-10 whitespace-nowrap"><Download className="w-4 h-4 mr-2" />Exportar Excel</Button><div className="w-full sm:w-80 relative"><Search className="absolute left-3 top-3 w-4 h-4 text-zinc-400" /><Input placeholder="Busca geral..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 rounded-none border-zinc-900 font-mono text-xs bg-white" /></div></div></div>
+          <div className="border-b border-zinc-900 pb-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">06 / Base operacional</h2><h3 className="text-xl font-bold tracking-tight">Itens, previsões e respectivas alterações</h3><p className="text-xs font-mono text-zinc-500 mt-1">Use os filtros para investigar a fila de ação e abrir o histórico completo.</p></div><div className="w-full md:w-auto flex flex-col sm:flex-row gap-2"><Button type="button" variant="outline" onClick={() => void handleExportOperationalBase(false)} className="rounded-none border-zinc-900 text-xs font-mono uppercase h-10 whitespace-nowrap"><Download className="w-4 h-4 mr-2" />Exportar Excel</Button><Button type="button" variant="outline" onClick={() => void handleExportOperationalBase(true)} className="rounded-none border-red-600 text-red-600 text-xs font-mono uppercase h-10 whitespace-nowrap hover:bg-red-600 hover:text-white"><Download className="w-4 h-4 mr-2" />Exportar alterados</Button><div className="w-full sm:w-80 relative"><Search className="absolute left-3 top-3 w-4 h-4 text-zinc-400" /><Input placeholder="Busca geral..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 rounded-none border-zinc-900 font-mono text-xs bg-white" /></div></div></div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 p-4 border border-zinc-900 bg-zinc-50"><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Filial solicitante / Ship To</label><select value={selectedShipTo} onChange={(e) => { const value = e.target.value.trim(); if (value) setFilterShipTo(value); else clearShipToFilter(); }} className="h-10 w-full rounded-none border border-zinc-900 bg-white px-3 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-red-600"><option value="">Todas as filiais</option>{shipToOptions.map((shipTo) => <option key={shipTo} value={shipTo}>{shipTo}</option>)}</select><div className="flex items-center justify-between gap-2 mt-2 min-h-5">{selectedShipTo ? <span className="text-[10px] font-mono text-zinc-500 truncate" title={selectedShipTo}>Filtro ativo: {selectedShipTo}</span> : <span className="text-[10px] font-mono text-zinc-400">Nenhuma filial selecionada</span>}{selectedShipTo && <button type="button" onClick={clearShipToFilter} className="text-[10px] font-mono uppercase text-red-600 hover:underline shrink-0">Limpar</button>}</div></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Item</label><Input placeholder="Ex.: 0102-1543" value={filterItem} onChange={(e) => setFilterItem(e.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Customer PO</label><Input placeholder="Ex.: 133923E" value={filterPo} onChange={(e) => setFilterPo(e.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Previsão atual</label><Input placeholder="Ex.: 2025-06" value={filterPrediction} onChange={(e) => setFilterPrediction(e.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div></div>
           <div className="border border-zinc-900 bg-white overflow-x-auto"><table className="w-full text-left border-collapse min-w-[1420px]"><thead><tr className="border-b border-zinc-900 bg-zinc-50 text-xs font-mono uppercase tracking-wider"><th className="p-4 border-r border-zinc-900">Filial solicitante</th><th className="p-4 border-r border-zinc-900">Item / descrição</th><th className="p-4 border-r border-zinc-900">Customer PO</th><th className="p-4 border-r border-zinc-900">Previsão anterior</th><th className="p-4 border-r border-zinc-900">Previsão atual</th><th className="p-4 border-r border-zinc-900">Último upload</th><th className="p-4 border-r border-zinc-900">Resumo de alterações</th><th className="p-4 border-r border-zinc-900">Última alteração</th><th className="p-4 border-r border-zinc-900 text-center">Total alterações</th><th className="p-4 text-center">Detalhes</th></tr></thead><tbody className="divide-y divide-zinc-200 text-sm font-mono">{items.length === 0 ? <tr><td colSpan={10} className="p-12 text-center text-zinc-500">Nenhum item encontrado.</td></tr> : items.map((row) => <tr key={row.id} className="hover:bg-zinc-50 align-top"><td className="p-4 border-r border-zinc-200"><p className="font-bold text-xs truncate max-w-[220px]" title={row.shipTo || "Sem filial informada"}>{row.shipTo || "Sem filial informada"}</p></td><td className="p-4 border-r border-zinc-200"><p className="font-bold">{row.item}</p><p className="text-xs text-zinc-500 mt-1 max-w-[240px]">{row.itemDescription || "Sem descrição"}</p></td><td className="p-4 border-r border-zinc-200">{row.customerPo || "—"}</td><td className="p-4 border-r border-zinc-200 text-zinc-500">{row.previousPrediction || "Primeiro registro"}</td><td className="p-4 border-r border-zinc-200"><span className="font-bold text-red-600">{row.currentPrediction || "Sem previsão"}</span></td><td className="p-4 border-r border-zinc-200"><p>{formatDate(row.lastUploadDate)}</p><p className="text-[10px] text-zinc-500 mt-1 truncate max-w-[180px]" title={row.lastUploadFileName || "Sem arquivo"}>{row.lastUploadFileName || "Sem arquivo"}</p></td><td className="p-4 border-r border-zinc-200"><p className={`font-bold ${row.predictionChangesCount > 0 ? "text-red-600" : "text-zinc-500"}`}>{row.predictionChangesCount > 0 ? `${row.predictionChangesCount} alteração(ões) acumulada(s)` : "Sem alteração registrada"}</p><p className="text-[10px] text-zinc-500 mt-1">Anterior: {row.previousPrediction || "Primeiro registro"}</p></td><td className="p-4 border-r border-zinc-200"><p>{row.predictionChangesCount > 0 ? formatDate(row.lastPredictionChangeDate) : "Sem alteração"}</p><p className="text-[10px] text-zinc-500 mt-1">Registro: {formatDate(row.updatedAt)}</p></td><td className="p-4 border-r border-zinc-200 text-center"><span className={`inline-block px-3 py-1 text-xs font-bold border ${row.predictionChangesCount > 0 ? "bg-red-100 text-red-700 border-red-200" : "bg-zinc-100 text-zinc-700 border-zinc-200"}`}>{row.predictionChangesCount}x</span></td><td className="p-4 text-center"><Dialog><DialogTrigger asChild><Button variant="outline" size="sm" className="rounded-none border-zinc-900 text-xs font-mono h-8 hover:bg-zinc-950 hover:text-white" onClick={() => setSelectedItemId(row.id)}><History className="w-3.5 h-3.5 mr-1" /> Ver histórico</Button></DialogTrigger><ItemHistoryDialog detail={itemDetailQuery.data} isLoading={itemDetailQuery.isLoading} /></Dialog></td></tr>)}</tbody></table></div>
         </section>
