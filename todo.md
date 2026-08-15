@@ -136,7 +136,7 @@
 - [x] Escrever testes unitários e de integração para autenticação ADM e proteção das rotas sensíveis
 - [x] Validar build de produção e salvar checkpoint final
 
-- [ ] Melhorar margens, escala e paginação da exportação PDF do dashboard
-- [ ] Ajustar blocos e tabelas para evitar fragmentação entre páginas
-- [ ] Validar visualmente a impressão e executar testes/build
-- [ ] Salvar checkpoint da melhoria da exportação PDF
+- [x] Melhorar margens, escala e paginação da exportação PDF do dashboard
+- [x] Ajustar blocos e tabelas para evitar fragmentação entre páginas
+- [x] Validar visualmente a impressão e executar testes/build
+- [x] Salvar checkpoint da melhoria da exportação PDF
