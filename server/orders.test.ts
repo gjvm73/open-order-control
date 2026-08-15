@@ -38,18 +38,15 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(Array.isArray(trend)).toBe(true);
   });
 
-  it("allows resetImports without an authenticated user", async () => {
+  it("rejects resetImports without an authenticated admin", async () => {
     const ctx: TrpcContext = {
       user: null,
       req: { protocol: "https", headers: {} } as any,
       res: {} as any,
     };
     const caller = appRouter.createCaller(ctx);
-    await expect(caller.orders.resetImports()).resolves.toMatchObject({
-      deletedUploads: expect.any(Number),
-      deletedItems: expect.any(Number),
-      deletedHistory: expect.any(Number),
-    });
+    await expect(caller.orders.resetImports()).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(caller.orders.uploadExcel({ fileName: "forbidden.xlsx", fileBase64: "AA==" })).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("allows admin reset, executes real DB cleanup, and validates resulting empty dashboard and tables", async () => {
@@ -366,7 +363,17 @@ describe("Open Orders Backend & Upload Logic", () => {
     await db.resetImportedData();
 
     const ctx: TrpcContext = {
-      user: null,
+      user: {
+        id: 1,
+        openId: "shipto-trim-admin",
+        name: "Test Admin",
+        email: "admin@test.com",
+        loginMethod: "local",
+        role: "admin",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      },
       req: { protocol: "https", headers: {} } as any,
       res: {} as any,
     };
@@ -415,7 +422,17 @@ describe("Open Orders Backend & Upload Logic", () => {
   it("restores the full dataset after clearing a branch filter", async () => {
     await db.resetImportedData();
     const ctx: TrpcContext = {
-      user: null,
+      user: {
+        id: 1,
+        openId: "clear-filter-admin",
+        name: "Test Admin",
+        email: "admin@test.com",
+        loginMethod: "local",
+        role: "admin",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      },
       req: { protocol: "https", headers: {} } as any,
       res: {} as any,
     };

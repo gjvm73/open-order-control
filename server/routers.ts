@@ -8,6 +8,8 @@ import { sql } from "./db";
 import { z } from "zod";
 import * as XLSX from "xlsx";
 import { normalizeShipTo } from "./shipTo";
+import { authenticateLocalAdmin, clearAdminSession, setAdminSession } from "./adminAuth";
+import { TRPCError } from "@trpc/server";
 
 function normalizeComparisonPart(value: string) {
   return value.trim().toLocaleUpperCase("pt-BR");
@@ -120,12 +122,22 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
+    localLogin: publicProcedure.input(z.object({
+      username: z.string().trim().min(1).max(120),
+      password: z.string().min(1).max(200),
+    })).mutation(({ input, ctx }) => {
+      const admin = authenticateLocalAdmin(input.username, input.password);
+      if (!admin) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Usuário ou senha inválidos." });
+      }
+      setAdminSession(ctx.req, ctx.res, admin.username);
+      return admin;
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
-      return {
-        success: true,
-      } as const;
+      clearAdminSession(ctx.req, ctx.res);
+      return { success: true } as const;
     }),
   }),
 
@@ -214,11 +226,11 @@ export const appRouter = router({
       return await db.getAlertsTrend(input.thresholdDays, input.shipTo);
     }),
 
-    resetImports: publicProcedure.mutation(async () => {
+    resetImports: adminProcedure.mutation(async () => {
       return await db.resetImportedData();
     }),
 
-    uploadExcel: publicProcedure.input(z.object({
+    uploadExcel: adminProcedure.input(z.object({
       fileName: z.string(),
       fileBase64: z.string(),
     })).mutation(async ({ input, ctx }) => {

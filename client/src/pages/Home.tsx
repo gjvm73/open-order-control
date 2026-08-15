@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
+import * as XLSX from "xlsx";
+import { buildOperationalExportFileName, buildOperationalExportRows } from "@/lib/orderExport";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import {
-  Upload, Printer, TrendingUp, AlertTriangle, Package, History, Search, LogOut,
+  Upload, Printer, Download, TrendingUp, AlertTriangle, Package, History, Search, LogOut,
   ArrowRight, Minus, ShieldAlert, Clock3, CircleDollarSign, Target,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -45,6 +47,9 @@ export default function Home() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<"idle" | "reading" | "processing" | "refreshing">("idle");
   const [resetConfirmation, setResetConfirmation] = useState("");
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [adminUsername, setAdminUsername] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
   const [alertThresholdDays, setAlertThresholdDays] = useState(7);
   const [alertThresholdDraft, setAlertThresholdDraft] = useState("7");
   const [activeTab, setActiveTab] = useState<"active" | "delivered">("active");
@@ -84,6 +89,7 @@ export default function Home() {
   const alertsTrendQuery = trpc.orders.getAlertsTrend.useQuery(alertsInput);
   const itemDetailQuery = trpc.orders.getItemDetail.useQuery({ id: selectedItemId! }, { enabled: selectedItemId !== null });
   const resetMutation = trpc.orders.resetImports.useMutation();
+  const localLoginMutation = trpc.auth.localLogin.useMutation();
   const utils = trpc.useUtils();
   const clearShipToFilter = React.useCallback(() => {
     setFilterShipTo("");
@@ -114,6 +120,36 @@ export default function Home() {
       window.print();
       window.setTimeout(() => { document.title = previousTitle; }, 250);
     }, 0);
+  };
+
+  const handleExportOperationalBase = () => {
+    if (items.length === 0) {
+      toast.info("Não há itens para exportar com os filtros atuais.");
+      return;
+    }
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(buildOperationalExportRows(items));
+    worksheet["!cols"] = [
+      { wch: 28 }, { wch: 18 }, { wch: 36 }, { wch: 18 }, { wch: 20 }, { wch: 16 },
+      { wch: 12 }, { wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 18 },
+      { wch: 16 }, { wch: 32 }, { wch: 18 }, { wch: 22 }, { wch: 48 },
+    ];
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Base operacional");
+    XLSX.writeFile(workbook, buildOperationalExportFileName());
+    toast.success(`${items.length} item(ns) exportado(s) conforme os filtros atuais.`);
+  };
+
+  const handleAdminLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    try {
+      await localLoginMutation.mutateAsync({ username: adminUsername, password: adminPassword });
+      await utils.auth.me.invalidate();
+      setAdminPassword("");
+      setLoginOpen(false);
+      toast.success("Acesso ADM autorizado.");
+    } catch (err: any) {
+      toast.error(err.message || "Não foi possível autenticar o administrador.");
+    }
   };
 
   const handleResetImports = async () => {
@@ -229,9 +265,12 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-4">
           <Button variant="outline" onClick={handleExportPdf} className="no-print rounded-none border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto" aria-label="Exportar dashboard em PDF"><Printer className="w-4 h-4 mr-2" />Exportar PDF</Button>
-          <label className="cursor-pointer bg-zinc-950 hover:bg-zinc-800 text-white px-5 py-2.5 text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all"><Upload className="w-4 h-4" />{uploadStatusLabel}<input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleFileUpload} disabled={isUploading} /></label>
-          <AlertDialog onOpenChange={(open) => { if (!open) setResetConfirmation(""); }}><AlertDialogTrigger asChild><Button variant="outline" className="rounded-none border-red-600 text-red-600 hover:bg-red-600 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto"><ShieldAlert className="w-4 h-4 mr-2" />Resetar importações</Button></AlertDialogTrigger><AlertDialogContent className="rounded-none border-2 border-red-600 bg-white"><AlertDialogHeader><AlertDialogTitle className="font-black uppercase tracking-tight text-red-700">Resetar todas as importações?</AlertDialogTitle><AlertDialogDescription className="font-mono text-xs leading-6 text-zinc-700">Esta ação excluirá permanentemente todos os uploads, itens cadastrados e o histórico de previsões da base de consulta. Não é possível desfazer esta operação.</AlertDialogDescription></AlertDialogHeader><div className="space-y-2"><label className="text-xs font-mono uppercase tracking-wider text-zinc-600">Digite RESETAR para confirmar</label><Input value={resetConfirmation} onChange={(event) => setResetConfirmation(event.target.value.toUpperCase())} placeholder="RESETAR" className="rounded-none border-zinc-900 font-mono" autoFocus /></div><AlertDialogFooter><AlertDialogCancel className="rounded-none border-zinc-900 font-mono text-xs uppercase">Cancelar</AlertDialogCancel><AlertDialogAction className="rounded-none bg-red-600 hover:bg-red-700 font-mono text-xs uppercase" disabled={resetConfirmation !== "RESETAR" || resetMutation.isPending} onClick={(event) => { event.preventDefault(); void handleResetImports(); }}>{resetMutation.isPending ? "Limpando..." : "Confirmar reset"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
-          {isAuthenticated ? <div className="flex items-center gap-3 border border-zinc-900 px-3 py-1.5 bg-zinc-50"><span className="text-xs font-mono">{user?.name || user?.email}</span><Button variant="ghost" size="sm" onClick={() => logout()} className="h-7 px-2 text-red-600 hover:bg-red-50"><LogOut className="w-3.5 h-3.5" /></Button></div> : <Button variant="outline" size="sm" className="border-zinc-900 text-xs font-mono uppercase rounded-none" onClick={() => (window.location.href = "/api/oauth/login")}>Entrar</Button>}
+          {isAdmin && <>
+            <label className="cursor-pointer bg-zinc-950 hover:bg-zinc-800 text-white px-5 py-2.5 text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all"><Upload className="w-4 h-4" />{uploadStatusLabel}<input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleFileUpload} disabled={isUploading} /></label>
+            <AlertDialog onOpenChange={(open) => { if (!open) setResetConfirmation(""); }}><AlertDialogTrigger asChild><Button variant="outline" className="rounded-none border-red-600 text-red-600 hover:bg-red-600 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto"><ShieldAlert className="w-4 h-4 mr-2" />Resetar importações</Button></AlertDialogTrigger><AlertDialogContent className="rounded-none border-2 border-red-600 bg-white"><AlertDialogHeader><AlertDialogTitle className="font-black uppercase tracking-tight text-red-700">Resetar todas as importações?</AlertDialogTitle><AlertDialogDescription className="font-mono text-xs leading-6 text-zinc-700">Esta ação excluirá permanentemente todos os uploads, itens cadastrados e o histórico de previsões da base de consulta. Não é possível desfazer esta operação.</AlertDialogDescription></AlertDialogHeader><div className="space-y-2"><label className="text-xs font-mono uppercase tracking-wider text-zinc-600">Digite RESETAR para confirmar</label><Input value={resetConfirmation} onChange={(event) => setResetConfirmation(event.target.value.toUpperCase())} placeholder="RESETAR" className="rounded-none border-zinc-900 font-mono" autoFocus /></div><AlertDialogFooter><AlertDialogCancel className="rounded-none border-zinc-900 font-mono text-xs uppercase">Cancelar</AlertDialogCancel><AlertDialogAction className="rounded-none bg-red-600 hover:bg-red-700 font-mono text-xs uppercase" disabled={resetConfirmation !== "RESETAR" || resetMutation.isPending} onClick={(event) => { event.preventDefault(); void handleResetImports(); }}>{resetMutation.isPending ? "Limpando..." : "Confirmar reset"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+          </>}
+          {isAdmin ? <div className="flex items-center gap-3 border border-zinc-900 px-3 py-1.5 bg-zinc-50"><span className="text-xs font-mono"><strong>ADM</strong> · {user?.name || "giovani.martino"}</span><Button variant="ghost" size="sm" onClick={() => logout()} className="h-7 px-2 text-red-600 hover:bg-red-50"><LogOut className="w-3.5 h-3.5" /></Button></div> : <Dialog open={loginOpen} onOpenChange={setLoginOpen}><DialogTrigger asChild><Button variant="outline" size="sm" className="border-zinc-900 text-xs font-mono uppercase rounded-none">Entrar</Button></DialogTrigger><DialogContent className="rounded-none border-2 border-zinc-900 bg-white"><DialogHeader><DialogTitle className="font-black uppercase tracking-tight">Acesso administrativo</DialogTitle></DialogHeader><form onSubmit={handleAdminLogin} className="space-y-4"><div><label className="text-xs font-mono uppercase tracking-wider text-zinc-600">Usuário</label><Input value={adminUsername} onChange={(event) => setAdminUsername(event.target.value)} autoComplete="username" className="rounded-none border-zinc-900 font-mono mt-1" /></div><div><label className="text-xs font-mono uppercase tracking-wider text-zinc-600">Senha</label><Input value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} type="password" autoComplete="current-password" className="rounded-none border-zinc-900 font-mono mt-1" /></div><Button type="submit" disabled={localLoginMutation.isPending} className="w-full rounded-none bg-zinc-950 hover:bg-zinc-800 font-mono uppercase text-xs">{localLoginMutation.isPending ? "Validando..." : "Entrar como ADM"}</Button></form></DialogContent></Dialog>}
+
         </div>
       </header>
 
