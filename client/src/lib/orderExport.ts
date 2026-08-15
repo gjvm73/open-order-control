@@ -31,6 +31,27 @@ function toNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+export function formatBrazilianPredictionDate(value: unknown) {
+  if (!value) return "";
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    const isoDateOnly = /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})(?:$|T)/.exec(trimmed);
+    if (isoDateOnly) {
+      const [, year, month, day] = isoDateOnly;
+      return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
+    }
+
+    const brazilianDate = /^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/.exec(trimmed);
+    if (brazilianDate) {
+      const [, day, month, year] = brazilianDate;
+      return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year}`;
+    }
+  }
+
+  const date = new Date(value as string | number | Date);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("pt-BR");
+}
+
 export function buildOperationalExportRows(items: OperationalExportItem[]) {
   return items.map((row) => ({
     "Filial solicitante": row.shipTo || "Sem filial informada",
@@ -43,8 +64,8 @@ export function buildOperationalExportRows(items: OperationalExportItem[]) {
     "Scheduled Reserved": toNumber(row.scheduledReserved),
     "Preço unitário": toNumber(row.unitSellingPrice),
     "Valor estendido": toNumber(row.extendedPrice),
-    "Previsão anterior": row.previousPrediction || "",
-    "Previsão atual": row.currentPrediction || "",
+    "Previsão anterior": formatBrazilianPredictionDate(row.previousPrediction),
+    "Previsão atual": formatBrazilianPredictionDate(row.currentPrediction),
     "Último upload": formatDate(row.lastUploadDate),
     "Arquivo do último upload": row.lastUploadFileName || "",
     "Total de alterações": row.predictionChangesCount ?? 0,
@@ -123,8 +144,8 @@ export function generateProfessionalOperationalWorkbook(items: OperationalExport
     toNumber(row.scheduledReserved),
     toNumber(row.unitSellingPrice),
     toNumber(row.extendedPrice),
-    row.previousPrediction || "",
-    row.currentPrediction || "",
+    formatBrazilianPredictionDate(row.previousPrediction),
+    formatBrazilianPredictionDate(row.currentPrediction),
     formatDate(row.lastUploadDate),
     row.lastUploadFileName || "",
     toNumber(row.predictionChangesCount),

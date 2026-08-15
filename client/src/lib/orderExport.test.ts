@@ -33,12 +33,22 @@ describe("operational Excel export", () => {
       "Customer PO": "PO-001",
       "Quantidade": 3,
       "Valor estendido": 376.5,
-      "Previsão anterior": "2026-08-10",
-      "Previsão atual": "2026-08-20",
+      "Previsão anterior": "10/08/2026",
+      "Previsão atual": "20/08/2026",
       "Total de alterações": 2,
     });
     expect(rows[0]?.["Data de criação"]).toBe("01/08/2026");
     expect(rows[0]?.["Último upload"]).toBe("14/08/2026");
+    expect(rows[0]?.["Previsão anterior"]).toBe("10/08/2026");
+    expect(rows[0]?.["Previsão atual"]).toBe("20/08/2026");
+  });
+
+  it("formats prediction dates in Brazilian format", async () => {
+    const { formatBrazilianPredictionDate } = await import("./orderExport");
+    expect(formatBrazilianPredictionDate("2026-08-20")).toBe("20/08/2026");
+    expect(formatBrazilianPredictionDate("20/08/2026")).toBe("20/08/2026");
+    expect(formatBrazilianPredictionDate("sem fornecedor")).toBe("sem fornecedor");
+    expect(formatBrazilianPredictionDate(null)).toBe("");
   });
 
   it("uses a deterministic date-based filename", () => {

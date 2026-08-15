@@ -159,3 +159,4 @@
 - [x] Aprimorar a formatação CSS do PDF Completo (tabelas legíveis, quebras limpas e hierarquia visual) sem suprimir dados
 
 - [x] Exibir a fórmula de cálculo do Índice de Risco Executivo ao lado da descrição no dashboard estratégico
+- [x] Ajustar formatação da coluna "Previsão atual" (e anterior) para o padrão brasileiro de data na exportação Excel
