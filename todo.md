@@ -118,9 +118,9 @@
 - [x] Validar no preview, executar testes e build
 - [x] Salvar checkpoint da correção do filtro por filial
 
-- [ ] Modelar campo de status (ativo vs entregue) na tabela de itens ou controlar via flag/data de entrega
-- [ ] Atualizar o uploadExcel para marcar como entregues os itens que estavam ativos mas não vieram no novo upload
-- [ ] Criar procedimento tRPC para listar itens entregues com filtros e histórico
-- [ ] Adicionar aba/menu "Itens Entregues" no Dashboard com tabela completa, informações detalhadas e histórico
-- [ ] Adicionar testes de integração para o ciclo de entrega e validação de build
-- [ ] Salvar checkpoint final da nova funcionalidade de itens entregues
+- [x] Modelar campo de status (ativo vs entregue) na tabela de itens ou controlar via flag/data de entrega
+- [x] Atualizar o uploadExcel para marcar como entregues os itens que estavam ativos mas não vieram no novo upload
+- [x] Criar procedimento tRPC para listar itens entregues com filtros e histórico
+- [x] Adicionar aba/menu "Itens Entregues" no Dashboard com tabela completa, informações detalhadas e histórico
+- [x] Adicionar teste de integração para o ciclo de entrega e validação de build
+- [x] Salvar checkpoint final da nova funcionalidade de itens entregues
