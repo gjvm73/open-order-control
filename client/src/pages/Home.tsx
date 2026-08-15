@@ -58,6 +58,7 @@ export default function Home() {
   const [deliveredItemFilter, setDeliveredItemFilter] = useState("");
   const [deliveredPoFilter, setDeliveredPoFilter] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [pdfMode, setPdfMode] = useState<"executive" | "detailed" | null>(null);
 
   const deliveredInput = React.useMemo(() => ({
     search: deliveredSearch,
@@ -132,13 +133,36 @@ export default function Home() {
     toast.success(`Alertas configurados acima de ${parsed} dias.`);
   };
 
-  const handleExportPdf = () => {
+  React.useEffect(() => {
+    if (!pdfMode) return;
+
     const previousTitle = document.title;
-    document.title = "Open Order Control - Dashboard Gerencial";
-    window.setTimeout(() => {
+    const previousTab = activeTab;
+    document.body.dataset.pdfMode = pdfMode;
+    document.title = pdfMode === "detailed"
+      ? "Open Order Control - Relatório Detalhado"
+      : "Open Order Control - Relatório Executivo";
+
+    // O relatório completo deve sempre incluir o dashboard gerencial, mesmo que a aba de entregues esteja aberta.
+    if (pdfMode === "detailed" && activeTab !== "active") {
+      setActiveTab("active");
+    }
+
+    const printTimer = window.setTimeout(() => {
       window.print();
-      window.setTimeout(() => { document.title = previousTitle; }, 250);
-    }, 0);
+      window.setTimeout(() => {
+        document.title = previousTitle;
+        delete document.body.dataset.pdfMode;
+        setPdfMode(null);
+        setActiveTab(previousTab);
+      }, 350);
+    }, 80);
+
+    return () => window.clearTimeout(printTimer);
+  }, [pdfMode]);
+
+  const handleExportPdf = (mode: "executive" | "detailed" = "executive") => {
+    setPdfMode(mode);
   };
 
   const handleExportOperationalBase = () => {
@@ -284,7 +308,8 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outline" onClick={toggleDarkMode} className="no-print rounded-none border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white px-3 py-2.5 text-xs font-mono uppercase tracking-wider h-auto" aria-label={isDarkMode ? "Ativar modo claro" : "Ativar modo noturno"} aria-pressed={isDarkMode}><span className="inline-flex items-center gap-2">{isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}<span className="hidden sm:inline">{isDarkMode ? "Modo claro" : "Modo noturno"}</span></span></Button>
-          <Button variant="outline" onClick={handleExportPdf} className="no-print rounded-none border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto" aria-label="Exportar dashboard em PDF"><Printer className="w-4 h-4 mr-2" />Exportar PDF</Button>
+          <Button variant="outline" onClick={() => handleExportPdf("executive")} className="no-print rounded-none border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto" aria-label="Exportar relatório executivo em PDF"><Printer className="w-4 h-4 mr-2" />PDF executivo</Button>
+          <Button variant="outline" onClick={() => handleExportPdf("detailed")} className="no-print rounded-none border-red-600 text-red-600 hover:bg-red-600 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto" aria-label="Exportar relatório detalhado completo em PDF"><Download className="w-4 h-4 mr-2" />PDF completo</Button>
           {isAdmin && <>
             <label className="cursor-pointer bg-zinc-950 hover:bg-zinc-800 text-white px-5 py-2.5 text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all"><Upload className="w-4 h-4" />{uploadStatusLabel}<input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleFileUpload} disabled={isUploading} /></label>
             <AlertDialog onOpenChange={(open) => { if (!open) setResetConfirmation(""); }}><AlertDialogTrigger asChild><Button variant="outline" className="rounded-none border-red-600 text-red-600 hover:bg-red-600 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto"><ShieldAlert className="w-4 h-4 mr-2" />Resetar importações</Button></AlertDialogTrigger><AlertDialogContent className="rounded-none border-2 border-red-600 bg-white"><AlertDialogHeader><AlertDialogTitle className="font-black uppercase tracking-tight text-red-700">Resetar todas as importações?</AlertDialogTitle><AlertDialogDescription className="font-mono text-xs leading-6 text-zinc-700">Esta ação excluirá permanentemente todos os uploads, itens cadastrados e o histórico de previsões da base de consulta. Não é possível desfazer esta operação.</AlertDialogDescription></AlertDialogHeader><div className="space-y-2"><label className="text-xs font-mono uppercase tracking-wider text-zinc-600">Digite RESETAR para confirmar</label><Input value={resetConfirmation} onChange={(event) => setResetConfirmation(event.target.value.toUpperCase())} placeholder="RESETAR" className="rounded-none border-zinc-900 font-mono" autoFocus /></div><AlertDialogFooter><AlertDialogCancel className="rounded-none border-zinc-900 font-mono text-xs uppercase">Cancelar</AlertDialogCancel><AlertDialogAction className="rounded-none bg-red-600 hover:bg-red-700 font-mono text-xs uppercase" disabled={resetConfirmation !== "RESETAR" || resetMutation.isPending} onClick={(event) => { event.preventDefault(); void handleResetImports(); }}>{resetMutation.isPending ? "Limpando..." : "Confirmar reset"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>

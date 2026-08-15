@@ -150,3 +150,8 @@
 
 - [x] Validar no preview o modo noturno ativado e garantir que diálogos, portales e modais herdem corretamente o tema escuro
 - [x] Salvar checkpoint da funcionalidade de modo noturno completa
+
+- [x] Implementar duas opções de exportação PDF: Relatório Executivo Compacto e Relatório Detalhado Completo com todas as tabelas, gráficos, alertas e bases operacionais
+- [x] Ajustar as classes CSS para ocultar/exibir seções conforme o modo de impressão selecionado
+- [x] Executar testes, checagem TypeScript, build e validar no preview
+- [x] Salvar checkpoint da nova versatilidade de exportação PDF

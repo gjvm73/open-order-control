@@ -676,6 +676,72 @@ body {
   main.print-report .overflow-x-auto {
     overflow: visible !important;
   }
+
+  /* O modo completo restaura o dashboard inteiro, sem os cortes do resumo executivo. */
+  body[data-pdf-mode="detailed"] main.print-report > .print-only-report {
+    display: none !important;
+  }
+
+  body[data-pdf-mode="detailed"] main.print-report > .screen-dashboard {
+    display: block !important;
+    width: 100% !important;
+    color: #111111 !important;
+  }
+
+  body[data-pdf-mode="detailed"] main.print-report > .screen-dashboard > section {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 0 8mm !important;
+    padding: 0 !important;
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  body[data-pdf-mode="detailed"] main.print-report > .screen-dashboard > section > div {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+
+  body[data-pdf-mode="detailed"] main.print-report > .screen-dashboard .no-print {
+    display: none !important;
+  }
+
+  body[data-pdf-mode="detailed"] main.print-report {
+    font-size: 8.2pt !important;
+  }
+
+  body[data-pdf-mode="detailed"] main.print-report .text-xs {
+    font-size: 7.2pt !important;
+  }
+
+  body[data-pdf-mode="detailed"] main.print-report .text-\[10px\] {
+    font-size: 7pt !important;
+  }
+
+  body[data-pdf-mode="detailed"] main.print-report .text-\[9px\] {
+    font-size: 6.8pt !important;
+  }
+
+  body[data-pdf-mode="detailed"] main.print-report [class~="h-52"] {
+    height: 48mm !important;
+  }
+
+  body[data-pdf-mode="detailed"] main.print-report [class~="h-32"] {
+    height: 28mm !important;
+  }
+
+  body[data-pdf-mode="detailed"] main.print-report [class~="h-28"] {
+    height: 24mm !important;
+  }
+
+  body[data-pdf-mode="detailed"] main.print-report table {
+    font-size: 7.2pt !important;
+  }
+
+  body[data-pdf-mode="detailed"] main.print-report th,
+  body[data-pdf-mode="detailed"] main.print-report td {
+    padding: 1.8mm 1.6mm !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
