@@ -472,7 +472,7 @@ export default function Home() {
             <div>
               <h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">01A / Centro de comando estratégico</h2>
               <h3 className="text-xl font-black tracking-tight mt-1">O que merece decisão nesta semana</h3>
-              <p className="text-xs font-mono text-zinc-500 mt-1">Índice composto por instabilidade, vencimento, disponibilidade de fornecedor, prioridade e exposição financeira.</p>
+              <p className="text-xs font-mono text-zinc-500 mt-1 leading-5">Índice composto por instabilidade, vencimento, disponibilidade de fornecedor, prioridade e exposição financeira. <span className="text-zinc-700 dark-mode:text-zinc-300">Fórmula: min(100, 35% × instabilidade + 25% × vencimento + 20% × sem fornecedor + 10% × prioridade + 10% × exposição financeira).</span></p>
             </div>
             <Badge className={`rounded-none font-mono ${strategic.riskLevel === "CRÍTICO" ? "bg-red-600 text-white" : strategic.riskLevel === "ATENÇÃO" ? "bg-amber-500 text-zinc-950" : "bg-zinc-950 text-white"}`}>{strategic.riskLevel} · {strategic.executiveRiskIndex}/100</Badge>
           </div>

@@ -157,3 +157,5 @@
 - [x] Salvar checkpoint da nova versatilidade de exportação PDF
 
 - [x] Aprimorar a formatação CSS do PDF Completo (tabelas legíveis, quebras limpas e hierarquia visual) sem suprimir dados
+
+- [ ] Exibir a fórmula de cálculo do Índice de Risco Executivo ao lado da descrição no dashboard estratégico
