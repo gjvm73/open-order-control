@@ -165,17 +165,25 @@ export default function Home() {
     setPdfMode(mode);
   };
 
-  const handleExportOperationalBase = () => {
+  const handleExportOperationalBase = async () => {
     if (items.length === 0) {
       toast.info("Não há itens para exportar com os filtros atuais.");
       return;
     }
-    const workbook = generateProfessionalOperationalWorkbook(items, {
-      branch: selectedShipTo || "Todas as filiais",
-      search: [search, filterItem, filterPo, filterPrediction].filter(Boolean).join(" | ") || undefined,
-    });
-    XLSX.writeFile(workbook, buildOperationalExportFileName());
-    toast.success(`${items.length} item(ns) exportado(s) com Resumo Executivo e Base Operacional formatados.`);
+
+    try {
+      const history = await utils.orders.listPredictionHistory.fetch({ orderItemIds: operationalItemIds });
+      const workbook = generateProfessionalOperationalWorkbook(items, {
+        branch: selectedShipTo || "Todas as filiais",
+        search: [search, filterItem, filterPo, filterPrediction].filter(Boolean).join(" | ") || undefined,
+      }, history);
+      XLSX.writeFile(workbook, buildOperationalExportFileName());
+      const changeCount = history.filter((record) => record.changed).length;
+      toast.success(`${items.length} item(ns) exportado(s) com ${changeCount} data(s) de alteração e histórico completo.`);
+    } catch (error) {
+      console.error("Falha ao carregar o histórico para exportação:", error);
+      toast.error("Não foi possível carregar todas as datas de alteração para o Excel.");
+    }
   };
 
   const handleAdminLogin = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -248,6 +256,10 @@ export default function Home() {
     stabilityRate: 0, riskRate: 0, latestChangeRate: 0, latestStabilityRate: 0, trend: [], actionQueue: [], latestUpload: null,
   };
   const items = itemsQuery.data || [];
+  const operationalItemIds = React.useMemo(
+    () => items.map((item) => item.id).filter((id): id is number => typeof id === "number"),
+    [items],
+  );
   const uploadsList = uploadsQuery.data || [];
   const shipToOptions = shipToQuery.data || [];
   const branchSummary = branchSummaryQuery.data || [];

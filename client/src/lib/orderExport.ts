@@ -1,6 +1,22 @@
 import * as XLSX from "xlsx";
 
+export type OperationalPredictionHistory = {
+  id?: number;
+  orderItemId: number;
+  uploadId?: number;
+  item?: string | null;
+  customerPo?: string | null;
+  prediction?: string | null;
+  previousPrediction?: string | null;
+  changed?: boolean;
+  differenceDays?: number | null;
+  uploadDate?: string | Date | null;
+  recordedAt?: string | Date | null;
+  fileName?: string | null;
+};
+
 export type OperationalExportItem = {
+  id?: number;
   shipTo?: string | null;
   item?: string | null;
   itemDescription?: string | null;
@@ -31,6 +47,45 @@ function toNumber(value: unknown) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function historyByItemId(history: OperationalPredictionHistory[]) {
+  const grouped = new Map<number, OperationalPredictionHistory[]>();
+  for (const record of history) {
+    const records = grouped.get(record.orderItemId) || [];
+    records.push(record);
+    grouped.set(record.orderItemId, records);
+  }
+  return grouped;
+}
+
+function getChangeRecords(history: OperationalPredictionHistory[]) {
+  return history.filter((record) => record.changed === true);
+}
+
+function formatChangeDate(record: OperationalPredictionHistory) {
+  return formatDate(record.uploadDate ?? record.recordedAt);
+}
+
+function formatChangeDates(history: OperationalPredictionHistory[]) {
+  return getChangeRecords(history)
+    .map(formatChangeDate)
+    .filter(Boolean)
+    .join("; ");
+}
+
+function formatChangeTimeline(history: OperationalPredictionHistory[]) {
+  return getChangeRecords(history)
+    .map((record) => {
+      const date = formatChangeDate(record);
+      const previous = formatBrazilianPredictionDate(record.previousPrediction);
+      const current = formatBrazilianPredictionDate(record.prediction);
+      const difference = record.differenceDays === null || record.differenceDays === undefined
+        ? ""
+        : ` (${record.differenceDays > 0 ? "+" : ""}${record.differenceDays} dias)`;
+      return `${date}: ${previous || "—"} → ${current || "—"}${difference}`;
+    })
+    .join(" | ");
+}
+
 export function formatBrazilianPredictionDate(value: unknown) {
   if (!value) return "";
   if (typeof value === "string") {
@@ -52,8 +107,11 @@ export function formatBrazilianPredictionDate(value: unknown) {
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleDateString("pt-BR");
 }
 
-export function buildOperationalExportRows(items: OperationalExportItem[]) {
-  return items.map((row) => ({
+export function buildOperationalExportRows(items: OperationalExportItem[], history: OperationalPredictionHistory[] = []) {
+  const historyMap = historyByItemId(history);
+  return items.map((row) => {
+    const itemHistory = row.id ? historyMap.get(row.id) || [] : [];
+    return {
     "Filial solicitante": row.shipTo || "Sem filial informada",
     "Item": row.item || "",
     "Descrição do item": row.itemDescription || "",
@@ -70,8 +128,11 @@ export function buildOperationalExportRows(items: OperationalExportItem[]) {
     "Arquivo do último upload": row.lastUploadFileName || "",
     "Total de alterações": row.predictionChangesCount ?? 0,
     "Data da última alteração": formatDate(row.lastPredictionChangeDate),
+    "Todas as datas de alteração": formatChangeDates(itemHistory),
+    "Histórico das previsões": formatChangeTimeline(itemHistory),
     "Observações": row.longText || "",
-  }));
+    };
+  });
 }
 
 export function buildOperationalExportFileName(now = new Date()) {
@@ -79,8 +140,14 @@ export function buildOperationalExportFileName(now = new Date()) {
   return `open-order-base-operacional-${stamp}.xlsx`;
 }
 
-export function generateProfessionalOperationalWorkbook(items: OperationalExportItem[], filterSummary?: { branch?: string; search?: string }) {
+export function generateProfessionalOperationalWorkbook(
+  items: OperationalExportItem[],
+  filterSummary?: { branch?: string; search?: string },
+  history: OperationalPredictionHistory[] = [],
+) {
   const workbook = XLSX.utils.book_new();
+  const historyMap = historyByItemId(history);
+  const changeHistory = getChangeRecords(history);
 
   // 1. Aba de Resumo Executivo
   const totalItems = items.length;
@@ -101,6 +168,7 @@ export function generateProfessionalOperationalWorkbook(items: OperationalExport
     ["Valor Total da Carteira", totalExtendedPrice, "Soma dos preços estendidos (R$)"],
     ["Itens com Alteração de Prazo", itemsWithChanges, `Representa ${totalItems ? ((itemsWithChanges / totalItems) * 100).toFixed(1) : 0}% da base filtrada`],
     ["Total Acumulado de Modificações", totalChanges, "Soma de alterações de previsão registradas"],
+    ["Datas de Alteração Exportadas", changeHistory.length, "Uma linha por alteração na aba Histórico de Alterações"],
   ];
 
   const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
@@ -129,11 +197,15 @@ export function generateProfessionalOperationalWorkbook(items: OperationalExport
       "Arquivo do último upload",
       "Total de alterações",
       "Data da última alteração",
+      "Todas as datas de alteração",
+      "Histórico das previsões",
       "Observações",
     ],
   ];
 
-  const dataRows = items.map((row) => [
+  const dataRows = items.map((row) => {
+    const itemHistory = row.id ? historyMap.get(row.id) || [] : [];
+    return [
     row.shipTo || "Sem filial informada",
     row.item || "",
     row.itemDescription || "",
@@ -150,14 +222,17 @@ export function generateProfessionalOperationalWorkbook(items: OperationalExport
     row.lastUploadFileName || "",
     toNumber(row.predictionChangesCount),
     formatDate(row.lastPredictionChangeDate),
+    formatChangeDates(itemHistory),
+    formatChangeTimeline(itemHistory),
     row.longText || "",
-  ]);
+    ];
+  });
 
   const operationalWs = XLSX.utils.aoa_to_sheet([...headerRows, ...dataRows]);
 
   // Congelar painel abaixo do cabeçalho da tabela (linha 4) e habilitar filtro automático
   operationalWs["!freeze"] = { xSplit: 0, ySplit: 4 };
-  operationalWs["!autofilter"] = { ref: `A4:Q${4 + dataRows.length}` };
+  operationalWs["!autofilter"] = { ref: `A4:S${4 + dataRows.length}` };
 
   operationalWs["!cols"] = [
     { wch: 28 }, // Filial
@@ -176,10 +251,59 @@ export function generateProfessionalOperationalWorkbook(items: OperationalExport
     { wch: 32 }, // Arquivo
     { wch: 16 }, // Alterações
     { wch: 22 }, // Data alteração
+    { wch: 28 }, // Todas as datas de alteração
+    { wch: 68 }, // Histórico das previsões
     { wch: 48 }, // Observações
   ];
 
   XLSX.utils.book_append_sheet(workbook, operationalWs, "Base Operacional");
+
+  // 3. Aba de Histórico de Alterações: uma linha para cada mudança efetiva de previsão.
+  const itemMap = new Map(items.map((item) => [item.id, item]));
+  const historyHeaderRows = [
+    ["OPEN ORDER CONTROL — HISTÓRICO COMPLETO DE ALTERAÇÕES DE PREVISÃO"],
+    [`Gerado em: ${new Date().toLocaleString("pt-BR")} | Total de alterações: ${changeHistory.length}`],
+    [],
+    [
+      "Filial solicitante",
+      "Item",
+      "Descrição do item",
+      "Customer PO",
+      "Sequência",
+      "Data do upload",
+      "Arquivo",
+      "Previsão anterior",
+      "Previsão alterada",
+      "Data registrada",
+      "Variação (dias)",
+    ],
+  ];
+  const historyRows = changeHistory.map((record) => {
+    const item = itemMap.get(record.orderItemId);
+    return [
+      item?.shipTo || "Sem filial informada",
+      item?.item || record.item || "",
+      item?.itemDescription || "",
+      item?.customerPo || record.customerPo || "",
+      historyMap.get(record.orderItemId)?.findIndex((entry) => entry.id === record.id) !== undefined
+        ? (historyMap.get(record.orderItemId)?.findIndex((entry) => entry.id === record.id) ?? 0) + 1
+        : "",
+      formatDate(record.uploadDate),
+      record.fileName || "",
+      formatBrazilianPredictionDate(record.previousPrediction),
+      formatBrazilianPredictionDate(record.prediction),
+      formatDate(record.recordedAt),
+      record.differenceDays ?? "",
+    ];
+  });
+  const historyWs = XLSX.utils.aoa_to_sheet([...historyHeaderRows, ...historyRows]);
+  historyWs["!freeze"] = { xSplit: 0, ySplit: 4 };
+  historyWs["!autofilter"] = { ref: `A4:K${4 + historyRows.length}` };
+  historyWs["!cols"] = [
+    { wch: 28 }, { wch: 18 }, { wch: 38 }, { wch: 18 }, { wch: 12 },
+    { wch: 16 }, { wch: 32 }, { wch: 20 }, { wch: 20 }, { wch: 18 }, { wch: 16 },
+  ];
+  XLSX.utils.book_append_sheet(workbook, historyWs, "Histórico de Alterações");
 
   return workbook;
 }

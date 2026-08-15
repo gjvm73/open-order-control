@@ -179,6 +179,12 @@ export const appRouter = router({
       return { item, history };
     }),
 
+    listPredictionHistory: publicProcedure.input(z.object({
+      orderItemIds: z.array(z.number().int().positive()).max(5000),
+    })).query(async ({ input }) => {
+      return await db.getPredictionHistoryByItemIds(input.orderItemIds);
+    }),
+
     getStats: publicProcedure.input(z.object({ shipTo: z.string().optional() }).optional()).query(async ({ input }) => {
       return await db.getDashboardStats(input?.shipTo);
     }),

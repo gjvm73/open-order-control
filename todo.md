@@ -161,3 +161,4 @@
 - [x] Exibir a fórmula de cálculo do Índice de Risco Executivo ao lado da descrição no dashboard estratégico
 - [x] Ajustar formatação da coluna "Previsão atual" (e anterior) para o padrão brasileiro de data na exportação Excel
 - [x] Inserir quebra de linha após "Fórmula:" no texto do Índice de Risco Executivo
+- [x] Incluir todas as datas e previsões de alteração no relatório exportado para o Excel

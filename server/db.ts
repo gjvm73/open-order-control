@@ -1,4 +1,4 @@
-import { eq, desc, asc, sql, and, or, like, gte, lte } from "drizzle-orm";
+import { eq, desc, asc, sql, and, or, like, gte, lte, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, users, uploads, orderItems, predictionHistory, InsertUploadRecord, InsertOrderItem, InsertPredictionHistoryRecord } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -203,6 +203,47 @@ export async function getPredictionHistoryByItem(orderItemId: number) {
     return {
       ...record,
       sequence: index + 1,
+      previousPrediction,
+      changed,
+      differenceDays,
+    };
+  });
+}
+
+export async function getPredictionHistoryByItemIds(orderItemIds: number[]) {
+  const db = await getDb();
+  const ids = Array.from(new Set(orderItemIds.filter((id) => Number.isInteger(id) && id > 0)));
+  if (!db || ids.length === 0) return [];
+
+  const records = await db.select({
+    id: predictionHistory.id,
+    orderItemId: predictionHistory.orderItemId,
+    uploadId: predictionHistory.uploadId,
+    item: predictionHistory.item,
+    customerPo: predictionHistory.customerPo,
+    prediction: predictionHistory.prediction,
+    recordedAt: predictionHistory.recordedAt,
+    fileName: uploads.fileName,
+    uploadDate: uploads.uploadDate,
+  })
+    .from(predictionHistory)
+    .innerJoin(uploads, eq(predictionHistory.uploadId, uploads.id))
+    .where(inArray(predictionHistory.orderItemId, ids))
+    .orderBy(asc(predictionHistory.orderItemId), asc(predictionHistory.uploadId), asc(predictionHistory.id), asc(predictionHistory.recordedAt));
+
+  const previousByItem = new Map<number, string | null>();
+  return records.map((record) => {
+    const previousPrediction = previousByItem.get(record.orderItemId) ?? null;
+    const changed = previousPrediction !== null && previousPrediction !== record.prediction;
+    const previousDate = previousPrediction ? Date.parse(previousPrediction) : Number.NaN;
+    const currentDate = Date.parse(record.prediction);
+    const differenceDays = Number.isNaN(previousDate) || Number.isNaN(currentDate)
+      ? null
+      : Math.round((currentDate - previousDate) / 86400000);
+    previousByItem.set(record.orderItemId, record.prediction);
+
+    return {
+      ...record,
       previousPrediction,
       changed,
       differenceDays,
