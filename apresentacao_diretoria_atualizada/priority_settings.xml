@@ -1,0 +1,32 @@
+<slide id="priority_settings">
+  <background color="bg-base"/>
+  <shape id="top-hairline" type="line" x="40" y="42" width="1200" height="0" stroke="accent-red" stroke-width="3"/>
+  <text id="slide-num" x="60" y="70" width="250" height="20" font="caption" size="14" color="text-muted">07 / GOVERNANÇA DE PRIORIDADE</text>
+  <text id="slide-title" x="60" y="105" width="980" height="46" font="heading" size="36" color="text-main">Prioridade configurável com governança</text>
+  <text id="slide-subtitle" x="60" y="158" width="1100" height="28" font="body" size="18" color="text-muted">Administradores ajustam a política de score sem alterar código e acompanham o efeito sobre a fila de ação.</text>
+  <shape id="settings-panel" type="rect" x="60" y="215" width="620" height="345" fill="surface" stroke="border" stroke-width="1"/>
+  <text id="settings-label" x="84" y="238" width="280" height="20" font="caption" size="14" color="text-muted">CONFIGURAÇÕES DE PRIORIZAÇÃO</text>
+  <text id="settings-head1" x="84" y="278" width="380" height="20" font="caption" size="13" color="text-muted">CRITÉRIO</text>
+  <text id="settings-head2" x="545" y="278" width="100" height="20" font="caption" size="13" color="text-muted" align="right">PESO</text>
+  <shape id="set-line1" type="line" x="84" y="307" width="540" height="0" stroke="border" stroke-width="1"/>
+  <text id="set1" x="84" y="324" width="400" height="24" font="body" size="19" color="text-main">Alteração de previsão</text>
+  <text id="set1v" x="535" y="320" width="90" height="32" font="metric" size="26" color="accent-red" align="right">4</text>
+  <shape id="set-line2" type="line" x="84" y="366" width="540" height="0" stroke="border" stroke-width="1"/>
+  <text id="set2" x="84" y="383" width="400" height="24" font="body" size="19" color="text-main">Sem fornecedor</text>
+  <text id="set2v" x="535" y="379" width="90" height="32" font="metric" size="26" color="accent-red" align="right">5</text>
+  <shape id="set-line3" type="line" x="84" y="425" width="540" height="0" stroke="border" stroke-width="1"/>
+  <text id="set3" x="84" y="442" width="400" height="24" font="body" size="19" color="text-main">Previsão vencida</text>
+  <text id="set3v" x="535" y="438" width="90" height="32" font="metric" size="26" color="accent-red" align="right">3</text>
+  <shape id="set-line4" type="line" x="84" y="484" width="540" height="0" stroke="border" stroke-width="1"/>
+  <text id="set4" x="84" y="501" width="400" height="24" font="body" size="19" color="text-main">Prioridade alta</text>
+  <text id="set4v" x="535" y="497" width="90" height="32" font="metric" size="26" color="accent-red" align="right">2</text>
+  <shape id="gov-panel" type="rect" x="720" y="215" width="500" height="345" fill="text-main"/>
+  <text id="gov-label" x="745" y="238" width="250" height="20" font="caption" size="14" color="#FFFFFF">CONTROLES DE GOVERNANÇA</text>
+  <text id="gov1" x="745" y="286" width="420" height="48" font="body" size="20" color="#FFFFFF" line-height="1.2"><strong color="accent-red">01</strong> Acesso protegido por perfil administrativo</text>
+  <text id="gov2" x="745" y="356" width="420" height="48" font="body" size="20" color="#FFFFFF" line-height="1.2"><strong color="accent-red">02</strong> Simulação antes de confirmar a política</text>
+  <text id="gov3" x="745" y="426" width="420" height="48" font="body" size="20" color="#FFFFFF" line-height="1.2"><strong color="accent-red">03</strong> Restauração dos pesos padrão em um clique</text>
+  <text id="gov4" x="745" y="496" width="420" height="32" font="caption" size="14" color="#FFFFFF">Salvar recalcula a Fila de Ação imediatamente.</text>
+  <shape id="cycle-band" type="rect" x="60" y="590" width="1160" height="55" fill="#FFF5F5" stroke="accent-red" stroke-width="1"/>
+  <text id="cycle-text" x="82" y="607" width="1110" height="24" font="body" size="19" color="text-main" align="center">AJUSTAR PESOS  →  SIMULAR IMPACTO  →  SALVAR POLÍTICA  →  REVISAR FILA</text>
+  <text id="page" x="1190" y="674" width="50" height="18" font="caption" size="14" color="text-muted" align="right">08</text>
+</slide>

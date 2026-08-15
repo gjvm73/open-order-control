@@ -1,0 +1,20 @@
+<slide id="board_agenda">
+  <background color="bg-base"/>
+  <shape id="top-hairline" type="line" x="40" y="56" width="1200" height="0" stroke="accent-red" stroke-width="3"/>
+  <text id="closing-kicker" x="80" y="110" width="500" height="20" font="caption" size="15" color="text-muted">11 / AGENDA DE DECISÃO</text>
+  <text id="closing-title" x="80" y="168" width="920" height="88" font="display" size="58" color="text-main" line-height="1.0"><p>O que a diretoria</p><p><strong>decide agora</strong></p></text>
+  <text id="agenda-1-n" x="82" y="294" width="54" height="34" font="metric" size="30" color="accent-red">01</text>
+  <text id="agenda-1" x="160" y="295" width="900" height="30" font="body" size="23" color="text-main">Quais riscos críticos exigem intervenção imediata?</text>
+  <shape id="agenda-line1" type="line" x="160" y="340" width="910" height="0" stroke="border" stroke-width="1"/>
+  <text id="agenda-2-n" x="82" y="365" width="54" height="34" font="metric" size="30" color="accent-red">02</text>
+  <text id="agenda-2" x="160" y="366" width="920" height="30" font="body" size="23" color="text-main">Qual filial, fornecedor ou carteira requer escalonamento?</text>
+  <shape id="agenda-line2" type="line" x="160" y="411" width="910" height="0" stroke="border" stroke-width="1"/>
+  <text id="agenda-3-n" x="82" y="436" width="54" height="34" font="metric" size="30" color="accent-red">03</text>
+  <text id="agenda-3" x="160" y="437" width="920" height="30" font="body" size="23" color="text-main">Quais prioridades devem orientar o próximo ciclo?</text>
+  <shape id="agenda-line3" type="line" x="160" y="482" width="910" height="0" stroke="border" stroke-width="1"/>
+  <text id="agenda-4-n" x="82" y="507" width="54" height="34" font="metric" size="30" color="accent-red">04</text>
+  <text id="agenda-4" x="160" y="508" width="920" height="30" font="body" size="23" color="text-main">Quem é o responsável, qual prazo e qual evidência será revisada?</text>
+  <shape id="final-band" type="rect" x="60" y="584" width="1160" height="60" fill="text-main"/>
+  <text id="final-text" x="84" y="602" width="1110" height="26" font="body" size="20" color="#FFFFFF" align="center">MENOS PROCURA DE DADOS.  MAIS DISCIPLINA PARA DECIDIR E ENTREGAR.</text>
+  <text id="page" x="1190" y="674" width="50" height="18" font="caption" size="14" color="text-muted" align="right">12</text>
+</slide>

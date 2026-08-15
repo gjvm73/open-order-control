@@ -1,0 +1,10 @@
+<slide id="cover">
+  <background color="bg-base"/>
+  <shape id="top-hairline" type="line" x="40" y="56" width="1200" height="0" stroke="accent-red" stroke-width="3"/>
+  <text id="cover-kicker" x="82" y="112" width="600" height="28" font="caption" size="16" color="text-muted" wrap="false">GESTÃO EXECUTIVA DE PEDIDOS EM ABERTO</text>
+  <text id="cover-title" x="78" y="184" width="980" height="152" font="display" size="72" color="text-main" line-height="0.96"><p>OPEN ORDER</p><p><strong>CONTROL</strong></p></text>
+  <text id="cover-divider" x="82" y="392" width="520" height="8" font="caption" color="accent-red" wrap="false">━━━━━━━━━━━━━━━━━━━━━━━━</text>
+  <text id="cover-subtitle" x="82" y="468" width="760" height="66" font="heading" size="30" color="text-main" line-height="1.15">Previsões, riscos e decisões com rastreabilidade semanal</text>
+  <text id="cover-meta" x="84" y="610" width="760" height="28" font="body" size="18" color="text-muted" wrap="false">MATERIAL PARA DIRETORIA  •  2026  •  GIOVANI MARTINO</text>
+  <text id="cover-page" x="1190" y="650" width="50" height="22" font="caption" size="14" color="text-muted" align="right" wrap="false">01</text>
+</slide>

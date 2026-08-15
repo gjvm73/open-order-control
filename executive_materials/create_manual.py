@@ -14,7 +14,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parent
 ASSETS = ROOT / "assets"
-OUT = ROOT / "Manual_de_Uso_Open_Order_Control.docx"
+OUT = ROOT / "Manual_de_Uso_Open_Order_Control_Atualizado.docx"
 
 PAPER = "FFFFFF"
 GRAPHITE = "18181B"
@@ -305,7 +305,7 @@ def add_cover(doc):
     r = p.add_run("Público-alvo: Operação, Gestão, Diretoria e Administração")
     set_run_font(r, size=10.5, color=INK)
     p = doc.add_paragraph()
-    r = p.add_run("Versão de referência: checkpoint 5f125413 · Elaborado por Manus AI")
+    r = p.add_run("Versão de referência: checkpoint fe76fa2a · Elaborado por Manus AI")
     set_run_font(r, size=9.5, color=INK)
     doc.add_page_break()
 
@@ -346,6 +346,7 @@ def build_manual():
         ("Exportações PDF e Excel", "Consulta", "Compartilhar análises no escopo dos filtros ativos."),
         ("Upload semanal", "Administrador autenticado", "Registrar um novo ciclo e calcular comparações."),
         ("Resetar importações", "Administrador autenticado + confirmação", "Eliminar importações, itens e histórico em uma reinicialização controlada."),
+        ("Configurações de Priorização", "Administrador autenticado", "Ajustar, simular, salvar ou restaurar os pesos usados no score da Fila de Ação."),
         ("Modo noturno", "Todos os usuários", "Ajustar a visualização; a preferência é mantida no navegador."),
     ], [4.4, 4.0, 7.4])
     add_note(doc, "Atenção", "O reset remove a base histórica de consulta. Execute-o somente quando houver decisão formal de reiniciar a operação e após salvar os relatórios necessários.", "FEF2F2")
@@ -406,7 +407,24 @@ def build_manual():
     ])
     doc.add_page_break()
 
-    add_title(doc, "7. Filtrar a operação e analisar por filial", "Segmentação que se propaga para o dashboard e para os relatórios.")
+    add_title(doc, "7. Configurações de Priorização", "Como administrar a política de score da Fila de Ação.")
+    add_body(doc, "A área Configurações de Priorização permite que o administrador ajuste os pontos atribuídos a cada critério que compõe o score operacional. A alteração é persistida e a Fila de Ação é recalculada imediatamente, sem necessidade de editar código ou reimportar arquivos. A funcionalidade foi criada para que a empresa alinhe a prioridade do sistema à sua política operacional vigente.")
+    add_table(doc, ["Critério", "Peso padrão", "Efeito no score"], [
+        ("Alteração de previsão", "4 pontos por alteração", "Eleva a prioridade proporcionalmente à instabilidade acumulada do item."),
+        ("Sem fornecedor", "+5 pontos", "Destaca risco de abastecimento ou ausência de confirmação de origem."),
+        ("Previsão vencida", "+3 pontos", "Evidencia itens cuja data planejada já foi superada."),
+        ("Prioridade alta", "+2 pontos", "Acrescenta a relevância definida na origem do pedido."),
+    ], [4.5, 3.2, 8.1])
+    add_steps(doc, [
+        (1, "Entre como administrador", "O botão Configurações aparece no cabeçalho após a autenticação administrativa."),
+        (2, "Abra Configurações de Priorização", "Revise a explicação de cada critério e os valores atualmente ativos."),
+        (3, "Ajuste os pesos", "Digite números inteiros não negativos de acordo com a política aprovada pela liderança."),
+        (4, "Simule o resultado", "Observe a explicação de como a fila será recalculada antes de salvar a mudança."),
+        (5, "Salve ou restaure", "Salvar persiste e aplica os pesos. Restaurar padrão retorna aos valores iniciais da aplicação."),
+    ])
+    add_note(doc, "Governança", "Altere os pesos somente após alinhamento com os responsáveis pela operação. A mudança afeta a ordenação de todos os itens na Fila de Ação e o balão explicativo do score passa a refletir os novos valores.")
+
+    add_title(doc, "8. Filtrar a operação e analisar por filial", "Segmentação que se propaga para o dashboard e para os relatórios.")
     add_body(doc, "A aplicação usa o endereço Ship To para consolidar as filiais solicitantes. Para endereços específicos, regras de normalização convertem o endereço em cidades de referência, melhorando a consistência do filtro. Ao aplicar uma filial, o conjunto ativo do dashboard é segmentado; ao limpar, a visão retorna à carteira completa.")
     add_table(doc, ["Endereço reconhecido", "Filial consolidada"], [
         ("AVENIDA ASSIS BRASIL · RS", "Porto Alegre"),
@@ -423,7 +441,7 @@ def build_manual():
     ])
     doc.add_page_break()
 
-    add_title(doc, "8. Base Operacional, histórico e Mapa de Alterações", "Como investigar um item até o detalhe da mudança.")
+    add_title(doc, "9. Base Operacional, histórico e Mapa de Alterações", "Como investigar um item até o detalhe da mudança.")
     add_body(doc, "A Base Operacional reúne os itens ativos e oferece filtros de pesquisa. Além da previsão atual, ela apresenta a previsão anterior, a data do último upload, a última alteração, o total de mudanças e um resumo das alterações acumuladas. O Mapa de Alterações torna cada transição ainda mais explícita e o botão Ver histórico abre a linha do tempo do item.")
     add_figure(doc, ASSETS / "manual_base_operacional.png", "Figura 2 — Trecho da tela operacional, com áreas de consulta e acompanhamento. Fonte: aplicação Open Order Control.")
     add_table(doc, ["Campo", "Utilidade"], [
@@ -436,7 +454,7 @@ def build_manual():
     add_note(doc, "Roteiro de investigação", "Filtre o item ou PO → localize a linha → leia a previsão anterior e atual → abra Ver histórico → confirme o arquivo e a data de cada transição → registre a ação definida pela área responsável.")
     doc.add_page_break()
 
-    add_title(doc, "9. Itens Entregues", "Como consultar a carteira encerrada sem perder rastreabilidade.")
+    add_title(doc, "10. Itens Entregues", "Como consultar a carteira encerrada sem perder rastreabilidade.")
     add_body(doc, "Para a aplicação, um item é considerado entregue quando estava ativo em um upload anterior e deixa de aparecer no upload mais novo. Essa regra foi definida para manter a carteira corrente limpa de registros encerrados, preservando as informações na aba Itens Entregues.")
     add_table(doc, ["Etapa", "Comportamento do sistema"], [
         ("Item consta no upload anterior", "Permanece ativo enquanto estiver presente no conjunto mais recente."),
@@ -447,7 +465,7 @@ def build_manual():
     add_note(doc, "Interpretação correta", "A classificação reflete a premissa operacional adotada: ausência em uma carga mais nova é tratada como entrega. Caso a regra de negócio da empresa mude, revise o processo antes de utilizar o indicador como confirmação física de recebimento.", WARNING)
     doc.add_page_break()
 
-    add_title(doc, "10. Relatórios PDF e Excel", "Escolha o formato que corresponde ao objetivo da análise.")
+    add_title(doc, "11. Relatórios PDF e Excel", "Escolha o formato que corresponde ao objetivo da análise.")
     add_body(doc, "Todos os relatórios respeitam os filtros ativos no momento da exportação. Antes de emitir um arquivo, revise se a filial, item, PO, texto de busca ou demais recortes aplicados representam o público que receberá a informação.")
     add_figure(doc, ASSETS / "manual_relatorios.png", "Figura 3 — Trecho da área inferior da aplicação, com base operacional e comandos de exportação. Fonte: aplicação Open Order Control.")
     add_table(doc, ["Opção", "Conteúdo", "Quando usar"], [
@@ -459,7 +477,7 @@ def build_manual():
     add_note(doc, "Excel profissional", "O arquivo contém cabeçalhos formatados, larguras ajustadas, filtros automáticos, painéis congelados, datas em formato brasileiro e uma aba dedicada ao Histórico de Alterações.")
     doc.add_page_break()
 
-    add_title(doc, "11. Modo noturno e reset de importações", "Controles de uso e manutenção da base.")
+    add_title(doc, "12. Modo noturno e reset de importações", "Controles de uso e manutenção da base.")
     add_body(doc, "O modo noturno está disponível no menu superior. Ele é uma preferência de visualização e pode ser acionado ou desacionado sem alterar qualquer dado. A escolha é mantida no navegador, facilitando o uso em contextos de baixa luminosidade ou em longas jornadas de análise.")
     add_steps(doc, [
         (1, "Alterne o modo noturno", "Use o botão de tema no menu superior. A mudança é imediata e não interfere em relatórios ou dados."),
@@ -471,7 +489,7 @@ def build_manual():
     add_note(doc, "Risco operacional", "Resetar importações é irreversível dentro da aplicação. Guarde o PDF Completo e a exportação Excel antes de qualquer limpeza planejada.", "FEF2F2")
     doc.add_page_break()
 
-    add_title(doc, "12. Roteiro semanal recomendado", "Uma cadência para transformar informação em decisão.")
+    add_title(doc, "13. Roteiro semanal recomendado", "Uma cadência para transformar informação em decisão.")
     add_steps(doc, [
         (1, "Receber e conferir", "Receba a planilha semanal e valide campos essenciais, integridade das datas e identificação de pedidos."),
         (2, "Importar", "Acesse com perfil administrativo e registre o novo arquivo semanal."),
@@ -484,7 +502,7 @@ def build_manual():
     add_note(doc, "Disciplina de governança", "O valor do sistema aumenta quando o upload e a reunião de análise ocorrem em uma cadência estável. A repetição permite observar tendências, e não somente eventos isolados.")
     doc.add_page_break()
 
-    add_title(doc, "13. Dúvidas frequentes e glossário", "Referência rápida para uso seguro e consistente.")
+    add_title(doc, "14. Dúvidas frequentes e glossário", "Referência rápida para uso seguro e consistente.")
     add_table(doc, ["Dúvida", "Orientação"], [
         ("Por que não há alteração?", "Confirme se Ship To, Item e Customer PO correspondem ao mesmo pedido entre os dois uploads e se a previsão realmente mudou."),
         ("Por que o item saiu da base ativa?", "Se ele estava no upload anterior e não apareceu no atual, a regra o classifica como entregue."),

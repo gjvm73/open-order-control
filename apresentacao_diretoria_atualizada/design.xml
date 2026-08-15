@@ -1,0 +1,15 @@
+<design>
+  <size width="1280" height="720"></size>
+  <color name="bg-base" value="#FFFFFF"/>
+  <color name="text-main" value="#111111"/>
+  <color name="text-muted" value="#666666"/>
+  <color name="accent-red" value="#E62020"/>
+  <color name="surface" value="#F4F4F4"/>
+  <color name="border" value="#E0E0E0"/>
+  <color name="chart-dark" value="#333333"/>
+  <font name="display" family="Inter" size="56"/>
+  <font name="heading" family="Inter" size="32"/>
+  <font name="metric" family="Inter" size="44"/>
+  <font name="body" family="Inter" size="18"/>
+  <font name="caption" family="Inter" size="12"/>
+</design>

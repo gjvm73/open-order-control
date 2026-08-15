@@ -1,0 +1,35 @@
+<slide id="executive_view">
+  <background color="bg-base"/>
+  <shape id="top-hairline" type="line" x="40" y="42" width="1200" height="0" stroke="accent-red" stroke-width="3"/>
+  <text id="slide-num" x="60" y="70" width="180" height="20" font="caption" size="14" color="text-muted">03 / DASHBOARD</text>
+  <text id="slide-title" x="60" y="105" width="930" height="46" font="heading" size="36" color="text-main">Visão executiva em uma tela</text>
+  <text id="slide-subtitle" x="60" y="158" width="1080" height="28" font="body" size="18" color="text-muted">O contexto dos filtros é aplicado a toda a leitura gerencial: KPIs, risco, alertas, filiais, fila e exportações.</text>
+  <shape id="kpi1" type="rect" x="60" y="210" width="275" height="138" fill="surface" stroke="border" stroke-width="1"/>
+  <text id="kpi1-l" x="78" y="229" width="220" height="18" font="caption" size="13" color="text-muted">CARTEIRA ATIVA</text>
+  <text id="kpi1-v" x="78" y="259" width="200" height="46" font="metric" size="38" color="text-main">ITENS ATIVOS</text>
+  <text id="kpi1-t" x="78" y="316" width="230" height="18" font="caption" size="14" color="text-muted">volume sob acompanhamento</text>
+  <shape id="kpi2" type="rect" x="355" y="210" width="275" height="138" fill="surface" stroke="border" stroke-width="1"/>
+  <text id="kpi2-l" x="373" y="229" width="220" height="18" font="caption" size="13" color="text-muted">ESTABILIDADE</text>
+  <text id="kpi2-v" x="373" y="259" width="230" height="46" font="metric" size="38" color="text-main">ÚLTIMO CICLO</text>
+  <text id="kpi2-t" x="373" y="316" width="230" height="18" font="caption" size="14" color="text-muted">alterações no upload semanal</text>
+  <shape id="kpi3" type="rect" x="650" y="210" width="275" height="138" fill="surface" stroke="border" stroke-width="1"/>
+  <text id="kpi3-l" x="668" y="229" width="220" height="18" font="caption" size="13" color="text-muted">EXPOSIÇÃO FINANCEIRA</text>
+  <text id="kpi3-v" x="668" y="259" width="230" height="46" font="metric" size="38" color="text-main">VALOR EM RISCO</text>
+  <text id="kpi3-t" x="668" y="316" width="230" height="18" font="caption" size="14" color="text-muted">carteira com alguma mudança</text>
+  <shape id="kpi4" type="rect" x="945" y="210" width="275" height="138" fill="#FFF5F5" stroke="accent-red" stroke-width="1"/>
+  <text id="kpi4-l" x="963" y="229" width="220" height="18" font="caption" size="13" color="accent-red">EXCEÇÕES CRÍTICAS</text>
+  <text id="kpi4-v" x="963" y="259" width="230" height="46" font="metric" size="38" color="accent-red">SINAIS DE AÇÃO</text>
+  <text id="kpi4-t" x="963" y="316" width="230" height="18" font="caption" size="14" color="text-muted">vencidos, sem fornecedor, prioridade</text>
+  <shape id="command-panel" type="rect" x="60" y="392" width="555" height="230" fill="text-main"/>
+  <text id="command-label" x="84" y="416" width="300" height="20" font="caption" size="14" color="#FFFFFF">CENTRO DE COMANDO ESTRATÉGICO</text>
+  <text id="command-title" x="84" y="454" width="480" height="64" font="heading" size="30" color="#FFFFFF">O que merece decisão nesta semana</text>
+  <text id="command-copy" x="84" y="535" width="480" height="54" font="body" size="18" color="#FFFFFF" line-height="1.25">O dashboard sintetiza a condição da carteira, sugere o foco e conduz a discussão para exceções reais.</text>
+  <shape id="decision-panel" type="rect" x="635" y="392" width="585" height="230" fill="surface" stroke="border" stroke-width="1"/>
+  <text id="decision-label" x="659" y="416" width="270" height="20" font="caption" size="14" color="text-muted">CAMADAS DE DECISÃO</text>
+  <text id="decision-1" x="659" y="457" width="500" height="25" font="body" size="20" color="text-main"><strong>1.</strong> Risco agregado e exposição financeira</text>
+  <shape id="decision-line1" type="line" x="659" y="494" width="500" height="0" stroke="border" stroke-width="1"/>
+  <text id="decision-2" x="659" y="514" width="500" height="25" font="body" size="20" color="text-main"><strong>2.</strong> Pressão por filial e alertas de prazo</text>
+  <shape id="decision-line2" type="line" x="659" y="551" width="500" height="0" stroke="border" stroke-width="1"/>
+  <text id="decision-3" x="659" y="572" width="500" height="25" font="body" size="20" color="text-main"><strong>3.</strong> Itens prioritários e responsáveis pela ação</text>
+  <text id="page" x="1190" y="674" width="50" height="18" font="caption" size="14" color="text-muted" align="right">04</text>
+</slide>

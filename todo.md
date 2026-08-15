@@ -171,3 +171,5 @@
 - [x] Criar configurações administrativas persistentes para os pesos da Fila de Ação
 - [x] Aplicar os pesos configuráveis ao cálculo e às explicações de score
 - [x] Adicionar interface de Configurações para ajuste e restauração dos pesos padrão
+- [x] Atualizar a apresentação executiva com as funcionalidades e controles mais recentes
+- [x] Atualizar o manual Word ilustrado com a área de Configurações de Priorização e os roteiros completos

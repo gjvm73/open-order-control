@@ -1,0 +1,24 @@
+<slide id="decision_control">
+  <background color="bg-base"/>
+  <shape id="top-hairline" type="line" x="40" y="42" width="1200" height="0" stroke="accent-red" stroke-width="3"/>
+  <text id="slide-num" x="60" y="70" width="70" height="20" font="caption" size="14" color="text-muted" wrap="false">01 / PROPÓSITO</text>
+  <text id="slide-title" x="60" y="105" width="920" height="46" font="heading" size="36" color="text-main" wrap="false">Da planilha ao controle de decisão</text>
+  <text id="before-label" x="60" y="183" width="300" height="24" font="caption" size="15" color="text-muted" wrap="false">ANTES: DADOS ISOLADOS</text>
+  <shape id="before-1" type="rect" x="60" y="218" width="340" height="90" fill="surface" stroke="border" stroke-width="1"/>
+  <text id="before-1-text" x="80" y="237" width="295" height="52" font="body" size="18" color="text-main" line-height="1.25">Cada arquivo substitui a leitura anterior e dificulta a comparação.</text>
+  <shape id="before-2" type="rect" x="60" y="325" width="340" height="90" fill="surface" stroke="border" stroke-width="1"/>
+  <text id="before-2-text" x="80" y="344" width="295" height="52" font="body" size="18" color="text-main" line-height="1.25">Alterações de prazo não têm sequência nem impacto mensurado.</text>
+  <shape id="before-3" type="rect" x="60" y="432" width="340" height="90" fill="surface" stroke="border" stroke-width="1"/>
+  <text id="before-3-text" x="80" y="451" width="295" height="52" font="body" size="18" color="text-main" line-height="1.25">A reunião começa pela procura do problema, não pela decisão.</text>
+  <text id="transition-arrow" x="452" y="332" width="320" height="60" font="display" size="56" color="accent-red" align="center" wrap="false">→</text>
+  <text id="after-label" x="860" y="183" width="330" height="24" font="caption" size="15" color="accent-red" wrap="false">DEPOIS: DECISÃO ORIENTADA A RISCO</text>
+  <shape id="after-1" type="rect" x="860" y="218" width="360" height="90" fill="#FFF5F5" stroke="accent-red" stroke-width="1"/>
+  <text id="after-1-text" x="882" y="237" width="315" height="52" font="body" size="18" color="text-main" line-height="1.25">Upload semanal gera histórico por filial, item e Customer PO.</text>
+  <shape id="after-2" type="rect" x="860" y="325" width="360" height="90" fill="#FFF5F5" stroke="accent-red" stroke-width="1"/>
+  <text id="after-2-text" x="882" y="344" width="315" height="52" font="body" size="18" color="text-main" line-height="1.25">Mudanças se tornam alertas, score, tendência e exposição.</text>
+  <shape id="after-3" type="rect" x="860" y="432" width="360" height="90" fill="#FFF5F5" stroke="accent-red" stroke-width="1"/>
+  <text id="after-3-text" x="882" y="451" width="315" height="52" font="body" size="18" color="text-main" line-height="1.25">A diretoria recebe uma agenda objetiva de atuação semanal.</text>
+  <shape id="outcome-band" type="rect" x="60" y="570" width="1160" height="78" fill="text-main"/>
+  <text id="outcome-text" x="86" y="591" width="1100" height="30" font="body" size="22" color="#FFFFFF" align="center" anchor="middle">VISIBILIDADE  →  PRIORIDADE  →  RESPONSABILIZAÇÃO  →  ACOMPANHAMENTO</text>
+  <text id="page" x="1190" y="674" width="50" height="18" font="caption" size="14" color="text-muted" align="right">02</text>
+</slide>

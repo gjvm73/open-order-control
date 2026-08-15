@@ -1,0 +1,144 @@
+{
+  "project_info": {
+    "title": "Open Order Control",
+    "created": 1786803072.858,
+    "last_updated": 1786803342.211,
+    "total_slides": 12
+  },
+  "slides": [
+    {
+      "id": "cover",
+      "state": "edited",
+      "pageNum": 1
+    },
+    {
+      "id": "decision_control",
+      "state": "edited",
+      "pageNum": 2
+    },
+    {
+      "id": "operating_cycle",
+      "state": "edited",
+      "pageNum": 3
+    },
+    {
+      "id": "executive_view",
+      "state": "edited",
+      "pageNum": 4
+    },
+    {
+      "id": "risk_index",
+      "state": "edited",
+      "pageNum": 5
+    },
+    {
+      "id": "alerts_branches",
+      "state": "edited",
+      "pageNum": 6
+    },
+    {
+      "id": "action_queue",
+      "state": "edited",
+      "pageNum": 7
+    },
+    {
+      "id": "priority_settings",
+      "state": "edited",
+      "pageNum": 8
+    },
+    {
+      "id": "operational_traceability",
+      "state": "edited",
+      "pageNum": 9
+    },
+    {
+      "id": "delivered_reporting",
+      "state": "edited",
+      "pageNum": 10
+    },
+    {
+      "id": "security_routine",
+      "state": "edited",
+      "pageNum": 11
+    },
+    {
+      "id": "board_agenda",
+      "state": "edited",
+      "pageNum": 12
+    }
+  ],
+  "outline": [
+    {
+      "id": "cover",
+      "title": "Open Order Control",
+      "summary": "Capa executiva com o propósito da solução e público diretivo.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "decision_control",
+      "title": "Da planilha ao controle de decisão",
+      "summary": "Transformação de uploads semanais em comparações históricas, sinais e decisões.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "operating_cycle",
+      "title": "Ciclo operacional sob controle",
+      "summary": "Fluxo de upload, normalização, comparação, rastreabilidade e itens entregues.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "executive_view",
+      "title": "Visão executiva em uma tela",
+      "summary": "Indicadores, filtros globais e centro de comando do dashboard.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "risk_index",
+      "title": "Índice de Risco Executivo",
+      "summary": "Composição, fórmula e aplicação do índice para a diretoria.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "alerts_branches",
+      "title": "Alertas, tendência e pressão por filial",
+      "summary": "Desvios de previsão, evolução semanal e mapa operacional por filial.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "action_queue",
+      "title": "Fila de Ação para a reunião",
+      "summary": "Score, priorização, classificação e agenda de atuação.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "priority_settings",
+      "title": "Prioridade configurável com governança",
+      "summary": "Configurações administrativas persistentes para pesos, simulação e restauração.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "operational_traceability",
+      "title": "Base operacional e rastreabilidade",
+      "summary": "Filtros, linha do tempo, alterações completas e exportação seletiva.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "delivered_reporting",
+      "title": "Entregues, relatórios e compartilhamento",
+      "summary": "Itens entregues, relatórios em PDF e exportação profissional em Excel.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "security_routine",
+      "title": "Segurança e rotina de gestão",
+      "summary": "Controles administrativos, permissões e rotina semanal recomendada.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "board_agenda",
+      "title": "Agenda de decisão da diretoria",
+      "summary": "Roteiro de reunião e direcionamento das próximas decisões.",
+      "image_plan": "Use a suitable image if needed"
+    }
+  ]
+}

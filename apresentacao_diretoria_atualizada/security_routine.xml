@@ -1,0 +1,23 @@
+<slide id="security_routine">
+  <background color="bg-base"/>
+  <shape id="top-hairline" type="line" x="40" y="42" width="1200" height="0" stroke="accent-red" stroke-width="3"/>
+  <text id="slide-num" x="60" y="70" width="250" height="20" font="caption" size="14" color="text-muted">10 / GOVERNANÇA OPERACIONAL</text>
+  <text id="slide-title" x="60" y="105" width="970" height="46" font="heading" size="36" color="text-main">Segurança e rotina de gestão</text>
+  <text id="slide-subtitle" x="60" y="158" width="1090" height="28" font="body" size="18" color="text-muted">A aplicação protege operações que alteram a base e concentra a gestão em uma cadência semanal simples e verificável.</text>
+  <shape id="security-panel" type="rect" x="60" y="215" width="500" height="345" fill="text-main"/>
+  <text id="security-label" x="84" y="239" width="210" height="20" font="caption" size="14" color="#FFFFFF">CONTROLES DE ACESSO</text>
+  <text id="security-title" x="84" y="281" width="390" height="36" font="heading" size="28" color="#FFFFFF">Administração protegida</text>
+  <text id="security-1" x="84" y="344" width="410" height="44" font="body" size="19" color="#FFFFFF" line-height="1.2"><strong color="accent-red">UPLOAD</strong> disponível somente a usuário administrativo.</text>
+  <text id="security-2" x="84" y="413" width="410" height="44" font="body" size="19" color="#FFFFFF" line-height="1.2"><strong color="accent-red">RESETAR IMPORTAÇÕES</strong> remove o histórico sob confirmação.</text>
+  <text id="security-3" x="84" y="482" width="410" height="44" font="body" size="19" color="#FFFFFF" line-height="1.2"><strong color="accent-red">PESOS</strong> de priorização são ajustados e salvos pelo administrador.</text>
+  <shape id="routine-panel" type="rect" x="610" y="215" width="610" height="345" fill="surface" stroke="border" stroke-width="1"/>
+  <text id="routine-label" x="634" y="239" width="230" height="20" font="caption" size="14" color="text-muted">ROTEIRO SEMANAL RECOMENDADO</text>
+  <text id="r1" x="634" y="286" width="500" height="26" font="body" size="19" color="text-main"><strong color="accent-red">1.</strong> Carregar a planilha recebida no ciclo.</text>
+  <text id="r2" x="634" y="337" width="500" height="26" font="body" size="19" color="text-main"><strong color="accent-red">2.</strong> Confirmar comparativo e alertas críticos.</text>
+  <text id="r3" x="634" y="388" width="500" height="26" font="body" size="19" color="text-main"><strong color="accent-red">3.</strong> Revisar filiais pressionadas e exceções.</text>
+  <text id="r4" x="634" y="439" width="500" height="26" font="body" size="19" color="text-main"><strong color="accent-red">4.</strong> Conduzir a Fila de Ação na reunião.</text>
+  <text id="r5" x="634" y="490" width="500" height="26" font="body" size="19" color="text-main"><strong color="accent-red">5.</strong> Exportar o material e registrar decisões.</text>
+  <shape id="governance-band" type="rect" x="60" y="590" width="1160" height="55" fill="#FFF5F5" stroke="accent-red" stroke-width="1"/>
+  <text id="governance-text" x="82" y="607" width="1110" height="24" font="body" size="19" color="text-main" align="center">DADO RASTREÁVEL  •  CONTROLE DE ACESSO  •  DECISÃO COM RESPONSÁVEL E PRAZO</text>
+  <text id="page" x="1190" y="674" width="50" height="18" font="caption" size="14" color="text-muted" align="right">11</text>
+</slide>

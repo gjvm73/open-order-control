@@ -1,0 +1,36 @@
+<slide id="alerts_branches">
+  <background color="bg-base"/>
+  <shape id="top-hairline" type="line" x="40" y="42" width="1200" height="0" stroke="accent-red" stroke-width="3"/>
+  <text id="slide-num" x="60" y="70" width="220" height="20" font="caption" size="14" color="text-muted">05 / SINAIS OPERACIONAIS</text>
+  <text id="slide-title" x="60" y="105" width="980" height="46" font="heading" size="36" color="text-main">Alertas, tendência e pressão por filial</text>
+  <text id="slide-subtitle" x="60" y="158" width="1100" height="28" font="body" size="18" color="text-muted">A aplicação identifica desvios de prazo, mostra a evolução semanal e localiza a concentração do problema.</text>
+  <shape id="alert-panel" type="rect" x="60" y="212" width="555" height="205" fill="surface" stroke="border" stroke-width="1"/>
+  <text id="alert-label" x="82" y="233" width="270" height="20" font="caption" size="14" color="text-muted">ALERTAS DE VARIAÇÃO</text>
+  <text id="alert-question" x="82" y="264" width="420" height="28" font="body" size="20" color="text-main">Quais previsões desviaram acima do limiar?</text>
+  <shape id="alert-base" type="rect" x="82" y="326" width="470" height="18" fill="#D9D9D9"/>
+  <shape id="alert-critical" type="rect" x="82" y="326" width="290" height="18" fill="accent-red"/>
+  <text id="alert-critical-label" x="82" y="360" width="240" height="20" font="caption" size="14" color="accent-red">CRÍTICOS  •  DESVIO SUPERIOR AO LIMIAR</text>
+  <text id="alert-note" x="82" y="387" width="450" height="18" font="caption" size="14" color="text-muted">Limiar em dias ajustável no dashboard.</text>
+  <shape id="trend-panel" type="rect" x="650" y="212" width="570" height="205" fill="surface" stroke="border" stroke-width="1"/>
+  <text id="trend-label" x="672" y="233" width="270" height="20" font="caption" size="14" color="text-muted">TENDÊNCIA POR UPLOAD</text>
+  <text id="trend-question" x="672" y="264" width="440" height="28" font="body" size="20" color="text-main">O risco crítico está subindo ou cedendo?</text>
+  <shape id="trend-axis" type="line" x="682" y="367" width="485" height="0" stroke="chart-dark" stroke-width="1"/>
+  <shape id="trend-a" type="line" x="710" y="350" width="110" height="-38" stroke="accent-red" stroke-width="4"/>
+  <shape id="trend-b" type="line" x="820" y="312" width="115" height="48" stroke="accent-red" stroke-width="4"/>
+  <shape id="trend-c" type="line" x="935" y="360" width="120" height="-75" stroke="accent-red" stroke-width="4"/>
+  <shape id="trend-d" type="line" x="1055" y="285" width="75" height="30" stroke="accent-red" stroke-width="4"/>
+  <text id="trend-note" x="672" y="387" width="450" height="18" font="caption" size="14" color="text-muted">Comparação contínua entre uploads semanais.</text>
+  <shape id="branch-panel" type="rect" x="60" y="457" width="1160" height="172" fill="#FFFFFF" stroke="border" stroke-width="1"/>
+  <text id="branch-label" x="82" y="478" width="300" height="20" font="caption" size="14" color="text-muted">MAPA DE PRESSÃO POR FILIAL</text>
+  <text id="branch-head1" x="82" y="514" width="250" height="18" font="caption" size="13" color="text-muted">FILIAL SOLICITANTE</text>
+  <text id="branch-head2" x="560" y="514" width="145" height="18" font="caption" size="13" color="text-muted">VENCIDOS</text>
+  <text id="branch-head3" x="735" y="514" width="180" height="18" font="caption" size="13" color="text-muted">SEM FORNECEDOR</text>
+  <text id="branch-head4" x="972" y="514" width="180" height="18" font="caption" size="13" color="text-muted">VALOR SOB RISCO</text>
+  <shape id="branch-sep" type="line" x="82" y="543" width="1098" height="0" stroke="border" stroke-width="1"/>
+  <text id="branch-row1" x="82" y="558" width="250" height="24" font="body" size="18" color="text-main">Filial com maior pressão</text>
+  <text id="branch-row2" x="560" y="558" width="110" height="24" font="body" size="18" color="accent-red">Vencimentos</text>
+  <text id="branch-row3" x="735" y="558" width="160" height="24" font="body" size="18" color="accent-red">Exceções</text>
+  <text id="branch-row4" x="972" y="558" width="190" height="24" font="body" size="18" color="text-main">Exposição</text>
+  <text id="branch-note" x="82" y="596" width="1070" height="18" font="caption" size="14" color="text-muted">O filtro por filial reorienta toda a leitura do dashboard, tornando a discussão operacional específica e acionável.</text>
+  <text id="page" x="1190" y="674" width="50" height="18" font="caption" size="14" color="text-muted" align="right">06</text>
+</slide>
