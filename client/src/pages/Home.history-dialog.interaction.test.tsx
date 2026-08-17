@@ -12,6 +12,7 @@ const deliveredItemsInvalidate = vi.hoisted(() => vi.fn().mockResolvedValue(unde
 const completeChangesReportInvalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const completeChangesReportRows = vi.hoisted(() => ({ current: [] as any[] }));
 const uploadsRows = vi.hoisted(() => ({ current: [] as any[] }));
+const lifecycleQueryInputs = vi.hoisted(() => ({ current: [] as Array<{ scope?: "active" | "all" }> }));
 const resetImportsMutate = vi.hoisted(() => vi.fn().mockResolvedValue({ deletedUploads: 1, deletedItems: 4, deletedHistory: 2 }));
 const uploadExcelMutate = vi.hoisted(() => vi.fn());
 const authState = vi.hoisted(() => ({ user: null as { role: string; name: string } | null, isAuthenticated: false, logout: vi.fn() }));
@@ -34,7 +35,11 @@ vi.mock("@/lib/trpc", () => ({
       getAlerts: { useQuery: () => emptyQuery({ alerts: [{ id: 42, severity: "CRÍTICO", direction: "ADIAMENTO", item: "ITEM-42", itemDescription: "Item de teste", shipTo: "PORTO ALEGRE", customerPo: "PO-42", previousPrediction: "2025-05-01", currentPrediction: "2025-05-20", differenceDays: 19 }], summary: { totalAlerts: 1, criticalCount: 1, attentionCount: 0, criticalRatio: 100, attentionRatio: 0 } }) },
       getAlertsTrend: { useQuery: () => emptyQuery([]) },
       getCompleteChangesReport: { useQuery: () => ({ ...emptyQuery(completeChangesReportRows.current), refetch: completeChangesReportRefetch }) },
-      getOrderLifecycleAnalysis: { useQuery: () => emptyQuery({ referenceDate: new Date("2026-05-20T00:00:00.000Z"), summary: { openedOrders: 0, closedSameMonth: 0, openOrders: 0, averageLifeDays: null, withoutCreationDate: 0 }, monthly: [] }) },
+      getOrderLifecycleAnalysis: { useQuery: (input: { scope?: "active" | "all" }) => {
+        lifecycleQueryInputs.current.push(input);
+        const isCompleteHistory = input.scope === "all";
+        return emptyQuery({ referenceDate: new Date("2026-05-20T00:00:00.000Z"), summary: { openedOrders: isCompleteHistory ? 2 : 1, closedSameMonth: 0, openOrders: 1, averageLifeDays: 35, withoutCreationDate: 0 }, monthly: [{ label: "mai. de 2026", openedOrders: isCompleteHistory ? 2 : 1, closedSameMonth: 0, openOrders: 1 }] });
+      } },
       getHistoricalAssessment: { useQuery: () => emptyQuery({ summary: { uploads: 0, itemsRecorded: 0, branches: 0, changeEvents: 0, averagePlannedLeadDays: null }, uploads: [], branches: [] }) },
       getItemDetail: { useQuery: itemDetailQuery },
       resetImports: { useMutation: () => ({ mutateAsync: resetImportsMutate, isPending: false }) },
@@ -62,6 +67,7 @@ beforeEach(() => {
   authState.isAuthenticated = false;
   completeChangesReportRows.current = [];
   uploadsRows.current = [];
+  lifecycleQueryInputs.current = [];
   vi.clearAllMocks();
 });
 
@@ -138,6 +144,22 @@ describe("histórico acionado pelos Alertas de Variação", () => {
 
     expect(screen.getByText("Dias pendentes por item ativo")).toBeTruthy();
     expect(screen.getByLabelText("Gráfico de colunas da distribuição de dias pendentes")).toBeTruthy();
+  });
+
+  it("aplica escopo ativo ao Relatório Gerencial e exibe o ciclo completo na Avaliação Histórica", () => {
+    itemDetailQuery.mockReturnValue(emptyQuery(null));
+
+    render(<Home />);
+    expect(lifecycleQueryInputs.current).toEqual(expect.arrayContaining([
+      expect.objectContaining({ scope: "active" }),
+      expect.objectContaining({ scope: "all" }),
+    ]));
+
+    fireEvent.click(screen.getByRole("button", { name: "Avaliação Histórica" }));
+
+    expect(screen.getByText("Ciclo de vida completo")).toBeTruthy();
+    expect(screen.getByText(/Inclui todos os itens que passaram pelo sistema/)).toBeTruthy();
+    expect(screen.getByLabelText("Gráfico mensal completo de abertura e finalização de pedidos")).toBeTruthy();
   });
 
   it("mostra todas as cargas pertinentes e usa a última carga como referência temporal sem filtro final", () => {

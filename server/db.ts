@@ -418,7 +418,9 @@ export async function getCompleteChangesReport(filters: CompleteChangesReportFil
   }).sort((left, right) => right.changedAt.getTime() - left.changedAt.getTime() || right.historyId - left.historyId);
 }
 
-type LifecycleFilters = CompleteChangesReportFilters;
+type LifecycleFilters = CompleteChangesReportFilters & {
+  scope?: "active" | "all";
+};
 
 function parseOperationalDate(value: string | Date | null | undefined) {
   if (!value) return null;
@@ -486,7 +488,10 @@ export async function getOrderLifecycleAnalysis(filters: LifecycleFilters = {}) 
     deliveredAt: orderItems.deliveredAt,
   }).from(orderItems);
 
-  const matchingRows = rows.filter((row) => !normalizedShipTo || normalizeShipTo(row.shipTo) === normalizedShipTo);
+  const matchingRows = rows.filter((row) => (
+    (filters.scope !== "active" || row.status === "active")
+    && (!normalizedShipTo || normalizeShipTo(row.shipTo) === normalizedShipTo)
+  ));
   const monthly = new Map<string, {
     month: string;
     label: string;

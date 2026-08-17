@@ -325,3 +325,8 @@
 - [x] Reconstruir o Relatório Gerencial com os novos indicadores e visualizações
 - [x] Criar o menu Avaliação Histórica com filtros e análise temporal de cargas, filiais, itens e tempos
 - [x] Adicionar testes das métricas, validar visualmente e salvar a atualização
+
+### Pendências registradas em 17/08/2026 - escopos dos gráficos analíticos
+- [x] Restringir o gráfico do Relatório Gerencial aos itens ativos e não entregues
+- [x] Adicionar à Avaliação Histórica o gráfico completo de ciclo de vida, incluindo itens entregues
+- [x] Cobrir os dois escopos com testes e validar visualmente a atualização

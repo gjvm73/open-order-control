@@ -1104,13 +1104,22 @@ describe("Open Orders Backend & Upload Logic", () => {
     });
 
     const today = new Date().toISOString().slice(0, 10);
-    const lifecycle = await caller.orders.getOrderLifecycleAnalysis({ startDate: "2025-01-01", endDate: today });
-    expect(lifecycle.summary.openedOrders).toBe(2);
-    expect(lifecycle.monthly).toEqual(expect.arrayContaining([
+    const activeLifecycle = await caller.orders.getOrderLifecycleAnalysis({ startDate: "2025-01-01", endDate: today, scope: "active" });
+    expect(activeLifecycle.summary.openedOrders).toBe(1);
+    expect(activeLifecycle.monthly).toEqual(expect.arrayContaining([
+      expect.objectContaining({ month: "2025-01", openedOrders: 1 }),
+    ]));
+    expect(activeLifecycle.monthly).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ month: "2025-02" }),
+    ]));
+    expect(activeLifecycle.monthly.reduce((sum, month) => sum + month.above90, 0)).toBeGreaterThanOrEqual(1);
+
+    const completeLifecycle = await caller.orders.getOrderLifecycleAnalysis({ startDate: "2025-01-01", endDate: today, scope: "all" });
+    expect(completeLifecycle.summary.openedOrders).toBe(2);
+    expect(completeLifecycle.monthly).toEqual(expect.arrayContaining([
       expect.objectContaining({ month: "2025-01", openedOrders: 1 }),
       expect.objectContaining({ month: "2025-02", openedOrders: 1 }),
     ]));
-    expect(lifecycle.monthly.reduce((sum, month) => sum + month.above90, 0)).toBeGreaterThanOrEqual(1);
 
     const historical = await caller.orders.getHistoricalAssessment({ startDate: "2025-01-01", endDate: today, shipTo: "PORTO ALEGRE" });
     expect(historical.summary.uploads).toBe(2);

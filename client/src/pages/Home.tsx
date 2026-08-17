@@ -152,8 +152,12 @@ export default function Home() {
   }), [reportShipTo, reportStartDate, reportEndDate]);
   const completeChangesReportQuery = trpc.orders.getCompleteChangesReport.useQuery(completeChangesReportInput);
   const completeChangesReport = completeChangesReportQuery.data ?? [];
-  const lifecycleAnalysisQuery = trpc.orders.getOrderLifecycleAnalysis.useQuery(completeChangesReportInput);
+  const lifecycleAnalysisInput = React.useMemo(() => ({ ...completeChangesReportInput, scope: "active" as const }), [completeChangesReportInput]);
+  const historicalLifecycleInput = React.useMemo(() => ({ ...completeChangesReportInput, scope: "all" as const }), [completeChangesReportInput]);
+  const lifecycleAnalysisQuery = trpc.orders.getOrderLifecycleAnalysis.useQuery(lifecycleAnalysisInput);
   const lifecycleAnalysis = lifecycleAnalysisQuery.data ?? { referenceDate: new Date(), summary: { openedOrders: 0, closedSameMonth: 0, openOrders: 0, averageLifeDays: null, withoutCreationDate: 0 }, monthly: [] };
+  const historicalLifecycleQuery = trpc.orders.getOrderLifecycleAnalysis.useQuery(historicalLifecycleInput);
+  const historicalLifecycle = historicalLifecycleQuery.data ?? { referenceDate: new Date(), summary: { openedOrders: 0, closedSameMonth: 0, openOrders: 0, averageLifeDays: null, withoutCreationDate: 0 }, monthly: [] };
   const historicalAssessmentQuery = trpc.orders.getHistoricalAssessment.useQuery(completeChangesReportInput);
   const historicalAssessment = historicalAssessmentQuery.data ?? { summary: { uploads: 0, itemsRecorded: 0, branches: 0, changeEvents: 0, averagePlannedLeadDays: null }, uploads: [], branches: [] };
   const reportUploads = React.useMemo(() => {
@@ -204,6 +208,12 @@ export default function Home() {
     finalizados: month.closedSameMonth,
     pendentes: month.openOrders,
   })), [lifecycleAnalysis.monthly]);
+  const historicalLifecycleChartData = React.useMemo(() => historicalLifecycle.monthly.map((month) => ({
+    month: month.label,
+    abertos: month.openedOrders,
+    finalizados: month.closedSameMonth,
+    pendentes: month.openOrders,
+  })), [historicalLifecycle.monthly]);
   const historicalChartData = React.useMemo(() => historicalAssessment.uploads.map((upload) => ({
     carga: formatDate(upload.uploadDate),
     itens: upload.itemsRecorded,
@@ -1039,6 +1049,23 @@ export default function Home() {
             <div className="border border-zinc-200 bg-white p-4"><p className="text-[10px] font-mono uppercase text-zinc-500">Itens registrados</p><p className="text-3xl font-black mt-1">{historicalAssessment.summary.itemsRecorded}</p><p className="text-[10px] font-mono text-zinc-500 mt-1">Somatório das cargas</p></div>
             <div className="border border-red-200 bg-red-50 p-4"><p className="text-[10px] font-mono uppercase text-red-700">Alterações</p><p className="text-3xl font-black mt-1 text-red-700">{historicalAssessment.summary.changeEvents}</p><p className="text-[10px] font-mono text-red-700 mt-1">Mudanças de previsão</p></div>
             <div className="border border-amber-200 bg-amber-50 p-4"><p className="text-[10px] font-mono uppercase text-amber-800">Prazo planejado médio</p><p className="text-3xl font-black mt-1 text-amber-800">{historicalAssessment.summary.averagePlannedLeadDays === null ? "—" : `${historicalAssessment.summary.averagePlannedLeadDays}d`}</p><p className="text-[10px] font-mono text-amber-800 mt-1">Criação até previsão</p></div>
+          </div>
+          <div className="border border-zinc-900 bg-zinc-950 text-white p-4">
+            <div className="flex flex-col gap-3 border-b border-zinc-700 pb-3 mb-4 md:flex-row md:items-end md:justify-between">
+              <div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">Ciclo de vida completo</p><h4 className="text-lg font-bold tracking-tight">Abertura, finalização e pedidos em aberto por mês</h4><p className="text-[10px] font-mono text-zinc-400 mt-1">Inclui todos os itens que passaram pelo sistema, tanto os ativos quanto os já entregues.</p></div>
+              <p className="text-[10px] font-mono text-zinc-400">Referência de vida: {formatDate(historicalLifecycle.referenceDate)}</p>
+            </div>
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+              <div className="border border-zinc-700 p-3"><p className="text-[10px] font-mono uppercase text-zinc-400">Pedidos efetuados</p><p className="text-2xl font-black mt-1">{historicalLifecycle.summary.openedOrders}</p><p className="text-[10px] font-mono text-zinc-400 mt-1">Abertos no intervalo</p></div>
+              <div className="border border-emerald-700 bg-emerald-950/30 p-3"><p className="text-[10px] font-mono uppercase text-emerald-300">Finalizados no mês</p><p className="text-2xl font-black mt-1 text-emerald-300">{historicalLifecycle.summary.closedSameMonth}</p><p className="text-[10px] font-mono text-emerald-200 mt-1">Encerrados no mês de abertura</p></div>
+              <div className="border border-red-800 bg-red-950/30 p-3"><p className="text-[10px] font-mono uppercase text-red-300">Pedidos em aberto</p><p className="text-2xl font-black mt-1 text-red-300">{historicalLifecycle.summary.openOrders}</p><p className="text-[10px] font-mono text-red-200 mt-1">Ainda sem encerramento</p></div>
+              <div className="border border-amber-700 bg-amber-950/30 p-3"><p className="text-[10px] font-mono uppercase text-amber-300">Vida média</p><p className="text-2xl font-black mt-1 text-amber-300">{historicalLifecycle.summary.averageLifeDays === null ? "—" : `${historicalLifecycle.summary.averageLifeDays}d`}</p><p className="text-[10px] font-mono text-amber-200 mt-1">Até fechamento ou referência</p></div>
+            </div>
+            <div className="mt-5 border-t border-zinc-700 pt-4">
+              <div className="flex items-baseline justify-between gap-3 mb-3"><div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">Evolução mensal</p><h5 className="text-sm font-bold">Pedidos por mês de entrada</h5></div><span className="text-[10px] font-mono text-zinc-400">Quantidade de pedidos</span></div>
+              {historicalLifecycleQuery.isLoading ? <p className="h-[220px] flex items-center justify-center text-xs font-mono text-zinc-400">Carregando ciclo de vida histórico...</p> : historicalLifecycleChartData.length === 0 ? <p className="h-[220px] flex items-center justify-center text-xs font-mono text-zinc-400">Nenhum pedido com Data de criação válida para o intervalo selecionado.</p> : <ChartContainer aria-label="Gráfico mensal completo de abertura e finalização de pedidos" config={lifecycleChartConfig} className="h-[220px] w-full aspect-auto"><BarChart data={historicalLifecycleChartData} margin={{ top: 20, right: 12, left: -12, bottom: 0 }}><CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#3f3f46" /><XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={10} className="fill-zinc-300 font-mono text-[10px]" /><YAxis allowDecimals={false} tickLine={false} axisLine={false} width={30} className="fill-zinc-300 font-mono text-[10px]" /><ChartTooltip cursor={{ fill: "rgba(255,255,255,0.08)" }} content={<ChartTooltipContent />} /><Bar dataKey="abertos" fill="var(--color-abertos)" radius={[2, 2, 0, 0]} maxBarSize={42} /><Bar dataKey="finalizados" fill="var(--color-finalizados)" radius={[2, 2, 0, 0]} maxBarSize={42} /><Bar dataKey="pendentes" fill="var(--color-pendentes)" radius={[2, 2, 0, 0]} maxBarSize={42} /></BarChart></ChartContainer>}
+            </div>
+            {historicalLifecycle.summary.withoutCreationDate > 0 && <p className="mt-3 text-[10px] font-mono text-zinc-400">{historicalLifecycle.summary.withoutCreationDate} pedido(s) não entrou(ram) na análise por não possuir(em) Data de criação válida.</p>}
           </div>
           <div className="border border-zinc-900 bg-white p-4">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-2 border-b border-zinc-200 pb-3 mb-3"><div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Evolução das cargas</p><h4 className="text-base font-bold tracking-tight">Itens e alterações por upload</h4></div><span className="text-[10px] font-mono text-zinc-500">Datas de realização das cargas</span></div>
