@@ -327,7 +327,7 @@ export default function Home() {
     totalItems: 0, changedLastUpload: 0, noSupplier: 0, mostChanged: [], totalOrderValue: 0,
     valueAtRisk: 0, changedItems: 0, stableItems: 0, highPriorityItems: 0, overdueItems: 0,
     obsoleteItems: 0, noDeadlineItems: 0, withDeadlineItems: 0,
-    stabilityRate: 0, riskRate: 0, latestChangeRate: 0, latestStabilityRate: 0, trend: [], actionQueue: [], latestUpload: null,
+    stabilityRate: 0, riskRate: 0, latestChangeRate: 0, latestStabilityRate: null, trend: [], actionQueue: [], latestUpload: null,
   };
   const stats = {
     ...rawStats,
@@ -350,7 +350,12 @@ export default function Home() {
   }));
   const alertSummary = alertsData.summary;
   const changedItems = items.filter((item) => item.predictionChangesCount > 0);
-  const stabilityRate = stats.latestStabilityRate ?? stats.stabilityRate ?? 0;
+  const hasActivePortfolio = Number(stats.totalItems || 0) > 0;
+  const stabilityRate = hasActivePortfolio ? (stats.latestStabilityRate ?? stats.stabilityRate ?? 0) : null;
+  const stabilityValue = stabilityRate === null ? "—" : `${stabilityRate}%`;
+  const stabilityDetail = hasActivePortfolio
+    ? `${stats.changedLastUpload} itens alterados no último upload`
+    : "Sem itens importados";
   const maxTrendChanges = Math.max(...stats.trend.map((entry) => entry.changedRowsCount), 1);
   const strategic = React.useMemo(() => {
     const total = Number(stats.totalItems || 0);
@@ -445,7 +450,7 @@ export default function Home() {
 
           <div className="print-kpi-grid">
             <div className="print-kpi"><span>Itens ativos</span><strong>{stats.totalItems}</strong><small>{stats.stableItems} sem alteração acumulada</small></div>
-            <div className="print-kpi"><span>Estabilidade último ciclo</span><strong>{stabilityRate}%</strong><small>{stats.changedLastUpload} alterado(s) no último upload</small></div>
+            <div className="print-kpi"><span>Estabilidade último ciclo</span><strong>{stabilityValue}</strong><small>{hasActivePortfolio ? `${stats.changedLastUpload} alterado(s) no último upload` : "Sem itens importados"}</small></div>
             <div className="print-kpi"><span>Valor total dos pedidos</span><strong>{formatCurrency(stats.totalOrderValue)}</strong><small>{stats.highPriorityItems} item(ns) com prioridade alta</small></div>
             <div className="print-kpi print-kpi-risk"><span>Índice de risco executivo</span><strong>{strategic.executiveRiskIndex}/100</strong><small>{strategic.riskLevel} · {formatCurrency(stats.valueAtRisk)} sob risco</small></div>
           </div>
@@ -560,7 +565,7 @@ export default function Home() {
             <div className="border-b border-zinc-900 pb-2 mb-6 flex justify-between items-end"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">01 / Visão executiva</h2><h3 className="text-2xl font-black tracking-tight mt-1">Onde a gestão deve concentrar atenção</h3></div><span className="text-xs font-mono text-zinc-400">Base atualizada: {stats.latestUpload ? formatDateTime(stats.latestUpload.uploadDate) : "sem upload"}</span></div>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
               <MetricCard label="Itens ativos" value={String(stats.totalItems)} detail={`${stats.stableItems} sem alteração acumulada`} icon={<Package className="w-4 h-4" />} accent="red" />
-              <MetricCard label="Estabilidade do último ciclo" value={`${stats.latestStabilityRate ?? stats.stabilityRate}%`} detail={`${stats.changedLastUpload} itens alterados no último upload`} icon={<Target className="w-4 h-4" />} accent="black" />
+              <MetricCard label="Estabilidade do último ciclo" value={stabilityValue} detail={stabilityDetail} icon={<Target className="w-4 h-4" />} accent="black" />
               <MetricCard label="Valor total dos pedidos" value={formatCurrency(stats.totalOrderValue)} detail={`${stats.highPriorityItems} itens com prioridade alta`} icon={<CircleDollarSign className="w-4 h-4" />} accent="black" />
               <MetricCard label="Valor sob risco acumulado" value={formatCurrency(stats.valueAtRisk)} detail={`${stats.riskRate}% dos itens tiveram alguma mudança`} icon={<ShieldAlert className="w-4 h-4" />} accent="red" />
             </div>
@@ -742,7 +747,7 @@ export default function Home() {
           </div>
           <div className="border border-zinc-900 p-6 bg-zinc-950 text-white">
             <div className="flex justify-between items-start mb-6"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-400">03 / Leitura gerencial</h2><h3 className="text-xl font-bold mt-1">Sinais para decisão</h3></div><Clock3 className="w-5 h-5 text-red-500" /></div>
-            <div className="space-y-5 text-sm font-mono"><DecisionLine label="Estabilidade último upload" value={`${stabilityRate}%`} note={stabilityRate >= 80 ? "controle" : "acompanhar"} positive={stabilityRate >= 80} /><DecisionLine label="Itens vencidos" value={String(stats.overdueItems)} note={stats.overdueItems > 0 ? "ação imediata" : "sem ocorrência"} positive={stats.overdueItems === 0} /><DecisionLine label="Sem fornecedor" value={String(stats.noSupplier)} note={stats.noSupplier > 0 ? "cobrar abastecimento" : "regular"} positive={stats.noSupplier === 0} /><DecisionLine label="Alterações recentes" value={String(stats.changedLastUpload)} note={stats.changedLastUpload > 0 ? "revisar impacto" : "sem mudança"} positive={stats.changedLastUpload === 0} /></div>
+            <div className="space-y-5 text-sm font-mono"><DecisionLine label="Estabilidade último upload" value={stabilityValue} note={hasActivePortfolio ? (stabilityRate !== null && stabilityRate >= 80 ? "controle" : "acompanhar") : "aguardando upload"} positive={hasActivePortfolio ? stabilityRate !== null && stabilityRate >= 80 : undefined} /><DecisionLine label="Itens vencidos" value={String(stats.overdueItems)} note={stats.overdueItems > 0 ? "ação imediata" : "sem ocorrência"} positive={stats.overdueItems === 0} /><DecisionLine label="Sem fornecedor" value={String(stats.noSupplier)} note={stats.noSupplier > 0 ? "cobrar abastecimento" : "regular"} positive={stats.noSupplier === 0} /><DecisionLine label="Alterações recentes" value={String(stats.changedLastUpload)} note={stats.changedLastUpload > 0 ? "revisar impacto" : "sem mudança"} positive={stats.changedLastUpload === 0} /></div>
           </div>
         </section>
 
@@ -891,8 +896,9 @@ function MiniMetric({ label, value, tone }: { label: string; value: string; tone
   return <div className="border border-zinc-200 p-4 bg-zinc-50"><p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">{label}</p><p className={`text-2xl font-black mt-2 ${color}`}>{value}</p></div>;
 }
 
-function DecisionLine({ label, value, note, positive }: { label: string; value: string; note: string; positive: boolean }) {
-  return <div className="flex items-center justify-between border-b border-zinc-700 pb-3"><div><p className="text-zinc-300">{label}</p><p className={`text-[10px] mt-1 ${positive ? "text-emerald-400" : "text-red-400"}`}>{note}</p></div><strong className={positive ? "text-emerald-400" : "text-red-400"}>{value}</strong></div>;
+function DecisionLine({ label, value, note, positive }: { label: string; value: string; note: string; positive?: boolean }) {
+  const tone = positive === undefined ? "text-zinc-400" : positive ? "text-emerald-400" : "text-red-400";
+  return <div className="flex items-center justify-between border-b border-zinc-700 pb-3"><div><p className="text-zinc-300">{label}</p><p className={`text-[10px] mt-1 ${tone}`}>{note}</p></div><strong className={tone}>{value}</strong></div>;
 }
 
 function ItemHistoryDialog({ detail: rawDetail, isLoading }: { detail: any; isLoading: boolean }) {

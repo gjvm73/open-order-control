@@ -152,6 +152,7 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(statsAfterReset.changedItems).toBe(0);
     expect(statsAfterReset.totalOrderValue).toBe(0);
     expect(statsAfterReset.valueAtRisk).toBe(0);
+    expect(statsAfterReset.latestStabilityRate).toBeNull();
   });
 
   it("returns upload diagnostics with rejection reasons", async () => {

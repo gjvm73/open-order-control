@@ -658,8 +658,11 @@ export async function getDashboardStats(shipTo?: string) {
     changeRate: upload.totalRows > 0 ? Math.round((upload.changedRowsCount / upload.totalRows) * 1000) / 10 : 0,
   }));
 
-  const latestChangeRate = totalItems > 0 ? Math.round((changedLastUpload / totalItems) * 1000) / 10 : 0;
-  const latestStabilityRate = Math.max(0, Math.round((100 - latestChangeRate) * 10) / 10);
+  const hasActivePortfolio = totalItems > 0;
+  const latestChangeRate = hasActivePortfolio ? Math.round((changedLastUpload / totalItems) * 1000) / 10 : 0;
+  const latestStabilityRate = hasActivePortfolio && latestUpload
+    ? Math.max(0, Math.round((100 - latestChangeRate) * 10) / 10)
+    : null;
 
   return {
     totalItems,

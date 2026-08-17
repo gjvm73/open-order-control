@@ -1,21 +1,23 @@
 // @vitest-environment happy-dom
 import React from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
 const itemDetailQuery = vi.hoisted(() => vi.fn());
 const invalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const statsQuery = vi.hoisted(() => vi.fn());
 const emptyQuery = <T,>(data: T) => ({ data, isLoading: false, refetch: vi.fn() });
 const branchSummary = [
   { shipTo: "PORTO ALEGRE", totalItems: 3, changedItems: 2, overdueItems: 2, noSupplier: 0, highPriorityItems: 1, valueAtRisk: 18000, changeRate: 66.7, shareOfItems: 60 },
   { shipTo: "COLOMBO", totalItems: 2, changedItems: 1, overdueItems: 1, noSupplier: 0, highPriorityItems: 0, valueAtRisk: 7000, changeRate: 50, shareOfItems: 40 },
 ];
+const defaultStats = { totalItems: 4, changedLastUpload: 0, noSupplier: 1, obsoleteItems: 1, noDeadlineItems: 1, withDeadlineItems: 1, mostChanged: [], totalOrderValue: 0, valueAtRisk: 0, changedItems: 0, stableItems: 4, highPriorityItems: 0, overdueItems: 0, stabilityRate: 100, riskRate: 0, latestChangeRate: 0, latestStabilityRate: 100, trend: [], actionQueue: [], latestUpload: null };
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     orders: {
       listDeliveredItems: { useQuery: () => emptyQuery([]) },
-      getStats: { useQuery: () => emptyQuery({ totalItems: 4, changedLastUpload: 0, noSupplier: 1, obsoleteItems: 1, noDeadlineItems: 1, withDeadlineItems: 1, mostChanged: [], totalOrderValue: 0, valueAtRisk: 0, changedItems: 0, stableItems: 4, highPriorityItems: 0, overdueItems: 0, stabilityRate: 100, riskRate: 0, latestChangeRate: 0, latestStabilityRate: 100, trend: [], actionQueue: [], latestUpload: null }) },
+      getStats: { useQuery: () => emptyQuery(statsQuery()) },
       listItems: { useQuery: () => emptyQuery([]) },
       listUploads: { useQuery: () => emptyQuery([]) },
       listShipTo: { useQuery: () => emptyQuery([]) },
@@ -42,6 +44,7 @@ vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => ({ user: null, isAuthen
 import Home from "./Home";
 
 afterEach(() => cleanup());
+beforeEach(() => statsQuery.mockReturnValue(defaultStats));
 
 describe("histórico acionado pelos Alertas de Variação", () => {
   it("mostra a quantidade de vencidos de cada filial no quadro de Prazos críticos", () => {
@@ -63,6 +66,19 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(screen.getAllByText("Obsoletos").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Sem prazo").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Com prazo").length).toBeGreaterThan(0);
+  });
+
+  it("mostra estabilidade neutra quando não há itens importados", () => {
+    statsQuery.mockReturnValue({ ...defaultStats, totalItems: 0, changedItems: 0, stableItems: 0, stabilityRate: 0, latestStabilityRate: null });
+    itemDetailQuery.mockReturnValue(emptyQuery(null));
+
+    render(<Home />);
+
+    expect(screen.getAllByText("Sem itens importados").length).toBeGreaterThan(0);
+    const stabilityCard = screen.getByText("Estabilidade do último ciclo").parentElement;
+    expect(stabilityCard).toBeTruthy();
+    expect(within(stabilityCard!).getByText("—")).toBeTruthy();
+    expect(within(stabilityCard!).queryByText("100%")).toBeNull();
   });
 
   it("abre o modal global com o detalhe do item selecionado", async () => {

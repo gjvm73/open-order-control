@@ -241,3 +241,8 @@
 - [x] Garantir que somente previsões com data válida sejam contabilizadas como Com prazo
 - [x] Exibir quatro cartões de classificação no dashboard com a nova regra
 - [x] Adicionar testes de classificação e validar visualmente os cartões
+
+### Pendências registradas em 17/08/2026 - estabilidade sem dados
+- [x] Corrigir o cálculo de estabilidade para carteira vazia
+- [x] Exibir estado neutro no card Estabilidade do último ciclo quando não houver importação
+- [x] Adicionar testes e validar visualmente o estado sem dados
