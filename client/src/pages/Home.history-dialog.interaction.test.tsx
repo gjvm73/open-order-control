@@ -103,6 +103,13 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(screen.getByText("Envelhecimento das pendências")).toBeTruthy();
     expect(screen.queryByText("Onde a gestão deve concentrar atenção")).toBeNull();
     expect(screen.queryByText("Itens, previsões e respectivas alterações")).toBeNull();
+
+    const reportTable = screen.getByRole("table", { name: "Alterações do relatório gerencial" });
+    expect(reportTable.className).toContain("table-fixed");
+    expect(reportTable.className).not.toContain("min-w");
+    expect(reportTable.parentElement?.className).not.toContain("overflow-x-auto");
+    expect(screen.queryByRole("columnheader", { name: "Prioridade" })).toBeNull();
+    expect(screen.queryByRole("columnheader", { name: "Status atual" })).toBeNull();
   });
 
   it("abre o modal global com o detalhe do item selecionado", async () => {

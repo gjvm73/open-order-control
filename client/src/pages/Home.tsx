@@ -845,7 +845,59 @@ export default function Home() {
             {pendingAging.withoutCreationDate > 0 && <p className="text-[10px] font-mono text-zinc-500 mt-3">{pendingAging.withoutCreationDate} item(ns) não entrou(ram) nas faixas por não possuir(em) Data de criação válida.</p>}
           </div>
           <div className="flex flex-wrap items-center gap-3"><Badge className="rounded-none bg-zinc-950 text-white font-mono">{completeChangesReport.length} alteração(ões)</Badge>{reportShipTo && <Badge className="rounded-none bg-red-600 text-white font-mono">Filial: {reportShipTo}</Badge>}{(reportStartDate || reportEndDate) && <span className="text-[10px] font-mono text-zinc-500">Período: {formatDate(reportStartDate)} até {formatDate(reportEndDate)}</span>}</div>
-          <div className="border border-zinc-900 bg-white overflow-x-auto"><table className="w-full min-w-[1750px] text-left border-collapse"><thead><tr className="border-b border-zinc-900 bg-zinc-950 text-white text-[10px] font-mono uppercase tracking-wider"><th className="p-3">Data / hora</th><th className="p-3">Filial</th><th className="p-3">Item / descrição</th><th className="p-3">PO</th><th className="p-3">De</th><th className="p-3">Para</th><th className="p-3 text-right">Variação</th><th className="p-3">Direção</th><th className="p-3">Prioridade</th><th className="p-3 text-right">Quantidade</th><th className="p-3 text-right">Valor total</th><th className="p-3">Status atual</th><th className="p-3 text-center">Histórico</th></tr></thead><tbody className="divide-y divide-zinc-200 text-xs font-mono">{completeChangesReportQuery.isLoading ? <tr><td colSpan={13} className="p-10 text-center text-zinc-500">Carregando alterações...</td></tr> : completeChangesReport.length === 0 ? <tr><td colSpan={13} className="p-10 text-center text-zinc-500">Nenhuma alteração de previsão encontrada para os filtros selecionados.</td></tr> : completeChangesReport.map((row) => <tr key={row.historyId} className="hover:bg-red-50 align-top"><td className="p-3 whitespace-nowrap"><p className="font-bold">{formatDate(row.changedAt)}</p><p className="text-[10px] text-zinc-500">{formatDateTime(row.changedAt).split(", ")[1] || ""}</p></td><td className="p-3 max-w-[180px] truncate" title={row.shipTo}>{row.shipTo}</td><td className="p-3"><p className="font-bold">{row.item}</p><p className="text-[10px] text-zinc-500 max-w-[260px] truncate" title={row.itemDescription || ""}>{row.itemDescription || "Sem descrição"}</p></td><td className="p-3">{row.customerPo || "—"}</td><td className="p-3 text-zinc-600">{formatPrediction(row.previousPrediction)}</td><td className="p-3 font-bold text-red-700">{formatPrediction(row.currentPredictionAtChange)}</td><td className={`p-3 text-right font-bold ${row.differenceDays !== null && row.differenceDays > 0 ? "text-red-700" : "text-zinc-700"}`}>{row.differenceDays === null ? "—" : `${row.differenceDays > 0 ? "+" : ""}${row.differenceDays} dias`}</td><td className="p-3"><Badge className={`rounded-none text-[9px] ${row.direction === "ADIAMENTO" ? "bg-red-600 text-white" : row.direction === "ANTECIPAÇÃO" ? "bg-emerald-600 text-white" : "bg-zinc-200 text-zinc-800"}`}>{row.direction}</Badge></td><td className="p-3">{row.shipmentPriority || "—"}</td><td className="p-3 text-right">{row.quantity ?? "—"}</td><td className="p-3 text-right">{formatCurrency(row.extendedPrice)}</td><td className="p-3">{row.status}</td><td className="p-3 text-center"><Button variant="outline" size="sm" onClick={() => setSelectedItemId(row.orderItemId)} className="rounded-none border-zinc-900 text-[10px] font-mono h-8">Ver histórico</Button></td></tr>)}</tbody></table></div>
+          <div className="border border-zinc-900 bg-white">
+            <table aria-label="Alterações do relatório gerencial" className="w-full table-fixed text-left border-collapse">
+              <colgroup>
+                <col className="w-[9%]" />
+                <col className="w-[10%]" />
+                <col className="w-[16%]" />
+                <col className="w-[9%]" />
+                <col className="w-[9%]" />
+                <col className="w-[9%]" />
+                <col className="w-[9%]" />
+                <col className="w-[10%]" />
+                <col className="w-[7%]" />
+                <col className="w-[7%]" />
+                <col className="w-[11%]" />
+              </colgroup>
+              <thead>
+                <tr className="border-b border-zinc-900 bg-zinc-950 text-white text-[10px] font-mono uppercase tracking-wider">
+                  <th className="p-2">Data / hora</th>
+                  <th className="p-2">Filial</th>
+                  <th className="p-2">Item / descrição</th>
+                  <th className="p-2">PO</th>
+                  <th className="p-2">De</th>
+                  <th className="p-2">Para</th>
+                  <th className="p-2 text-right">Variação</th>
+                  <th className="p-2">Direção</th>
+                  <th className="p-2 text-right">Quantidade</th>
+                  <th className="p-2 text-right">Valor total</th>
+                  <th className="p-2 text-center">Histórico</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-200 text-xs font-mono">
+                {completeChangesReportQuery.isLoading ? (
+                  <tr><td colSpan={11} className="p-10 text-center text-zinc-500">Carregando alterações...</td></tr>
+                ) : completeChangesReport.length === 0 ? (
+                  <tr><td colSpan={11} className="p-10 text-center text-zinc-500">Nenhuma alteração de previsão encontrada para os filtros selecionados.</td></tr>
+                ) : completeChangesReport.map((row) => (
+                  <tr key={row.historyId} className="hover:bg-red-50 align-top">
+                    <td className="p-2 whitespace-nowrap"><p className="font-bold">{formatDate(row.changedAt)}</p><p className="text-[10px] text-zinc-500">{formatDateTime(row.changedAt).split(", ")[1] || ""}</p></td>
+                    <td className="p-2 truncate" title={row.shipTo}>{row.shipTo}</td>
+                    <td className="p-2"><p className="font-bold truncate">{row.item}</p><p className="text-[10px] text-zinc-500 truncate" title={row.itemDescription || ""}>{row.itemDescription || "Sem descrição"}</p></td>
+                    <td className="p-2 truncate" title={row.customerPo || ""}>{row.customerPo || "—"}</td>
+                    <td className="p-2 truncate text-zinc-600" title={formatPrediction(row.previousPrediction)}>{formatPrediction(row.previousPrediction)}</td>
+                    <td className="p-2 truncate font-bold text-red-700" title={formatPrediction(row.currentPredictionAtChange)}>{formatPrediction(row.currentPredictionAtChange)}</td>
+                    <td className={`p-2 text-right font-bold whitespace-nowrap ${row.differenceDays !== null && row.differenceDays > 0 ? "text-red-700" : "text-zinc-700"}`}>{row.differenceDays === null ? "—" : `${row.differenceDays > 0 ? "+" : ""}${row.differenceDays}d`}</td>
+                    <td className="p-2"><Badge className={`rounded-none text-[9px] ${row.direction === "ADIAMENTO" ? "bg-red-600 text-white" : row.direction === "ANTECIPAÇÃO" ? "bg-emerald-600 text-white" : "bg-zinc-200 text-zinc-800"}`}>{row.direction}</Badge></td>
+                    <td className="p-2 text-right truncate">{row.quantity ?? "—"}</td>
+                    <td className="p-2 text-right whitespace-nowrap">{formatCurrency(row.extendedPrice)}</td>
+                    <td className="p-2 text-center"><Button variant="outline" size="sm" onClick={() => setSelectedItemId(row.orderItemId)} className="rounded-none border-zinc-900 text-[9px] font-mono h-7 px-2">Histórico</Button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>}
 
         {activeTab === "active" && <section className="space-y-4"><div className="border-b border-zinc-900 pb-2"><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">08 / Mapa de alterações</h2><h3 className="text-xl font-bold tracking-tight">Itens que tiveram a previsão modificada</h3></div><div className="border border-zinc-900 overflow-x-auto"><table className="w-full text-left border-collapse min-w-[900px]"><thead><tr className="border-b border-zinc-900 bg-zinc-950 text-white text-xs font-mono uppercase tracking-wider"><th className="p-4">Item / nome</th><th className="p-4">Customer PO</th><th className="p-4">De</th><th className="p-4">Para</th><th className="p-4">Data</th><th className="p-4 text-center">Ocorrências</th><th className="p-4">Ação</th></tr></thead><tbody className="divide-y divide-zinc-200 text-sm font-mono">{changedItems.length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-zinc-500">Nenhuma alteração para os filtros atuais.</td></tr> : changedItems.map((row) => <tr key={`change-${row.id}`} className="hover:bg-red-50"><td className="p-4"><p className="font-bold">{row.item}</p><p className="text-xs text-zinc-500 mt-1 max-w-[280px]">{row.itemDescription || "Sem descrição"}</p></td><td className="p-4">{row.customerPo || "—"}</td><td className="p-4 text-zinc-500">{row.previousPrediction || "—"}</td><td className="p-4 text-red-600 font-bold">{row.currentPrediction || "—"}</td><td className="p-4">{formatDate(row.lastPredictionChangeDate)}</td><td className="p-4 text-center"><span className="px-2 py-1 bg-red-100 text-red-700 font-bold">{row.predictionChangesCount}x</span></td><td className="p-4"><Button variant="outline" size="sm" className="rounded-none border-zinc-900 text-xs font-mono" onClick={() => setSelectedItemId(row.id)}>Linha do tempo</Button></td></tr>)}</tbody></table></div></section>}

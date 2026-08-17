@@ -273,3 +273,14 @@
 - [x] Tornar fixa a faixa de menus Dashboard Ativo, Itens Entregues e Relatório Gerencial
 - [x] Preservar responsividade, contraste e acesso por teclado durante a rolagem
 - [x] Validar visualmente o cabeçalho fixo e salvar a atualização
+
+### Pendências registradas em 17/08/2026 - divergência na contagem da carga
+- [x] Reproduzir a diferença entre as 49 linhas da planilha e os itens exibidos
+- [x] Identificar o motivo de rejeições, consolidações ou filtros indevidos no fluxo de importação
+- [x] Confirmar a cobertura de regressão já existente para carga com 49 itens, sem necessidade de correção adicional
+- [x] Validar o diagnóstico: 49 linhas aceitas, sem rejeições e 49 itens ativos na base
+
+### Pendências registradas em 17/08/2026 - tabela do relatório gerencial
+- [x] Remover as colunas Prioridade e Status atual da tabela do relatório
+- [x] Ajustar as larguras e a disposição da tabela para eliminar a rolagem horizontal
+- [x] Validar a apresentação da tabela e salvar a atualização
