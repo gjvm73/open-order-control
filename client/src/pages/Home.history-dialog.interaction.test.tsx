@@ -15,7 +15,7 @@ vi.mock("@/lib/trpc", () => ({
   trpc: {
     orders: {
       listDeliveredItems: { useQuery: () => emptyQuery([]) },
-      getStats: { useQuery: () => emptyQuery({ totalItems: 0, changedLastUpload: 0, noSupplier: 0, mostChanged: [], totalOrderValue: 0, valueAtRisk: 0, changedItems: 0, stableItems: 0, highPriorityItems: 0, overdueItems: 0, stabilityRate: 0, riskRate: 0, latestChangeRate: 0, latestStabilityRate: 0, trend: [], actionQueue: [], latestUpload: null }) },
+      getStats: { useQuery: () => emptyQuery({ totalItems: 4, changedLastUpload: 0, noSupplier: 1, obsoleteItems: 1, noDeadlineItems: 1, withDeadlineItems: 1, mostChanged: [], totalOrderValue: 0, valueAtRisk: 0, changedItems: 0, stableItems: 4, highPriorityItems: 0, overdueItems: 0, stabilityRate: 100, riskRate: 0, latestChangeRate: 0, latestStabilityRate: 100, trend: [], actionQueue: [], latestUpload: null }) },
       listItems: { useQuery: () => emptyQuery([]) },
       listUploads: { useQuery: () => emptyQuery([]) },
       listShipTo: { useQuery: () => emptyQuery([]) },
@@ -52,6 +52,17 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(screen.getByText("Prazos críticos por filial")).toBeTruthy();
     expect(screen.getByText("2 vencidos")).toBeTruthy();
     expect(screen.getByText("1 vencidos")).toBeTruthy();
+  });
+
+  it("exibe os quatro cartões de classificação de previsão", () => {
+    itemDetailQuery.mockReturnValue(emptyQuery(null));
+
+    render(<Home />);
+
+    expect(screen.getAllByText("Sem fornecedor").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Obsoletos").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Sem prazo").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Com prazo").length).toBeGreaterThan(0);
   });
 
   it("abre o modal global com o detalhe do item selecionado", async () => {

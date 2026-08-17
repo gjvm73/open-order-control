@@ -40,6 +40,26 @@ export type PrioritizationSettingsResponse = PrioritizationWeights & {
   updatedAt: Date | null;
 };
 
+type PredictionClassification = "noSupplier" | "obsolete" | "noDeadline" | "withDeadline";
+
+function parseValidPredictionDate(value: string | null) {
+  const normalized = value?.trim();
+  const match = normalized?.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const [, year, month, day] = match;
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  if (date.getUTCFullYear() !== Number(year) || date.getUTCMonth() !== Number(month) - 1 || date.getUTCDate() !== Number(day)) return null;
+  return date;
+}
+
+function classifyPrediction(value: string | null): PredictionClassification {
+  const normalized = value?.trim().toLocaleLowerCase("pt-BR") || "";
+  if (normalized.includes("sem fornecedor")) return "noSupplier";
+  if (normalized.includes("obsoleto")) return "obsolete";
+  if (parseValidPredictionDate(value)) return "withDeadline";
+  return "noDeadline";
+}
+
 export async function getPrioritizationSettings(): Promise<PrioritizationSettingsResponse> {
   const db = await getDb();
   if (!db) return { ...DEFAULT_PRIORITIZATION_WEIGHTS, updatedAt: null };
@@ -459,12 +479,6 @@ export async function getBranchSummary() {
   const allItems = await db.select().from(orderItems).where(sql`status = 'active'`);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const parsePredictionDate = (value: string | null) => {
-    const normalized = value?.trim();
-    if (!normalized || !/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return null;
-    const date = new Date(`${normalized}T00:00:00`);
-    return Number.isNaN(date.getTime()) ? null : date;
-  };
   const toNumber = (value: unknown) => {
     const parsed = Number(value || 0);
     return Number.isFinite(parsed) ? parsed : 0;
@@ -480,10 +494,10 @@ export async function getBranchSummary() {
   return Array.from(groups.entries()).map(([shipTo, items]) => {
     const changedItems = items.filter(item => item.predictionChangesCount > 0);
     const overdueItems = items.filter(item => {
-      const date = parsePredictionDate(item.currentPrediction);
+      const date = parseValidPredictionDate(item.currentPrediction);
       return Boolean(date && date < today);
     });
-    const noSupplier = items.filter(item => Boolean(item.currentPrediction?.toLowerCase().includes("sem fornecedor")));
+    const noSupplier = items.filter(item => classifyPrediction(item.currentPrediction) === "noSupplier");
     const totalOrderValue = items.reduce((sum, item) => sum + toNumber(item.extendedPrice), 0);
     const valueAtRisk = changedItems.reduce((sum, item) => sum + toNumber(item.extendedPrice), 0);
     return {
@@ -520,6 +534,9 @@ export async function getDashboardStats(shipTo?: string) {
       latestStabilityRate: 0,
       highPriorityItems: 0,
       overdueItems: 0,
+      obsoleteItems: 0,
+      noDeadlineItems: 0,
+      withDeadlineItems: 0,
       trend: [],
       actionQueue: [],
       latestUpload: null,
@@ -560,20 +577,20 @@ export async function getDashboardStats(shipTo?: string) {
     return Number.isFinite(parsed) ? parsed : 0;
   };
 
-  const parsePredictionDate = (value: string | null) => {
-    if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
-    const date = new Date(`${value}T00:00:00`);
-    return Number.isNaN(date.getTime()) ? null : date;
-  };
-
-  const isNoSupplier = (value: string | null) => Boolean(value && value.toLowerCase().includes("sem fornecedor"));
   const totalItems = allItems.length;
-  const noSupplier = allItems.filter(item => isNoSupplier(item.currentPrediction)).length;
+  const classificationTotals = allItems.reduce<Record<PredictionClassification, number>>((totals, item) => {
+    totals[classifyPrediction(item.currentPrediction)] += 1;
+    return totals;
+  }, { noSupplier: 0, obsolete: 0, noDeadline: 0, withDeadline: 0 });
+  const noSupplier = classificationTotals.noSupplier;
+  const obsoleteItems = classificationTotals.obsolete;
+  const noDeadlineItems = classificationTotals.noDeadline;
+  const withDeadlineItems = classificationTotals.withDeadline;
   const changedItems = allItems.filter(item => item.predictionChangesCount > 0);
   const stableItems = totalItems - changedItems.length;
   const highPriorityItems = allItems.filter(item => (item.shipmentPriority || "").toLowerCase() === "high").length;
   const overdueItems = allItems.filter(item => {
-    const predictionDate = parsePredictionDate(item.currentPrediction);
+    const predictionDate = parseValidPredictionDate(item.currentPrediction);
     return Boolean(predictionDate && predictionDate < today);
   }).length;
   const totalOrderValue = allItems.reduce((sum, item) => sum + toNumber(item.extendedPrice), 0);
@@ -581,8 +598,8 @@ export async function getDashboardStats(shipTo?: string) {
   const highestItemValue = Math.max(...allItems.map((item) => Math.max(0, toNumber(item.extendedPrice))), 0);
 
   const rankItem = (item: typeof allItems[number]) => {
-    const predictionDate = parsePredictionDate(item.currentPrediction);
-    const supplierIssue = isNoSupplier(item.currentPrediction);
+    const predictionDate = parseValidPredictionDate(item.currentPrediction);
+    const supplierIssue = classifyPrediction(item.currentPrediction) === "noSupplier";
     const overdue = Boolean(predictionDate && predictionDate < today);
     const highPriority = (item.shipmentPriority || "").toLowerCase() === "high";
     const financialImpactScore = highestItemValue > 0 && prioritizationWeights.financialImpactWeight > 0
@@ -648,6 +665,9 @@ export async function getDashboardStats(shipTo?: string) {
     totalItems,
     changedLastUpload,
     noSupplier,
+    obsoleteItems,
+    noDeadlineItems,
+    withDeadlineItems,
     mostChanged,
     totalOrderValue,
     valueAtRisk,

@@ -434,6 +434,67 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(alertResponse40.alerts.some((alert) => alert.item === itemCode && alert.customerPo === customerPo)).toBe(false);
   });
 
+  it("separa fornecedor, obsolescência e prazo em categorias mutuamente exclusivas", async () => {
+    const suffix = Date.now();
+    const shipTo = `CLASSIFICACAO RS ${suffix}`;
+    const rows = [
+      ["SEM-FORN", "Sem fornecedor", "SEM FORNECEDOR"],
+      ["OBSOLETO", "Item obsoleto", "OBSOLETO"],
+      ["SEM-PRAZO", "Item aguardando prazo", "Aguardando prazo"],
+      ["COM-PRAZO", "Item com previsão confirmada", "2030-12-31"],
+    ].map(([item, itemDescription, prediction], index) => ({
+      "Endereco (ship To)": shipTo,
+      "Customer PO": `PO-CLASS-${suffix}-${index}`,
+      "Shipment Priority": "Normal",
+      "Data Criacao da Ordem": "2025-01-01",
+      "Item": item,
+      "Descricao do Item": itemDescription,
+      "Quantidade": 1,
+      "Scheduled Reserved": 0,
+      "Unit Selling Price": 100,
+      "Extended Price": 100,
+      "Previsão": prediction,
+      "Long Text": "Teste de classificação",
+    }));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), "OpenOrders");
+    const fileBase64 = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }).toString("base64");
+    const caller = appRouter.createCaller({
+      user: {
+        id: 1,
+        openId: `admin-classification-${suffix}`,
+        name: "Admin User",
+        email: "admin-classification@test.com",
+        loginMethod: "manus",
+        role: "admin",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      },
+      req: { protocol: "https", headers: {} } as any,
+      res: {} as any,
+    });
+
+    const result = await caller.orders.uploadExcel({ fileName: "classificacao.xlsx", fileBase64 });
+    expect(result.totalRows).toBe(4);
+
+    const stats = await caller.orders.getStats({ shipTo });
+    expect(stats).toMatchObject({
+      totalItems: 4,
+      noSupplier: 1,
+      obsoleteItems: 1,
+      noDeadlineItems: 1,
+      withDeadlineItems: 1,
+    });
+    expect(stats.noSupplier + stats.obsoleteItems + stats.noDeadlineItems + stats.withDeadlineItems).toBe(stats.totalItems);
+
+    const items = await caller.orders.listItems({ shipTo });
+    expect(items.find((entry) => entry.item === "SEM-FORN")?.currentPrediction).toBe("Sem fornecedor");
+    expect(items.find((entry) => entry.item === "OBSOLETO")?.currentPrediction).toBe("Obsoleto");
+    expect(items.find((entry) => entry.item === "SEM-PRAZO")?.currentPrediction).toBe("Aguardando prazo");
+    expect(items.find((entry) => entry.item === "COM-PRAZO")?.currentPrediction).toBe("2030-12-31");
+  });
+
   it("preserves all rows when two lines share the base business key", async () => {
     const suffix = Date.now();
     const shipTo = `TEST DUP RS ${suffix}`;

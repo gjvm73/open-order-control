@@ -326,6 +326,7 @@ export default function Home() {
   const rawStats = statsQuery.data || {
     totalItems: 0, changedLastUpload: 0, noSupplier: 0, mostChanged: [], totalOrderValue: 0,
     valueAtRisk: 0, changedItems: 0, stableItems: 0, highPriorityItems: 0, overdueItems: 0,
+    obsoleteItems: 0, noDeadlineItems: 0, withDeadlineItems: 0,
     stabilityRate: 0, riskRate: 0, latestChangeRate: 0, latestStabilityRate: 0, trend: [], actionQueue: [], latestUpload: null,
   };
   const stats = {
@@ -563,11 +564,14 @@ export default function Home() {
               <MetricCard label="Valor total dos pedidos" value={formatCurrency(stats.totalOrderValue)} detail={`${stats.highPriorityItems} itens com prioridade alta`} icon={<CircleDollarSign className="w-4 h-4" />} accent="black" />
               <MetricCard label="Valor sob risco acumulado" value={formatCurrency(stats.valueAtRisk)} detail={`${stats.riskRate}% dos itens tiveram alguma mudança`} icon={<ShieldAlert className="w-4 h-4" />} accent="red" />
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-              <MiniMetric label="Mudaram no último upload" value={String(stats.changedLastUpload)} tone="red" />
-              <MiniMetric label="Previsões vencidas" value={String(stats.overdueItems)} tone="amber" />
-              <MiniMetric label="Sem fornecedor" value={String(stats.noSupplier)} tone="amber" />
-              <MiniMetric label="Prioridade alta" value={String(stats.highPriorityItems)} tone="black" />
+            <div className="mt-4">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500 mb-2">Classificação da previsão atual · somente datas válidas entram em “Com prazo”</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <MiniMetric label="Sem fornecedor" value={String(stats.noSupplier)} tone="amber" />
+                <MiniMetric label="Obsoletos" value={String(stats.obsoleteItems)} tone="red" />
+                <MiniMetric label="Sem prazo" value={String(stats.noDeadlineItems)} tone="amber" />
+                <MiniMetric label="Com prazo" value={String(stats.withDeadlineItems)} tone="emerald" />
+              </div>
             </div>
           </section>
 
@@ -882,8 +886,8 @@ function ActionScoreHelp({ weights }: { weights: PrioritizationWeights }) {
   );
 }
 
-function MiniMetric({ label, value, tone }: { label: string; value: string; tone: "red" | "amber" | "black" }) {
-  const color = tone === "red" ? "text-red-600" : tone === "amber" ? "text-amber-700" : "text-zinc-950";
+function MiniMetric({ label, value, tone }: { label: string; value: string; tone: "red" | "amber" | "black" | "emerald" }) {
+  const color = tone === "red" ? "text-red-600" : tone === "amber" ? "text-amber-700" : tone === "emerald" ? "text-emerald-700" : "text-zinc-950";
   return <div className="border border-zinc-200 p-4 bg-zinc-50"><p className="text-[10px] font-mono uppercase tracking-wider text-zinc-500">{label}</p><p className={`text-2xl font-black mt-2 ${color}`}>{value}</p></div>;
 }
 

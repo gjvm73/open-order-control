@@ -150,6 +150,10 @@ function parseExcelDate(raw: any): string {
 
 function parsePredictionDate(raw: any): string {
   const parsed = parseExcelDate(raw);
+  const normalizedStatus = parsed.toLocaleLowerCase("pt-BR");
+  if (normalizedStatus.includes("sem fornecedor")) return "Sem fornecedor";
+  if (normalizedStatus.includes("obsoleto")) return "Obsoleto";
+  if (normalizedStatus.includes("aguardando prazo") || normalizedStatus.includes("sem prazo")) return "Aguardando prazo";
   const isoMatch = parsed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!isoMatch) return "Sem previsão";
 

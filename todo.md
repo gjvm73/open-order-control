@@ -235,3 +235,9 @@
 - [x] Tornar a chave de desambiguação das linhas duplicadas determinística em todos os uploads, sem depender da posição no arquivo
 - [x] Adicionar teste de integração com reordenação das linhas duplicadas entre uploads
 - [x] Importar a planilha real 01.xlsx no fluxo da aplicação e confirmar 49 itens no upload, na base operacional e no dashboard
+
+### Pendências registradas em 17/08/2026 - classificação de prazo e status
+- [x] Classificar itens ativos em Sem fornecedor, Obsoletos, Sem prazo e Com prazo no backend
+- [x] Garantir que somente previsões com data válida sejam contabilizadas como Com prazo
+- [x] Exibir quatro cartões de classificação no dashboard com a nova regra
+- [x] Adicionar testes de classificação e validar visualmente os cartões
