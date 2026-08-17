@@ -883,7 +883,15 @@ export default function Home() {
             </div>
             {pendingAging.withoutCreationDate > 0 && <p className="text-[10px] font-mono text-zinc-500 mt-3">{pendingAging.withoutCreationDate} item(ns) não entrou(ram) nas faixas por não possuir(em) Data de criação válida.</p>}
           </div>
-          <div className="flex flex-wrap items-center gap-3"><Badge className="rounded-none bg-zinc-950 text-white font-mono">{completeChangesReport.length} alteração(ões)</Badge>{reportShipTo && <Badge className="rounded-none bg-red-600 text-white font-mono">Filial: {reportShipTo}</Badge>}{(reportStartDate || reportEndDate) && <span className="text-[10px] font-mono text-zinc-500">Período: {formatDate(reportStartDate)} até {formatDate(reportEndDate)}</span>}</div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Badge className="rounded-none bg-zinc-950 text-white font-mono">
+              {pendingAging.total} {pendingAging.total === 1 ? "pendência com alteração" : "pendências com alteração"}
+            </Badge>
+            {completeChangesReport.length > 0 && <span className="text-[10px] font-mono text-zinc-500">{completeChangesReport.length} {completeChangesReport.length === 1 ? "evento no histórico" : "eventos no histórico"}</span>}
+            {reportShipTo && <Badge className="rounded-none bg-red-600 text-white font-mono">Filial: {reportShipTo}</Badge>}
+            {(reportStartDate || reportEndDate) && <span className="text-[10px] font-mono text-zinc-500">Período: {formatDate(reportStartDate)} até {formatDate(reportEndDate)}</span>}
+          </div>
+          {completeChangesReport.length > pendingAging.total && <p className="text-[10px] font-mono text-zinc-500">A tabela mantém todos os eventos de alteração para rastreabilidade, mesmo quando uma pendência sofreu mais de uma mudança.</p>}
           <div className="border border-zinc-900 bg-white">
             <table aria-label="Alterações do relatório gerencial" className="w-full table-fixed text-left border-collapse">
               <colgroup>

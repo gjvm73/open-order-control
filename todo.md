@@ -295,3 +295,14 @@
 - [x] Identificar o status de entrega nas alterações retornadas pelo Relatório Gerencial
 - [x] Excluir eventos de itens entregues da tabela, indicadores, envelhecimento e gráfico do relatório
 - [x] Validar que os itens entregues permaneçam apenas na guia Itens Entregues
+
+### Pendências registradas em 17/08/2026 - habilidade reutilizável
+- [x] Estruturar uma habilidade reutilizável para evolução de sistemas de controle de Open Orders
+- [x] Documentar o fluxo de dados, validação, relatórios e critérios de qualidade
+- [x] Validar e entregar o pacote da habilidade ao usuário
+
+### Pendências registradas em 17/08/2026 - contagem de alterações do relatório
+- [x] Reproduzir a diferença entre itens ativos e alterações exibidas no Relatório Gerencial
+- [x] Ajustar a regra de consolidação para refletir a quantidade operacional esperada
+- [x] Cobrir a divergência com teste de regressão e validar a carga atual
+- [x] Salvar e entregar a correção validada

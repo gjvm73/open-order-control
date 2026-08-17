@@ -10,6 +10,7 @@ const deliveredItemsRefetch = vi.hoisted(() => vi.fn().mockResolvedValue(undefin
 const completeChangesReportRefetch = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const deliveredItemsInvalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const completeChangesReportInvalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const completeChangesReportRows = vi.hoisted(() => ({ current: [] as any[] }));
 const resetImportsMutate = vi.hoisted(() => vi.fn().mockResolvedValue({ deletedUploads: 1, deletedItems: 4, deletedHistory: 2 }));
 const uploadExcelMutate = vi.hoisted(() => vi.fn());
 const authState = vi.hoisted(() => ({ user: null as { role: string; name: string } | null, isAuthenticated: false, logout: vi.fn() }));
@@ -31,7 +32,7 @@ vi.mock("@/lib/trpc", () => ({
       getBranchSummary: { useQuery: () => emptyQuery(branchSummary) },
       getAlerts: { useQuery: () => emptyQuery({ alerts: [{ id: 42, severity: "CRÍTICO", direction: "ADIAMENTO", item: "ITEM-42", itemDescription: "Item de teste", shipTo: "PORTO ALEGRE", customerPo: "PO-42", previousPrediction: "2025-05-01", currentPrediction: "2025-05-20", differenceDays: 19 }], summary: { totalAlerts: 1, criticalCount: 1, attentionCount: 0, criticalRatio: 100, attentionRatio: 0 } }) },
       getAlertsTrend: { useQuery: () => emptyQuery([]) },
-      getCompleteChangesReport: { useQuery: () => ({ ...emptyQuery([]), refetch: completeChangesReportRefetch }) },
+      getCompleteChangesReport: { useQuery: () => ({ ...emptyQuery(completeChangesReportRows.current), refetch: completeChangesReportRefetch }) },
       getItemDetail: { useQuery: itemDetailQuery },
       resetImports: { useMutation: () => ({ mutateAsync: resetImportsMutate, isPending: false }) },
       getPrioritizationSettings: { useQuery: () => emptyQuery(null) },
@@ -56,6 +57,7 @@ beforeEach(() => {
   statsQuery.mockReturnValue(defaultStats);
   authState.user = null;
   authState.isAuthenticated = false;
+  completeChangesReportRows.current = [];
   vi.clearAllMocks();
 });
 
@@ -132,6 +134,31 @@ describe("histórico acionado pelos Alertas de Variação", () => {
 
     expect(screen.getByText("Dias pendentes por item ativo")).toBeTruthy();
     expect(screen.getByLabelText("Gráfico de colunas da distribuição de dias pendentes")).toBeTruthy();
+  });
+
+  it("separa pendências únicas dos eventos históricos no Relatório Gerencial", () => {
+    itemDetailQuery.mockReturnValue(emptyQuery(null));
+    completeChangesReportRows.current = [
+      {
+        historyId: 10, orderItemId: 88, item: "ITEM-88", itemDescription: "Item em acompanhamento", shipTo: "PORTO ALEGRE", customerPo: "PO-88",
+        previousPrediction: "2026-07-10", currentPredictionAtChange: "2026-07-30", currentPrediction: "2026-08-12", differenceDays: 20,
+        direction: "ADIAMENTO", quantity: "2", extendedPrice: "1500", status: "active", orderCreationDate: "2026-06-01",
+        predictionChangesCount: 2, lastPredictionChangeDate: "2026-08-17T12:00:00.000Z", fileName: "semana-2.xlsx", changedAt: "2026-07-20T12:00:00.000Z",
+      },
+      {
+        historyId: 11, orderItemId: 88, item: "ITEM-88", itemDescription: "Item em acompanhamento", shipTo: "PORTO ALEGRE", customerPo: "PO-88",
+        previousPrediction: "2026-07-30", currentPredictionAtChange: "2026-08-12", currentPrediction: "2026-08-12", differenceDays: 13,
+        direction: "ADIAMENTO", quantity: "2", extendedPrice: "1500", status: "active", orderCreationDate: "2026-06-01",
+        predictionChangesCount: 2, lastPredictionChangeDate: "2026-08-17T12:00:00.000Z", fileName: "semana-3.xlsx", changedAt: "2026-08-17T12:00:00.000Z",
+      },
+    ];
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Relatório Gerencial" }));
+
+    expect(screen.getByText("1 pendência com alteração")).toBeTruthy();
+    expect(screen.getByText("2 eventos no histórico")).toBeTruthy();
+    expect(screen.getByText(/A tabela mantém todos os eventos/)).toBeTruthy();
   });
 
   it("recarrega Itens Entregues e Relatório Gerencial após reset das importações", async () => {
