@@ -43,6 +43,13 @@
       "when": 1786802407044,
       "tag": "0005_curious_white_tiger",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1786964489775,
+      "tag": "0006_dapper_post",
+      "breakpoints": true
     }
   ]
 }

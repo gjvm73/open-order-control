@@ -79,6 +79,7 @@ export const prioritizationSettings = mysqlTable("prioritization_settings", {
   noSupplierWeight: int("noSupplierWeight").notNull().default(5),
   overdueWeight: int("overdueWeight").notNull().default(3),
   highPriorityWeight: int("highPriorityWeight").notNull().default(2),
+  financialImpactWeight: int("financialImpactWeight").notNull().default(3),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 

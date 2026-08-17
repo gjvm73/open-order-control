@@ -182,3 +182,6 @@
 - [x] Normalizar previsões vazias, inválidas ou sem data como “Sem previsão” no upload
 - [x] Exibir “Sem previsão” de modo consistente no dashboard, alertas, histórico e exportações
 - [x] Adicionar testes de importação para a coluna Previsão sem data
+- [x] Adicionar impacto financeiro como critério configurável no score da Fila de Ação
+- [x] Atualizar a configuração, simulação e explicação do score com o novo peso financeiro
+- [x] Cobrir o impacto financeiro com testes e validar a aplicação

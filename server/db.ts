@@ -25,6 +25,7 @@ export const DEFAULT_PRIORITIZATION_WEIGHTS = {
   noSupplierWeight: 5,
   overdueWeight: 3,
   highPriorityWeight: 2,
+  financialImpactWeight: 3,
 } as const;
 
 export type PrioritizationWeights = {
@@ -32,6 +33,7 @@ export type PrioritizationWeights = {
   noSupplierWeight: number;
   overdueWeight: number;
   highPriorityWeight: number;
+  financialImpactWeight: number;
 };
 
 export type PrioritizationSettingsResponse = PrioritizationWeights & {
@@ -50,6 +52,7 @@ export async function getPrioritizationSettings(): Promise<PrioritizationSetting
     noSupplierWeight: settings.noSupplierWeight,
     overdueWeight: settings.overdueWeight,
     highPriorityWeight: settings.highPriorityWeight,
+    financialImpactWeight: settings.financialImpactWeight,
     updatedAt: settings.updatedAt,
   };
 }
@@ -574,21 +577,30 @@ export async function getDashboardStats(shipTo?: string) {
   }).length;
   const totalOrderValue = allItems.reduce((sum, item) => sum + toNumber(item.extendedPrice), 0);
   const valueAtRisk = changedItems.reduce((sum, item) => sum + toNumber(item.extendedPrice), 0);
+  const highestItemValue = Math.max(...allItems.map((item) => Math.max(0, toNumber(item.extendedPrice))), 0);
 
   const rankItem = (item: typeof allItems[number]) => {
     const predictionDate = parsePredictionDate(item.currentPrediction);
     const supplierIssue = isNoSupplier(item.currentPrediction);
     const overdue = Boolean(predictionDate && predictionDate < today);
     const highPriority = (item.shipmentPriority || "").toLowerCase() === "high";
+    const financialImpactScore = highestItemValue > 0 && prioritizationWeights.financialImpactWeight > 0
+      ? Math.min(
+        prioritizationWeights.financialImpactWeight,
+        Math.ceil((Math.max(0, toNumber(item.extendedPrice)) / highestItemValue) * prioritizationWeights.financialImpactWeight)
+      )
+      : 0;
     const score = item.predictionChangesCount * prioritizationWeights.predictionChangeWeight
       + (supplierIssue ? prioritizationWeights.noSupplierWeight : 0)
       + (overdue ? prioritizationWeights.overdueWeight : 0)
-      + (highPriority ? prioritizationWeights.highPriorityWeight : 0);
+      + (highPriority ? prioritizationWeights.highPriorityWeight : 0)
+      + financialImpactScore;
     const reasons = [];
     if (supplierIssue) reasons.push("Sem fornecedor");
     if (item.predictionChangesCount > 0) reasons.push(`${item.predictionChangesCount} alterações`);
     if (overdue) reasons.push("Previsão vencida");
     if (highPriority) reasons.push("Prioridade alta");
+    if (financialImpactScore > 0) reasons.push(`Impacto financeiro +${financialImpactScore} pts`);
 
     return {
       id: item.id,
@@ -601,6 +613,7 @@ export async function getDashboardStats(shipTo?: string) {
       predictionChangesCount: item.predictionChangesCount,
       lastPredictionChangeDate: item.lastPredictionChangeDate,
       extendedPrice: toNumber(item.extendedPrice),
+      financialImpactScore,
       riskScore: score,
       riskLevel: score >= 8 ? "CRÍTICO" : score >= 4 ? "ATENÇÃO" : "MONITORAR",
       reasons: reasons.length > 0 ? reasons : ["Sem alteração registrada"],
@@ -610,7 +623,7 @@ export async function getDashboardStats(shipTo?: string) {
   const actionQueue = allItems
     .map(rankItem)
     .filter(item => item.riskScore > 0)
-    .sort((a, b) => b.riskScore - a.riskScore || b.predictionChangesCount - a.predictionChangesCount)
+    .sort((a, b) => b.riskScore - a.riskScore || b.financialImpactScore - a.financialImpactScore || b.predictionChangesCount - a.predictionChangesCount)
     .slice(0, 10);
 
   const mostChanged = [...allItems]

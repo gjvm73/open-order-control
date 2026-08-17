@@ -1,0 +1,1 @@
+ALTER TABLE `prioritization_settings` ADD `financialImpactWeight` int DEFAULT 3 NOT NULL;

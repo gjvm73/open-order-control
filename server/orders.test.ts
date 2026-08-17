@@ -61,6 +61,7 @@ describe("Open Orders Backend & Upload Logic", () => {
       noSupplierWeight: 6,
       overdueWeight: 5,
       highPriorityWeight: 4,
+      financialImpactWeight: 3,
     })).rejects.toMatchObject({ code: "FORBIDDEN" });
 
     const adminContext: TrpcContext = {
@@ -86,12 +87,14 @@ describe("Open Orders Backend & Upload Logic", () => {
         noSupplierWeight: 6,
         overdueWeight: 5,
         highPriorityWeight: 4,
+        financialImpactWeight: 3,
       });
       expect(saved).toMatchObject({
         predictionChangeWeight: 7,
         noSupplierWeight: 6,
         overdueWeight: 5,
         highPriorityWeight: 4,
+        financialImpactWeight: 3,
       });
 
       const readBack = await anonymousCaller.orders.getPrioritizationSettings();
@@ -100,6 +103,7 @@ describe("Open Orders Backend & Upload Logic", () => {
         noSupplierWeight: 6,
         overdueWeight: 5,
         highPriorityWeight: 4,
+        financialImpactWeight: 3,
       });
     } finally {
       const restored = await adminCaller.orders.resetPrioritizationSettings();
@@ -229,6 +233,24 @@ describe("Open Orders Backend & Upload Logic", () => {
     const itemWithoutPredictionResult = items.find(i => i.item === itemWithoutPrediction && i.customerPo === customerPo);
     expect(itemWithoutPredictionResult?.currentPrediction).toBe("Sem previsão");
 
+    try {
+      await caller.orders.updatePrioritizationSettings({
+        predictionChangeWeight: 0,
+        noSupplierWeight: 0,
+        overdueWeight: 0,
+        highPriorityWeight: 0,
+        financialImpactWeight: 10,
+      });
+      const financialStats = await caller.orders.getStats({ shipTo: "TESTE RS" });
+      const highValueItem = financialStats.actionQueue.find((entry) => entry.item === itemCode && entry.customerPo === customerPo);
+      const lowValueItem = financialStats.actionQueue.find((entry) => entry.item === itemWithoutPrediction && entry.customerPo === customerPo);
+      expect(highValueItem).toMatchObject({ financialImpactScore: 10, riskScore: 10 });
+      expect(lowValueItem).toMatchObject({ financialImpactScore: 1, riskScore: 1 });
+      expect(financialStats.actionQueue[0]?.item).toBe(itemCode);
+    } finally {
+      await caller.orders.resetPrioritizationSettings();
+    }
+
     // Segundo upload com mudança na Previsão
     const wsData2 = [
       {
@@ -341,6 +363,7 @@ describe("Open Orders Backend & Upload Logic", () => {
         noSupplierWeight: 0,
         overdueWeight: 0,
         highPriorityWeight: 0,
+        financialImpactWeight: 0,
       });
       const weightedStats = await caller.orders.getStats({ shipTo: "TESTE RS" });
       const weightedItem = weightedStats.actionQueue.find((entry) => entry.item === itemCode && entry.customerPo === customerPo);
