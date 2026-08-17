@@ -4,6 +4,7 @@ import * as db from "./db";
 import type { TrpcContext } from "./_core/context";
 import * as XLSX from "xlsx";
 import { normalizeShipTo } from "./shipTo";
+import { readFileSync } from "node:fs";
 
 describe("Open Orders Backend & Upload Logic", () => {
   it("allows fetching dashboard stats and item list", async () => {
@@ -387,6 +388,151 @@ describe("Open Orders Backend & Upload Logic", () => {
 
     const alertResponse40 = await caller.orders.getAlerts({ thresholdDays: 40, shipTo: "TESTE RS" });
     expect(alertResponse40.alerts.some((alert) => alert.item === itemCode && alert.customerPo === customerPo)).toBe(false);
+  });
+
+  it("preserves all rows when two lines share the base business key", async () => {
+    const suffix = Date.now();
+    const shipTo = `TEST DUP RS ${suffix}`;
+    const rows = Array.from({ length: 47 }, (_, index) => ({
+      "Endereco (ship To)": shipTo,
+      "Customer PO": `PO-${suffix}-${index}`,
+      "Shipment Priority": "Standard",
+      "Data Criacao da Ordem": new Date("2025-01-01T00:00:00.000Z"),
+      "Item": `ITEM-DUP-${suffix}-${index}`,
+      "Descricao do Item": `ITEM ${index}`,
+      "Quantidade": 1,
+      "Scheduled Reserved": 0,
+      "Unit Selling Price": 10,
+      "Extended Price": 10,
+      "Previsão": "2026-06-01",
+      "Long Text": "",
+    }));
+    rows.push(
+      {
+        "Endereco (ship To)": shipTo,
+        "Customer PO": `PO-DUP-${suffix}`,
+        "Shipment Priority": "High",
+        "Data Criacao da Ordem": new Date("2025-02-28T00:00:00.000Z"),
+        "Item": `ITEM-DUPLICATE-${suffix}`,
+        "Descricao do Item": "PORCA TRAVA",
+        "Quantidade": 1,
+        "Scheduled Reserved": 0,
+        "Unit Selling Price": 30.04,
+        "Extended Price": 30.04,
+        "Previsão": "2026-05-26",
+        "Long Text": "",
+      },
+      {
+        "Endereco (ship To)": shipTo,
+        "Customer PO": `PO-DUP-${suffix}`,
+        "Shipment Priority": "High",
+        "Data Criacao da Ordem": new Date("2025-04-09T00:00:00.000Z"),
+        "Item": `ITEM-DUPLICATE-${suffix}`,
+        "Descricao do Item": "PORCA TRAVA",
+        "Quantidade": 1,
+        "Scheduled Reserved": 0,
+        "Unit Selling Price": 30.04,
+        "Extended Price": 30.04,
+        "Previsão": "2026-05-26",
+        "Long Text": "",
+      },
+    );
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, "OpenOrders");
+    const base64 = XLSX.write(wb, { type: "buffer", bookType: "xlsx" }).toString("base64");
+    const ctx: TrpcContext = {
+      user: {
+        id: 1,
+        openId: `test-admin-duplicates-${suffix}`,
+        name: "Test Admin",
+        email: `admin-duplicates-${suffix}@test.com`,
+        loginMethod: "manus",
+        role: "admin",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      },
+      req: { protocol: "https", headers: {} } as any,
+      res: {} as any,
+    };
+
+    const result = await appRouter.createCaller(ctx).orders.uploadExcel({
+      fileName: `duplicated-rows-${suffix}.xlsx`,
+      fileBase64: base64,
+    });
+    expect(result.success).toBe(true);
+    expect(result.totalRows).toBe(49);
+
+    const items = await appRouter.createCaller(ctx).orders.listItems({ shipTo });
+    expect(items).toHaveLength(49);
+    expect(items.filter((item) => item.item === `ITEM-DUPLICATE-${suffix}`)).toHaveLength(2);
+
+    const reorderedRows = [...rows].reverse().map((row) =>
+      row["Data Criacao da Ordem"] instanceof Date &&
+        row["Item"] === `ITEM-DUPLICATE-${suffix}` &&
+        row["Data Criacao da Ordem"].toISOString().startsWith("2025-04-09")
+        ? { ...row, "Previsão": "2026-06-30" }
+        : row,
+    );
+    const reorderedWorkbook = XLSX.utils.book_new();
+    const reorderedSheet = XLSX.utils.json_to_sheet(reorderedRows);
+    XLSX.utils.book_append_sheet(reorderedWorkbook, reorderedSheet, "OpenOrders");
+    const reorderedBase64 = XLSX.write(reorderedWorkbook, { type: "buffer", bookType: "xlsx" }).toString("base64");
+    const secondResult = await appRouter.createCaller(ctx).orders.uploadExcel({
+      fileName: `duplicated-rows-reordered-${suffix}.xlsx`,
+      fileBase64: reorderedBase64,
+    });
+    expect(secondResult.success).toBe(true);
+    expect(secondResult.totalRows).toBe(49);
+    expect(secondResult.changedRowsCount).toBe(1);
+
+    const itemsAfterReorder = await appRouter.createCaller(ctx).orders.listItems({ shipTo });
+    expect(itemsAfterReorder).toHaveLength(49);
+    const duplicatedItems = itemsAfterReorder
+      .filter((item) => item.item === `ITEM-DUPLICATE-${suffix}`)
+      .sort((left, right) => String(left.orderCreationDate).localeCompare(String(right.orderCreationDate)));
+    expect(duplicatedItems).toHaveLength(2);
+    expect(duplicatedItems[0].currentPrediction).toBe("2026-05-26");
+    expect(duplicatedItems[1].currentPrediction).toBe("2026-06-30");
+    expect(duplicatedItems[1].predictionChangesCount).toBe(1);
+    const changedDetail = await appRouter.createCaller(ctx).orders.getItemDetail({ id: duplicatedItems[1].id });
+    expect(changedDetail.history).toHaveLength(2);
+    expect(changedDetail.history[1].prediction).toBe("2026-06-30");
+  });
+
+  it("imports the real 01.xlsx fixture with all 49 active items", async () => {
+    const ctx: TrpcContext = {
+      user: {
+        id: 1,
+        openId: `test-admin-real-fixture-${Date.now()}`,
+        name: "Test Admin",
+        email: `admin-real-fixture-${Date.now()}@test.com`,
+        loginMethod: "manus",
+        role: "admin",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      },
+      req: { protocol: "https", headers: {} } as any,
+      res: {} as any,
+    };
+    const caller = appRouter.createCaller(ctx);
+    await caller.orders.resetImports();
+    const fileBase64 = readFileSync("/home/ubuntu/open-order-control/server/fixtures/01.xlsx").toString("base64");
+    const result = await caller.orders.uploadExcel({
+      fileName: "01.xlsx",
+      fileBase64,
+    });
+    expect(result.success).toBe(true);
+    expect(result.totalRows).toBe(49);
+    const items = await caller.orders.listItems();
+    expect(items).toHaveLength(49);
+    const stats = await caller.orders.getStats();
+    expect(stats.totalItems).toBe(49);
+    const branchSummary = await caller.orders.getBranchSummary();
+    expect(branchSummary.reduce((sum, branch) => sum + branch.totalItems, 0)).toBe(49);
   });
 
   it("handles shifted headers and tracks history across multiple weekly uploads correctly", async () => {

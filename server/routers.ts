@@ -10,6 +10,7 @@ import * as XLSX from "xlsx";
 import { normalizeShipTo } from "./shipTo";
 import { authenticateLocalAdmin, clearAdminSession, setAdminSession } from "./adminAuth";
 import { TRPCError } from "@trpc/server";
+import { createHash } from "node:crypto";
 
 function normalizeComparisonPart(value: string) {
   return value.trim().toLocaleUpperCase("pt-BR");
@@ -17,6 +18,35 @@ function normalizeComparisonPart(value: string) {
 
 function buildComparisonKey(shipTo: string, itemCode: string, customerPo: string) {
   return `${normalizeComparisonPart(shipTo || "SEM FILIAL INFORMADA")}::${normalizeComparisonPart(itemCode)}::${normalizeComparisonPart(customerPo || "SEM PO")}`;
+}
+
+type SourceFingerprintFields = {
+  orderCreationDate?: string | null;
+  itemDescription?: string | null;
+  quantity?: string | number | null;
+  scheduledReserved?: string | number | null;
+  unitSellingPrice?: string | number | null;
+  extendedPrice?: string | number | null;
+  prediction?: string | null;
+  currentPrediction?: string | null;
+  longText?: string | null;
+};
+
+function buildSourceFingerprint(row: SourceFingerprintFields) {
+  return [
+    row.orderCreationDate,
+    row.itemDescription,
+    row.quantity,
+    row.scheduledReserved,
+    row.unitSellingPrice,
+    row.extendedPrice,
+    row.longText,
+  ].map((value) => normalizeComparisonPart(String(value ?? ""))).join("|");
+}
+
+function buildStableDuplicateKey(baseComparisonKey: string, row: SourceFingerprintFields, ordinal: number) {
+  const digest = createHash("sha1").update(buildSourceFingerprint(row)).digest("hex").slice(0, 16);
+  return `${baseComparisonKey}::DUP:${digest}::${ordinal + 1}`;
 }
 
 function normalizeExcelHeader(value: unknown): string {
@@ -299,10 +329,12 @@ export const appRouter = router({
           extendedPrice: string;
           prediction: string;
           longText: string;
+          baseComparisonKey: string;
           comparisonKey: string;
         };
 
-        const preparedByKey = new Map<string, PreparedRow>();
+        type RawPreparedRow = Omit<PreparedRow, "comparisonKey">;
+        const rawPreparedRows: RawPreparedRow[] = [];
         for (const row of rows) {
           const shipToVal = getExcelRowValue(row, ['Endereco (ship To)', 'Endereço (ship To)', 'Ship To', 'Filial', 'Endereço', 'Endereco', 'ShipTo']);
           const shipTo = normalizeShipTo(shipToVal);
@@ -320,7 +352,7 @@ export const appRouter = router({
           const itemCode = String(itemCodeVal || '').trim();
           if (!itemCode) continue;
 
-          const comparisonKey = buildComparisonKey(shipTo, itemCode, customerPo);
+          const baseComparisonKey = buildComparisonKey(shipTo, itemCode, customerPo);
 
           const itemDescriptionVal = getExcelRowValue(row, ['Descricao do Item', 'Descrição do Item', 'Descrição', 'Descricao', 'Item Description']);
           const itemDescription = String(itemDescriptionVal || '');
@@ -343,9 +375,9 @@ export const appRouter = router({
           const longTextVal = getExcelRowValue(row, ['Long Text', 'Observações', 'Observacoes', 'Notes', 'Texto Longo']);
           const longText = String(longTextVal || '');
 
-          preparedByKey.set(comparisonKey, {
+          rawPreparedRows.push({
             shipTo,
-            comparisonKey,
+            baseComparisonKey,
             customerPo,
             shipmentPriority,
             orderCreationDate,
@@ -360,7 +392,28 @@ export const appRouter = router({
           });
         }
 
-        const preparedRows = Array.from(preparedByKey.values());
+        const rowsByBaseKey = new Map<string, RawPreparedRow[]>();
+        for (const row of rawPreparedRows) {
+          const group = rowsByBaseKey.get(row.baseComparisonKey) ?? [];
+          group.push(row);
+          rowsByBaseKey.set(row.baseComparisonKey, group);
+        }
+
+        // Para grupos duplicados, todas as ocorrências recebem uma chave baseada
+        // em fingerprint do conteúdo. Isso mantém a mesma chave mesmo se a planilha
+        // mudar a ordem das linhas entre uploads.
+        const preparedRows: PreparedRow[] = [];
+        for (const group of Array.from(rowsByBaseKey.values())) {
+          const orderedGroup = [...group].sort((left, right) =>
+            buildSourceFingerprint(left).localeCompare(buildSourceFingerprint(right), "pt-BR"),
+          );
+          orderedGroup.forEach((row: RawPreparedRow, index: number) => {
+            const comparisonKey = orderedGroup.length === 1
+              ? row.baseComparisonKey
+              : buildStableDuplicateKey(row.baseComparisonKey, row, index);
+            preparedRows.push({ ...row, comparisonKey });
+          });
+        }
         if (preparedRows.length === 0) {
           throw new Error("Nenhuma linha válida foi reconhecida. Verifique se a planilha contém as colunas de Item e Previsão de entrega no cabeçalho.");
         }
@@ -372,7 +425,46 @@ export const appRouter = router({
             changedRowsCount: 0,
           });
           const uploadId = Number(uploadResult.insertId);
-          const comparisonKeys = Array.from(new Set(preparedRows.map((row) => row.comparisonKey)));
+          const duplicateBaseKeys = Array.from(new Set(
+            Array.from(rowsByBaseKey.entries())
+              .filter(([, group]) => group.length > 1)
+              .map(([baseKey]) => baseKey),
+          ));
+          const duplicateCandidates = duplicateBaseKeys.length > 0
+            ? await tx.select().from(db.orderItems)
+                .where(db.or(...duplicateBaseKeys.map((baseKey) => db.or(
+                  db.eq(db.orderItems.comparisonKey, baseKey),
+                  db.like(db.orderItems.comparisonKey, `${baseKey}::DUP:%`),
+                ))))
+                .orderBy(asc(db.orderItems.id))
+            : [];
+          const candidatesByFingerprint = new Map<string, typeof duplicateCandidates>();
+          for (const baseKey of duplicateBaseKeys) {
+            for (const candidate of duplicateCandidates) {
+              if (candidate.comparisonKey !== baseKey && !candidate.comparisonKey.startsWith(`${baseKey}::DUP:`)) continue;
+              const fingerprintKey = `${baseKey}::${buildSourceFingerprint({
+                orderCreationDate: candidate.orderCreationDate,
+                itemDescription: candidate.itemDescription,
+                quantity: candidate.quantity,
+                scheduledReserved: candidate.scheduledReserved,
+                unitSellingPrice: candidate.unitSellingPrice,
+                extendedPrice: candidate.extendedPrice,
+                currentPrediction: candidate.currentPrediction,
+                longText: candidate.longText,
+              })}`;
+              const matches = candidatesByFingerprint.get(fingerprintKey) ?? [];
+              matches.push(candidate);
+              candidatesByFingerprint.set(fingerprintKey, matches);
+            }
+          }
+          const preparedRowsForUpload = preparedRows.map((row) => {
+            if (!duplicateBaseKeys.includes(row.baseComparisonKey)) return row;
+            const fingerprintKey = `${row.baseComparisonKey}::${buildSourceFingerprint(row)}`;
+            const matches = candidatesByFingerprint.get(fingerprintKey);
+            const historicalMatch = matches?.shift();
+            return historicalMatch ? { ...row, comparisonKey: historicalMatch.comparisonKey } : row;
+          });
+          const comparisonKeys = Array.from(new Set(preparedRowsForUpload.map((row) => row.comparisonKey)));
           const existingRows = comparisonKeys.length > 0
             ? await tx.select().from(db.orderItems).where(inArray(db.orderItems.comparisonKey, comparisonKeys))
             : [];
@@ -393,7 +485,7 @@ export const appRouter = router({
               latestHistoryByItemId.set(historyRow.orderItemId, historyRow.prediction);
             }
           }
-          const changedExistingRows = preparedRows.map((row) => {
+          const changedExistingRows = preparedRowsForUpload.map((row) => {
             const existing = existingByKey.get(row.comparisonKey);
             if (!existing) return null;
             const previousPrediction = latestHistoryByItemId.get(existing.id) ?? existing.currentPrediction;
@@ -408,7 +500,7 @@ export const appRouter = router({
 
           const importBatchSize = 500;
           for (let start = 0; start < preparedRows.length; start += importBatchSize) {
-            const batch = preparedRows.slice(start, start + importBatchSize);
+            const batch = preparedRowsForUpload.slice(start, start + importBatchSize);
             await tx.insert(db.orderItems).values(batch.map((row) => ({
               shipTo: row.shipTo,
               comparisonKey: row.comparisonKey,
@@ -480,7 +572,7 @@ export const appRouter = router({
             ? await tx.select().from(db.orderItems).where(inArray(db.orderItems.comparisonKey, comparisonKeys))
             : [];
           const refreshedByKey = new Map(refreshedRows.map((item) => [item.comparisonKey, item] as const));
-          const historyRows = preparedRows.map((row) => {
+          const historyRows = preparedRowsForUpload.map((row) => {
             const item = refreshedByKey.get(row.comparisonKey);
             if (!item) throw new Error(`Não foi possível localizar o item ${row.itemCode} após o upsert.`);
             return {

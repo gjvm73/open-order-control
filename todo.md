@@ -189,3 +189,49 @@
 - [x] Adicionar teste de agregação de vencimentos por filial e validar o dashboard
 - [x] Cobrir o resumo de vencimentos com múltiplas filiais e contagens exatas por filial
 - [x] Adicionar evidência automatizada do consumo de vencimentos por filial no dashboard estratégico
+- [x] Investigar por que uma planilha com 49 itens resulta em 48 itens ativos após a importação
+- [x] Corrigir a perda ou consolidação indevida de linha no upload e adicionar teste de contagem integral
+
+### Pendências registradas em 17/08/2026
+- [x] Investigar por que uma planilha com 49 itens resulta em 48 itens ativos após a importação
+- [x] Corrigir a perda ou consolidação indevida de linha no upload e adicionar teste de contagem integral
+
+### Pendências registradas em 17/08/2026 - diagnóstico de importação
+- [x] Confirmar se a diferença ocorre por item duplicado na chave Ship To + Item + Customer PO ou por linha rejeitada no parser
+- [ ] Exibir no resultado do upload a quantidade de linhas lidas, aceitas, consolidadas e rejeitadas, com motivo da rejeição
+- [x] Adicionar teste de importação que preserve 49 linhas válidas e identifique duplicidades explicitamente
+
+### Pendências registradas em 17/08/2026 - rastreabilidade da divergência
+- [x] Reproduzir a planilha de teste e identificar o item específico que não aparece na listagem
+- [x] Corrigir a causa-raiz da perda de item sem alterar a regra de consolidação histórica
+- [x] Validar a contagem no dashboard, na base operacional e no resultado do upload
+
+### Pendências registradas em 17/08/2026 - validação de importação
+- [x] Adicionar teste para garantir que linhas com valores válidos em Item, Previsão, Ship To e Customer PO não sejam descartadas
+- [x] Adicionar teste separado para confirmar o comportamento esperado quando duas linhas compartilham a mesma chave de negócio
+- [ ] Atualizar a mensagem de resultado do upload para explicar claramente itens consolidados ou rejeitados
+
+### Pendências registradas em 17/08/2026 - acompanhamento
+- [x] Confirmar com a planilha real se as 49 linhas representam itens distintos ou se existe uma duplicidade pela chave de negócio
+- [ ] Registrar no histórico do upload o motivo de qualquer diferença entre linhas lidas e itens ativos
+- [x] Validar a correção com a planilha real de 49 itens
+
+### Pendências registradas em 17/08/2026 - item ausente
+- [x] Identificar o item ausente comparando as 49 linhas da planilha com os 48 itens exibidos
+- [x] Corrigir o processamento para não descartar a linha válida ausente
+- [x] Cobrir a contagem de 49 itens em teste automatizado
+
+### Pendências registradas em 17/08/2026 - investigação atual
+- [x] Reproduzir a diferença de 49 para 48 usando a planilha fornecida pelo usuário
+- [x] Determinar se a diferença decorre de deduplicação por chave Ship To + Item + Customer PO
+- [x] Preservar todas as linhas válidas ou informar explicitamente a consolidação no resultado do upload
+- [x] Validar a correção no dashboard, na base operacional e nos relatórios
+- [x] Analisar a planilha 01.xlsx anexada e identificar a linha que colapsa ou não é importada
+- [x] Corrigir a causa da divergência de 49 linhas para 48 itens no cenário real
+- [x] Adicionar teste automatizado específico para a planilha 01.xlsx ou para a chave duplicada encontrada
+- [x] Validar contagens no upload, na base operacional e no dashboard após a correção
+
+### Pendências registradas em 17/08/2026 - estabilidade das duplicidades
+- [x] Tornar a chave de desambiguação das linhas duplicadas determinística em todos os uploads, sem depender da posição no arquivo
+- [x] Adicionar teste de integração com reordenação das linhas duplicadas entre uploads
+- [x] Importar a planilha real 01.xlsx no fluxo da aplicação e confirmar 49 itens no upload, na base operacional e no dashboard
