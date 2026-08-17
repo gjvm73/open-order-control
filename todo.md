@@ -257,3 +257,9 @@
 - [x] Criar item de menu próprio para o Relatório Completo de Alterações
 - [x] Implementar navegação direta para o módulo e acesso de retorno ao dashboard
 - [x] Validar a navegação, os testes e o preview antes de salvar o ponto de verificação
+
+### Pendências registradas em 17/08/2026 - envelhecimento de pendências
+- [x] Mapear o campo Data de criação e calcular faixas de idade das pendências
+- [x] Exibir no Relatório Gerencial os indicadores Até 30 dias, 31–60 dias, 61–90 dias e Maior que 90 dias
+- [x] Integrar a visualização aos filtros de filial e período do relatório
+- [x] Adicionar testes, validar visualmente e salvar a atualização
