@@ -1038,11 +1038,12 @@ describe("Open Orders Backend & Upload Logic", () => {
     const activeBefore = await caller.orders.listItems();
     expect(activeBefore).toHaveLength(2);
 
-    // Upload semana 2: ITEM-B desapareceu (deve ser marcado como entregue), ITEM-A continua
+    // Upload semana 2: ITEM-B sofre alteração de previsão, enquanto ITEM-A continua estável.
     const wb2 = XLSX.utils.book_new();
     const ws2 = XLSX.utils.aoa_to_sheet([
       ["Filial", "Item", "Customer PO", "Previsão"],
       ["PORTO ALEGRE", "ITEM-A", "PO-1", "2025-06"],
+      ["PORTO ALEGRE", "ITEM-B", "PO-2", "2025-08"],
     ]);
     XLSX.utils.book_append_sheet(wb2, ws2, "Orders");
     const buf2 = XLSX.write(wb2, { type: "buffer", bookType: "xlsx" });
@@ -1050,6 +1051,20 @@ describe("Open Orders Backend & Upload Logic", () => {
     await caller.orders.uploadExcel({
       fileName: "upload_week2.xlsx",
       fileBase64: buf2.toString("base64"),
+    });
+
+    // Upload semana 3: ITEM-B desapareceu e deve sair do relatório gerencial.
+    const wb3 = XLSX.utils.book_new();
+    const ws3 = XLSX.utils.aoa_to_sheet([
+      ["Filial", "Item", "Customer PO", "Previsão"],
+      ["PORTO ALEGRE", "ITEM-A", "PO-1", "2025-06"],
+    ]);
+    XLSX.utils.book_append_sheet(wb3, ws3, "Orders");
+    const buf3 = XLSX.write(wb3, { type: "buffer", bookType: "xlsx" });
+
+    await caller.orders.uploadExcel({
+      fileName: "upload_week3.xlsx",
+      fileBase64: buf3.toString("base64"),
     });
 
     const activeAfter = await caller.orders.listItems();
@@ -1061,4 +1076,7 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(delivered[0].item).toBe("ITEM-B");
     expect(delivered[0].status).toBe("delivered");
     expect(delivered[0].deliveredAt).toBeDefined();
+
+    const report = await caller.orders.getCompleteChangesReport({});
+    expect(report).not.toEqual(expect.arrayContaining([expect.objectContaining({ item: "ITEM-B" })]));
   });

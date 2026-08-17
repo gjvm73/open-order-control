@@ -290,3 +290,8 @@
 - [x] Adicionar gráfico de colunas da distribuição de dias pendentes abaixo do envelhecimento
 - [x] Cobrir a atualização das consultas e os dados do gráfico com testes de regressão
 - [x] Validar visualmente os novos comportamentos e salvar a atualização
+
+### Pendências registradas em 17/08/2026 - itens entregues fora do relatório
+- [x] Identificar o status de entrega nas alterações retornadas pelo Relatório Gerencial
+- [x] Excluir eventos de itens entregues da tabela, indicadores, envelhecimento e gráfico do relatório
+- [x] Validar que os itens entregues permaneçam apenas na guia Itens Entregues

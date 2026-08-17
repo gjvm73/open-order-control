@@ -346,7 +346,7 @@ export async function getCompleteChangesReport(filters: CompleteChangesReportFil
   const db = await getDb();
   if (!db) return [];
 
-  const conditions: any[] = [];
+  const conditions: any[] = [sql`${orderItems.status} = 'active'`];
   const normalizedShipTo = filters.shipTo ? normalizeShipTo(filters.shipTo) : undefined;
   if (normalizedShipTo) {
     conditions.push(sql`TRIM(${orderItems.shipTo}) = ${normalizedShipTo}`);
