@@ -306,3 +306,9 @@
 - [x] Ajustar a regra de consolidação para refletir a quantidade operacional esperada
 - [x] Cobrir a divergência com teste de regressão e validar a carga atual
 - [x] Salvar e entregar a correção validada
+
+### Pendências registradas em 17/08/2026 - indicadores de vida e alterações por item
+- [x] Restaurar a contagem de eventos históricos no Relatório Gerencial
+- [x] Calcular o tempo médio de vida dos itens conforme os filtros selecionados
+- [x] Exibir a quantidade de alterações sofridas por cada item na tabela do relatório
+- [x] Adicionar testes, validar visualmente e salvar a atualização

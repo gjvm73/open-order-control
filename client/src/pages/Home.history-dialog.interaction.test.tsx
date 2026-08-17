@@ -136,7 +136,7 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(screen.getByLabelText("Gráfico de colunas da distribuição de dias pendentes")).toBeTruthy();
   });
 
-  it("separa pendências únicas dos eventos históricos no Relatório Gerencial", () => {
+  it("exibe a quantidade de eventos e as alterações de cada item no período do Relatório Gerencial", () => {
     itemDetailQuery.mockReturnValue(emptyQuery(null));
     completeChangesReportRows.current = [
       {
@@ -156,9 +156,9 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     render(<Home />);
     fireEvent.click(screen.getByRole("button", { name: "Relatório Gerencial" }));
 
-    expect(screen.getByText("1 pendência com alteração")).toBeTruthy();
-    expect(screen.getByText("2 eventos no histórico")).toBeTruthy();
-    expect(screen.getByText(/A tabela mantém todos os eventos/)).toBeTruthy();
+    expect(screen.getByText("2 alteração(ões)")).toBeTruthy();
+    expect(screen.getAllByText("2 alterações no período").length).toBe(2);
+    expect(screen.getByText("Tempo médio de vida")).toBeTruthy();
   });
 
   it("recarrega Itens Entregues e Relatório Gerencial após reset das importações", async () => {

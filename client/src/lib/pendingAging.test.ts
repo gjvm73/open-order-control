@@ -22,6 +22,8 @@ describe("getPendingAgingSummary", () => {
       from61To90: 2,
       above90: 1,
       withoutCreationDate: 1,
+      itemsWithCreationDate: 5,
+      averageAgeInDays: 74,
     });
   });
 });

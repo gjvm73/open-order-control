@@ -145,6 +145,13 @@ export default function Home() {
     () => getPendingAgingSummary(completeChangesReport),
     [completeChangesReport],
   );
+  const changeEventsByItem = React.useMemo(() => {
+    const eventCounts = new Map<number, number>();
+    completeChangesReport.forEach((row) => {
+      eventCounts.set(row.orderItemId, (eventCounts.get(row.orderItemId) ?? 0) + 1);
+    });
+    return eventCounts;
+  }, [completeChangesReport]);
   const pendingAgingChartData = React.useMemo(() => [
     { range: "Até 30", items: pendingAging.upTo30, fill: "#047857" },
     { range: "31–60", items: pendingAging.from31To60, fill: "#b45309" },
@@ -858,7 +865,7 @@ export default function Home() {
           <div className="border border-zinc-900 bg-white p-4">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-2 border-b border-zinc-200 pb-3 mb-3">
               <div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Envelhecimento das pendências</p><h4 className="text-base font-bold tracking-tight">Pendências ativas com alteração no período</h4></div>
-              <p className="text-[10px] font-mono text-zinc-500">Base: Data de criação · {pendingAging.total} item(ns) único(s)</p>
+              <div className="border border-zinc-900 bg-white px-3 py-2 text-right"><p className="text-[9px] font-mono uppercase tracking-wider text-zinc-500">Tempo médio de vida</p><p className="text-lg leading-none font-black text-zinc-950 mt-1">{pendingAging.averageAgeInDays === null ? "—" : `${pendingAging.averageAgeInDays} dias`}</p><p className="text-[9px] font-mono text-zinc-500 mt-1">{pendingAging.itemsWithCreationDate} item(ns) com data válida</p></div>
             </div>
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
               <div className="border border-emerald-200 bg-emerald-50 p-3"><p className="text-[10px] font-mono uppercase text-emerald-800">Até 30 dias</p><p className="text-2xl font-black text-emerald-700 mt-1">{pendingAging.upTo30}</p><p className="text-[10px] font-mono text-emerald-800 mt-1">Pendências recentes</p></div>
@@ -883,15 +890,7 @@ export default function Home() {
             </div>
             {pendingAging.withoutCreationDate > 0 && <p className="text-[10px] font-mono text-zinc-500 mt-3">{pendingAging.withoutCreationDate} item(ns) não entrou(ram) nas faixas por não possuir(em) Data de criação válida.</p>}
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <Badge className="rounded-none bg-zinc-950 text-white font-mono">
-              {pendingAging.total} {pendingAging.total === 1 ? "pendência com alteração" : "pendências com alteração"}
-            </Badge>
-            {completeChangesReport.length > 0 && <span className="text-[10px] font-mono text-zinc-500">{completeChangesReport.length} {completeChangesReport.length === 1 ? "evento no histórico" : "eventos no histórico"}</span>}
-            {reportShipTo && <Badge className="rounded-none bg-red-600 text-white font-mono">Filial: {reportShipTo}</Badge>}
-            {(reportStartDate || reportEndDate) && <span className="text-[10px] font-mono text-zinc-500">Período: {formatDate(reportStartDate)} até {formatDate(reportEndDate)}</span>}
-          </div>
-          {completeChangesReport.length > pendingAging.total && <p className="text-[10px] font-mono text-zinc-500">A tabela mantém todos os eventos de alteração para rastreabilidade, mesmo quando uma pendência sofreu mais de uma mudança.</p>}
+          <div className="flex flex-wrap items-center gap-3"><Badge className="rounded-none bg-zinc-950 text-white font-mono">{completeChangesReport.length} alteração(ões)</Badge>{reportShipTo && <Badge className="rounded-none bg-red-600 text-white font-mono">Filial: {reportShipTo}</Badge>}{(reportStartDate || reportEndDate) && <span className="text-[10px] font-mono text-zinc-500">Período: {formatDate(reportStartDate)} até {formatDate(reportEndDate)}</span>}</div>
           <div className="border border-zinc-900 bg-white">
             <table aria-label="Alterações do relatório gerencial" className="w-full table-fixed text-left border-collapse">
               <colgroup>
@@ -931,7 +930,7 @@ export default function Home() {
                   <tr key={row.historyId} className="hover:bg-red-50 align-top">
                     <td className="p-2 whitespace-nowrap"><p className="font-bold">{formatDate(row.changedAt)}</p><p className="text-[10px] text-zinc-500">{formatDateTime(row.changedAt).split(", ")[1] || ""}</p></td>
                     <td className="p-2 truncate" title={row.shipTo}>{row.shipTo}</td>
-                    <td className="p-2"><p className="font-bold truncate">{row.item}</p><p className="text-[10px] text-zinc-500 truncate" title={row.itemDescription || ""}>{row.itemDescription || "Sem descrição"}</p></td>
+                    <td className="p-2"><p className="font-bold truncate">{row.item}</p><p className="text-[10px] text-zinc-500 truncate" title={row.itemDescription || ""}>{row.itemDescription || "Sem descrição"}</p><p className="text-[9px] font-bold text-red-700 mt-1">{changeEventsByItem.get(row.orderItemId) ?? 0} {changeEventsByItem.get(row.orderItemId) === 1 ? "alteração no período" : "alterações no período"}</p></td>
                     <td className="p-2 truncate" title={row.customerPo || ""}>{row.customerPo || "—"}</td>
                     <td className="p-2 truncate text-zinc-600" title={formatPrediction(row.previousPrediction)}>{formatPrediction(row.previousPrediction)}</td>
                     <td className="p-2 truncate font-bold text-red-700" title={formatPrediction(row.currentPredictionAtChange)}>{formatPrediction(row.currentPredictionAtChange)}</td>
