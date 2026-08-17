@@ -39,6 +39,17 @@ const pendingAgingChartConfig = {
   items: { label: "Pendências", color: "#18181b" },
 } satisfies ChartConfig;
 
+const lifecycleChartConfig = {
+  abertos: { label: "Pedidos efetuados", color: "#18181b" },
+  finalizados: { label: "Finalizados no mês", color: "#059669" },
+  pendentes: { label: "Abertos pendentes", color: "#dc2626" },
+} satisfies ChartConfig;
+
+const historicalChartConfig = {
+  itens: { label: "Itens registrados", color: "#18181b" },
+  alteracoes: { label: "Alterações de previsão", color: "#dc2626" },
+} satisfies ChartConfig;
+
 function formatDate(value: unknown) {
   if (!value) return "—";
   const date = new Date(value as string | number | Date);
@@ -81,7 +92,7 @@ export default function Home() {
   const [adminPassword, setAdminPassword] = useState("");
   const [alertThresholdDays, setAlertThresholdDays] = useState(7);
   const [alertThresholdDraft, setAlertThresholdDraft] = useState("7");
-  const [activeTab, setActiveTab] = useState<"active" | "delivered" | "report">("active");
+  const [activeTab, setActiveTab] = useState<"active" | "delivered" | "report" | "historical">("active");
   const [deliveredSearch, setDeliveredSearch] = useState("");
   const [deliveredShipTo, setDeliveredShipTo] = useState("");
   const [deliveredItemFilter, setDeliveredItemFilter] = useState("");
@@ -141,6 +152,10 @@ export default function Home() {
   }), [reportShipTo, reportStartDate, reportEndDate]);
   const completeChangesReportQuery = trpc.orders.getCompleteChangesReport.useQuery(completeChangesReportInput);
   const completeChangesReport = completeChangesReportQuery.data ?? [];
+  const lifecycleAnalysisQuery = trpc.orders.getOrderLifecycleAnalysis.useQuery(completeChangesReportInput);
+  const lifecycleAnalysis = lifecycleAnalysisQuery.data ?? { referenceDate: new Date(), summary: { openedOrders: 0, closedSameMonth: 0, openOrders: 0, averageLifeDays: null, withoutCreationDate: 0 }, monthly: [] };
+  const historicalAssessmentQuery = trpc.orders.getHistoricalAssessment.useQuery(completeChangesReportInput);
+  const historicalAssessment = historicalAssessmentQuery.data ?? { summary: { uploads: 0, itemsRecorded: 0, branches: 0, changeEvents: 0, averagePlannedLeadDays: null }, uploads: [], branches: [] };
   const reportUploads = React.useMemo(() => {
     const startTimestamp = reportStartDate ? Date.parse(`${reportStartDate}T00:00:00.000Z`) : null;
     const endTimestamp = reportEndDate ? Date.parse(`${reportEndDate}T23:59:59.999Z`) : null;
@@ -183,6 +198,17 @@ export default function Home() {
     { range: "61–90", items: pendingAging.from61To90, fill: "#c2410c" },
     { range: "> 90", items: pendingAging.above90, fill: "#dc2626" },
   ], [pendingAging]);
+  const lifecycleChartData = React.useMemo(() => lifecycleAnalysis.monthly.map((month) => ({
+    month: month.label,
+    abertos: month.openedOrders,
+    finalizados: month.closedSameMonth,
+    pendentes: month.openOrders,
+  })), [lifecycleAnalysis.monthly]);
+  const historicalChartData = React.useMemo(() => historicalAssessment.uploads.map((upload) => ({
+    carga: formatDate(upload.uploadDate),
+    itens: upload.itemsRecorded,
+    alteracoes: upload.changeEvents,
+  })), [historicalAssessment.uploads]);
   const utils = trpc.useUtils();
   const handleOpenCompleteChangesReport = () => setActiveTab("report");
   const clearShipToFilter = React.useCallback(() => {
@@ -545,6 +571,7 @@ export default function Home() {
             <button type="button" onClick={() => setActiveTab("active")} aria-current={activeTab === "active" ? "page" : undefined} className={`shrink-0 pb-1 border-b-2 transition-all ${activeTab === "active" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Dashboard Ativo</button>
             <button type="button" onClick={() => setActiveTab("delivered")} aria-current={activeTab === "delivered" ? "page" : undefined} className={`shrink-0 pb-1 border-b-2 transition-all ${activeTab === "delivered" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Itens Entregues ({deliveredItems.length})</button>
             <button type="button" onClick={handleOpenCompleteChangesReport} aria-current={activeTab === "report" ? "page" : undefined} className={`shrink-0 pb-1 border-b-2 transition-all ${activeTab === "report" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Relatório Gerencial</button>
+            <button type="button" onClick={() => setActiveTab("historical")} aria-current={activeTab === "historical" ? "page" : undefined} className={`shrink-0 pb-1 border-b-2 transition-all ${activeTab === "historical" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Avaliação Histórica</button>
           </nav>
           <span className="hidden shrink-0 text-[10px] font-mono text-zinc-400 xl:block">Regra: Desaparecidos no upload mais recente são considerados entregues</span>
         </div>
@@ -887,6 +914,23 @@ export default function Home() {
         {activeTab === "report" && <section id="relatorio-gerencial" className="space-y-4 scroll-mt-6">
           <div className="border-b border-zinc-900 pb-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">Relatório gerencial</h2><h3 className="text-xl font-bold tracking-tight">Alterações por filial e período</h3><p className="text-xs font-mono text-zinc-500 mt-1">Audite cada mudança de previsão com datas, variação, origem e informações completas do item.</p></div><Button type="button" variant="outline" onClick={handleExportCompleteChangesReport} className="rounded-none border-zinc-900 text-xs font-mono uppercase h-10 whitespace-nowrap"><Download className="w-4 h-4 mr-2" />Exportar relatório</Button></div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 border border-zinc-900 bg-zinc-50 p-4"><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Filial solicitante</label><select value={reportShipTo} onChange={(event) => setReportShipTo(event.target.value)} className="h-10 w-full rounded-none border border-zinc-900 bg-white px-3 text-xs font-mono"><option value="">Todas as filiais</option>{shipToOptions.map((shipTo) => <option key={`report-${shipTo}`} value={shipTo}>{shipTo}</option>)}</select></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Data inicial da alteração</label><Input type="date" value={reportStartDate} onChange={(event) => setReportStartDate(event.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Data final da alteração</label><Input type="date" value={reportEndDate} onChange={(event) => setReportEndDate(event.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div><div className="flex items-end"><Button type="button" variant="outline" onClick={() => { setReportShipTo(""); setReportStartDate(""); setReportEndDate(""); }} className="w-full rounded-none border-zinc-900 text-xs font-mono uppercase h-10">Limpar filtros</Button></div></div>
+          <div className="border border-zinc-900 bg-zinc-950 text-white p-4">
+            <div className="flex flex-col gap-3 border-b border-zinc-700 pb-3 mb-4 md:flex-row md:items-end md:justify-between">
+              <div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">Ciclo de vida dos pedidos</p><h4 className="text-lg font-bold tracking-tight">Abertura, finalização e pedidos em aberto por mês</h4><p className="text-[10px] font-mono text-zinc-400 mt-1">A Data de criação representa a entrada do pedido no sistema. O fechamento é identificado quando o item deixa de constar em uma carga posterior.</p></div>
+              <p className="text-[10px] font-mono text-zinc-400">Referência de vida: {formatDate(lifecycleAnalysis.referenceDate)}</p>
+            </div>
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
+              <div className="border border-zinc-700 p-3"><p className="text-[10px] font-mono uppercase text-zinc-400">Pedidos efetuados</p><p className="text-2xl font-black mt-1">{lifecycleAnalysis.summary.openedOrders}</p><p className="text-[10px] font-mono text-zinc-400 mt-1">Abertos no intervalo</p></div>
+              <div className="border border-emerald-700 bg-emerald-950/30 p-3"><p className="text-[10px] font-mono uppercase text-emerald-300">Finalizados no mês</p><p className="text-2xl font-black mt-1 text-emerald-300">{lifecycleAnalysis.summary.closedSameMonth}</p><p className="text-[10px] font-mono text-emerald-200 mt-1">Encerrados no mês de abertura</p></div>
+              <div className="border border-red-800 bg-red-950/30 p-3"><p className="text-[10px] font-mono uppercase text-red-300">Pedidos em aberto</p><p className="text-2xl font-black mt-1 text-red-300">{lifecycleAnalysis.summary.openOrders}</p><p className="text-[10px] font-mono text-red-200 mt-1">Ainda sem encerramento</p></div>
+              <div className="border border-amber-700 bg-amber-950/30 p-3"><p className="text-[10px] font-mono uppercase text-amber-300">Vida média</p><p className="text-2xl font-black mt-1 text-amber-300">{lifecycleAnalysis.summary.averageLifeDays === null ? "—" : `${lifecycleAnalysis.summary.averageLifeDays}d`}</p><p className="text-[10px] font-mono text-amber-200 mt-1">Até fechamento ou referência</p></div>
+            </div>
+            <div className="mt-5 border-t border-zinc-700 pt-4">
+              <div className="flex items-baseline justify-between gap-3 mb-3"><div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">Evolução mensal</p><h5 className="text-sm font-bold">Pedidos por mês de entrada</h5></div><span className="text-[10px] font-mono text-zinc-400">Quantidade de pedidos</span></div>
+              {lifecycleChartData.length === 0 ? <p className="h-[220px] flex items-center justify-center text-xs font-mono text-zinc-400">Nenhum pedido com Data de criação válida para o intervalo selecionado.</p> : <ChartContainer aria-label="Gráfico mensal de abertura e finalização de pedidos" config={lifecycleChartConfig} className="h-[220px] w-full aspect-auto"><BarChart data={lifecycleChartData} margin={{ top: 20, right: 12, left: -12, bottom: 0 }}><CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#3f3f46" /><XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={10} className="fill-zinc-300 font-mono text-[10px]" /><YAxis allowDecimals={false} tickLine={false} axisLine={false} width={30} className="fill-zinc-300 font-mono text-[10px]" /><ChartTooltip cursor={{ fill: "rgba(255,255,255,0.08)" }} content={<ChartTooltipContent />} /><Bar dataKey="abertos" fill="var(--color-abertos)" radius={[2, 2, 0, 0]} maxBarSize={42} /><Bar dataKey="finalizados" fill="var(--color-finalizados)" radius={[2, 2, 0, 0]} maxBarSize={42} /><Bar dataKey="pendentes" fill="var(--color-pendentes)" radius={[2, 2, 0, 0]} maxBarSize={42} /></BarChart></ChartContainer>}
+            </div>
+            {lifecycleAnalysis.summary.withoutCreationDate > 0 && <p className="mt-3 text-[10px] font-mono text-zinc-400">{lifecycleAnalysis.summary.withoutCreationDate} pedido(s) não entrou(ram) na análise por não possuir(em) Data de criação válida.</p>}
+          </div>
           <div className="border border-zinc-900 bg-white p-4">
             <div className="flex flex-col gap-3 border-b border-zinc-200 pb-3 mb-3 md:flex-row md:items-end md:justify-between">
               <div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Histórico de cargas</p><h4 className="text-base font-bold tracking-tight">Cargas consideradas no período</h4><p className="text-[10px] font-mono text-zinc-500 mt-1">O recorte usa as datas de upload; sem datas selecionadas, todas as cargas são apresentadas.</p></div>
@@ -975,6 +1019,34 @@ export default function Home() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </section>}
+
+        {activeTab === "historical" && <section id="avaliacao-historica" className="space-y-4 scroll-mt-6">
+          <div className="border-b border-zinc-900 pb-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+            <div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">Avaliação histórica</h2><h3 className="text-xl font-bold tracking-tight">Comportamento temporal das cargas</h3><p className="text-xs font-mono text-zinc-500 mt-1">Acompanhe as cargas realizadas, as filiais atendidas, os itens registrados, as alterações de previsão e o tempo planejado de entrega.</p></div>
+            <Badge className="rounded-none bg-zinc-950 text-white font-mono">{historicalAssessment.summary.uploads} carga(s) no período</Badge>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 border border-zinc-900 bg-zinc-50 p-4">
+            <div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Filial solicitante</label><select value={reportShipTo} onChange={(event) => setReportShipTo(event.target.value)} className="h-10 w-full rounded-none border border-zinc-900 bg-white px-3 text-xs font-mono"><option value="">Todas as filiais</option>{shipToOptions.map((shipTo) => <option key={`historical-${shipTo}`} value={shipTo}>{shipTo}</option>)}</select></div>
+            <div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Data inicial da carga</label><Input type="date" value={reportStartDate} onChange={(event) => setReportStartDate(event.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div>
+            <div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Data final da carga</label><Input type="date" value={reportEndDate} onChange={(event) => setReportEndDate(event.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div>
+            <div className="flex items-end"><Button type="button" variant="outline" onClick={() => { setReportShipTo(""); setReportStartDate(""); setReportEndDate(""); }} className="w-full rounded-none border-zinc-900 text-xs font-mono uppercase h-10">Limpar filtros</Button></div>
+          </div>
+          <div className="grid grid-cols-2 xl:grid-cols-5 gap-3">
+            <div className="border border-zinc-900 bg-zinc-950 text-white p-4"><p className="text-[10px] font-mono uppercase text-zinc-400">Cargas</p><p className="text-3xl font-black mt-1">{historicalAssessment.summary.uploads}</p><p className="text-[10px] font-mono text-zinc-400 mt-1">Uploads realizados</p></div>
+            <div className="border border-zinc-200 bg-white p-4"><p className="text-[10px] font-mono uppercase text-zinc-500">Filiais</p><p className="text-3xl font-black mt-1">{historicalAssessment.summary.branches}</p><p className="text-[10px] font-mono text-zinc-500 mt-1">Com registros no período</p></div>
+            <div className="border border-zinc-200 bg-white p-4"><p className="text-[10px] font-mono uppercase text-zinc-500">Itens registrados</p><p className="text-3xl font-black mt-1">{historicalAssessment.summary.itemsRecorded}</p><p className="text-[10px] font-mono text-zinc-500 mt-1">Somatório das cargas</p></div>
+            <div className="border border-red-200 bg-red-50 p-4"><p className="text-[10px] font-mono uppercase text-red-700">Alterações</p><p className="text-3xl font-black mt-1 text-red-700">{historicalAssessment.summary.changeEvents}</p><p className="text-[10px] font-mono text-red-700 mt-1">Mudanças de previsão</p></div>
+            <div className="border border-amber-200 bg-amber-50 p-4"><p className="text-[10px] font-mono uppercase text-amber-800">Prazo planejado médio</p><p className="text-3xl font-black mt-1 text-amber-800">{historicalAssessment.summary.averagePlannedLeadDays === null ? "—" : `${historicalAssessment.summary.averagePlannedLeadDays}d`}</p><p className="text-[10px] font-mono text-amber-800 mt-1">Criação até previsão</p></div>
+          </div>
+          <div className="border border-zinc-900 bg-white p-4">
+            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-2 border-b border-zinc-200 pb-3 mb-3"><div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Evolução das cargas</p><h4 className="text-base font-bold tracking-tight">Itens e alterações por upload</h4></div><span className="text-[10px] font-mono text-zinc-500">Datas de realização das cargas</span></div>
+            {historicalAssessmentQuery.isLoading ? <p className="h-[240px] flex items-center justify-center text-xs font-mono text-zinc-500">Carregando avaliação histórica...</p> : historicalChartData.length === 0 ? <p className="h-[240px] flex items-center justify-center text-xs font-mono text-zinc-500">Nenhuma carga encontrada para os filtros selecionados.</p> : <ChartContainer aria-label="Gráfico temporal de itens e alterações por carga" config={historicalChartConfig} className="h-[240px] w-full aspect-auto"><BarChart data={historicalChartData} margin={{ top: 20, right: 12, left: -12, bottom: 0 }}><CartesianGrid vertical={false} strokeDasharray="3 3" /><XAxis dataKey="carga" tickLine={false} axisLine={false} tickMargin={10} className="font-mono text-[10px]" /><YAxis allowDecimals={false} tickLine={false} axisLine={false} width={30} className="font-mono text-[10px]" /><ChartTooltip cursor={{ fill: "rgba(24, 24, 27, 0.06)" }} content={<ChartTooltipContent />} /><Bar dataKey="itens" fill="var(--color-itens)" radius={[2, 2, 0, 0]} maxBarSize={44} /><Bar dataKey="alteracoes" fill="var(--color-alteracoes)" radius={[2, 2, 0, 0]} maxBarSize={44} /></BarChart></ChartContainer>}
+          </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            <div className="border border-zinc-900 bg-white p-4"><div className="border-b border-zinc-200 pb-3 mb-3"><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Cargas detalhadas</p><h4 className="text-base font-bold tracking-tight">Rastreabilidade por arquivo</h4></div><div className="space-y-2">{historicalAssessment.uploads.length === 0 ? <p className="py-4 text-center text-xs font-mono text-zinc-500">Nenhuma carga no período.</p> : historicalAssessment.uploads.map((upload) => <div key={upload.uploadId} className="border border-zinc-200 p-3"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-mono text-[10px] text-zinc-500">{formatDate(upload.uploadDate)}</p><p className="font-bold text-xs truncate mt-1" title={upload.fileName}>{upload.fileName}</p></div><Badge variant="outline" className="rounded-none border-zinc-900 font-mono text-[10px] shrink-0">{upload.itemsRecorded} itens</Badge></div><div className="grid grid-cols-3 gap-2 mt-3 text-[10px] font-mono"><div><p className="text-zinc-500">Filiais</p><p className="font-bold mt-1">{upload.branches}</p></div><div><p className="text-zinc-500">Alterações</p><p className="font-bold text-red-600 mt-1">{upload.changeEvents}</p></div><div><p className="text-zinc-500">Prazo médio</p><p className="font-bold text-amber-700 mt-1">{upload.averagePlannedLeadDays === null ? "—" : `${upload.averagePlannedLeadDays}d`}</p></div></div></div>)}</div></div>
+            <div className="border border-zinc-900 bg-white p-4"><div className="border-b border-zinc-200 pb-3 mb-3"><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Comportamento por filial</p><h4 className="text-base font-bold tracking-tight">Itens, alterações e prazo planejado</h4></div><div className="space-y-2">{historicalAssessment.branches.length === 0 ? <p className="py-4 text-center text-xs font-mono text-zinc-500">Nenhuma filial no período.</p> : historicalAssessment.branches.map((branch) => <div key={`${branch.uploadId}-${branch.branch}`} className="border border-zinc-200 p-3"><div className="flex items-start justify-between gap-3"><div><p className="font-bold text-sm">{branch.branch}</p><p className="text-[10px] font-mono text-zinc-500 mt-1">Carga: {formatDate(branch.uploadDate)}</p></div><Badge variant="outline" className="rounded-none border-zinc-900 font-mono text-[10px]">{branch.itemsRecorded} itens</Badge></div><div className="grid grid-cols-2 gap-2 mt-3 text-[10px] font-mono"><div><p className="text-zinc-500">Alterações</p><p className="font-bold text-red-600 mt-1">{branch.changeEvents}</p></div><div><p className="text-zinc-500">Prazo planejado médio</p><p className="font-bold text-amber-700 mt-1">{branch.averagePlannedLeadDays === null ? "—" : `${branch.averagePlannedLeadDays}d`}</p></div></div></div>)}</div></div>
           </div>
         </section>}
 

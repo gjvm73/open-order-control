@@ -418,6 +418,264 @@ export async function getCompleteChangesReport(filters: CompleteChangesReportFil
   }).sort((left, right) => right.changedAt.getTime() - left.changedAt.getTime() || right.historyId - left.historyId);
 }
 
+type LifecycleFilters = CompleteChangesReportFilters;
+
+function parseOperationalDate(value: string | Date | null | undefined) {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  const match = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    const [, year, month, day] = match;
+    const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+    return date.getUTCFullYear() === Number(year) && date.getUTCMonth() === Number(month) - 1 && date.getUTCDate() === Number(day)
+      ? date
+      : null;
+  }
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getMonthKey(date: Date) {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function formatMonthLabel(monthKey: string) {
+  const [year, month] = monthKey.split("-").map(Number);
+  return new Intl.DateTimeFormat("pt-BR", { month: "short", year: "numeric", timeZone: "UTC" })
+    .format(new Date(Date.UTC(year, month - 1, 1)))
+    .replace(".", "");
+}
+
+function getOperationalAgeDays(start: Date, end: Date) {
+  return Math.max(0, Math.floor((Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate()) - Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate())) / 86400000));
+}
+
+function getAgeBand(days: number) {
+  if (days <= 30) return "upTo30" as const;
+  if (days <= 60) return "from31To60" as const;
+  if (days <= 90) return "from61To90" as const;
+  return "above90" as const;
+}
+
+function isBetween(date: Date, startDate: Date | null, endDate: Date | null) {
+  return (!startDate || date >= startDate) && (!endDate || date <= endDate);
+}
+
+/**
+ * Analisa o ciclo de vida dos pedidos pela data de criação. A abertura é
+ * atribuída ao mês da criação e o fechamento ao mês de entrega identificado
+ * pelo desaparecimento do item em um upload posterior.
+ */
+export async function getOrderLifecycleAnalysis(filters: LifecycleFilters = {}) {
+  const db = await getDb();
+  const referenceDate = parseReportBoundary(filters.endDate, true) ?? new Date();
+  if (!db) {
+    return { referenceDate, summary: { openedOrders: 0, closedSameMonth: 0, openOrders: 0, averageLifeDays: null, withoutCreationDate: 0 }, monthly: [] as any[] };
+  }
+
+  const normalizedShipTo = filters.shipTo ? normalizeShipTo(filters.shipTo) : undefined;
+  const startDate = parseReportBoundary(filters.startDate, false);
+  const endDate = parseReportBoundary(filters.endDate, true);
+  const rows = await db.select({
+    id: orderItems.id,
+    item: orderItems.item,
+    shipTo: orderItems.shipTo,
+    customerPo: orderItems.customerPo,
+    orderCreationDate: orderItems.orderCreationDate,
+    status: orderItems.status,
+    deliveredAt: orderItems.deliveredAt,
+  }).from(orderItems);
+
+  const matchingRows = rows.filter((row) => !normalizedShipTo || normalizeShipTo(row.shipTo) === normalizedShipTo);
+  const monthly = new Map<string, {
+    month: string;
+    label: string;
+    openedOrders: number;
+    closedSameMonth: number;
+    pendingOrClosedLater: number;
+    upTo30: number;
+    from31To60: number;
+    from61To90: number;
+    above90: number;
+    openOrders: number;
+    lifeDays: number[];
+  }>();
+  let withoutCreationDate = 0;
+
+  for (const row of matchingRows) {
+    const createdAt = parseOperationalDate(row.orderCreationDate);
+    if (!createdAt) {
+      withoutCreationDate += 1;
+      continue;
+    }
+    if (!isBetween(createdAt, startDate, endDate)) continue;
+
+    const month = getMonthKey(createdAt);
+    const bucket = monthly.get(month) ?? {
+      month,
+      label: formatMonthLabel(month),
+      openedOrders: 0,
+      closedSameMonth: 0,
+      pendingOrClosedLater: 0,
+      upTo30: 0,
+      from31To60: 0,
+      from61To90: 0,
+      above90: 0,
+      openOrders: 0,
+      lifeDays: [],
+    };
+    bucket.openedOrders += 1;
+
+    const deliveredAt = row.status === "delivered" ? parseOperationalDate(row.deliveredAt) : null;
+    const lifecycleEnd = deliveredAt ?? referenceDate;
+    const lifeDays = getOperationalAgeDays(createdAt, lifecycleEnd);
+    bucket.lifeDays.push(lifeDays);
+
+    if (deliveredAt && getMonthKey(deliveredAt) === month) {
+      bucket.closedSameMonth += 1;
+    } else {
+      bucket.pendingOrClosedLater += 1;
+      bucket[getAgeBand(lifeDays)] += 1;
+      if (!deliveredAt) bucket.openOrders += 1;
+    }
+    monthly.set(month, bucket);
+  }
+
+  const monthlyRows = Array.from(monthly.values())
+    .sort((left, right) => left.month.localeCompare(right.month))
+    .map(({ lifeDays, ...row }) => ({
+      ...row,
+      averageLifeDays: lifeDays.length ? Math.round(lifeDays.reduce((sum, value) => sum + value, 0) / lifeDays.length) : null,
+    }));
+  const allLifeDays = monthlyRows.flatMap((row) => {
+    const source = monthly.get(row.month)?.lifeDays ?? [];
+    return source;
+  });
+
+  return {
+    referenceDate,
+    summary: {
+      openedOrders: monthlyRows.reduce((sum, row) => sum + row.openedOrders, 0),
+      closedSameMonth: monthlyRows.reduce((sum, row) => sum + row.closedSameMonth, 0),
+      openOrders: monthlyRows.reduce((sum, row) => sum + row.openOrders, 0),
+      averageLifeDays: allLifeDays.length ? Math.round(allLifeDays.reduce((sum, value) => sum + value, 0) / allLifeDays.length) : null,
+      withoutCreationDate,
+    },
+    monthly: monthlyRows,
+  };
+}
+
+/**
+ * Resume cada carga para avaliação histórica, incluindo filiais, itens
+ * registrados, alterações de previsão e tempo médio planejado até a entrega.
+ */
+export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
+  const db = await getDb();
+  if (!db) return { summary: { uploads: 0, itemsRecorded: 0, branches: 0, changeEvents: 0, averagePlannedLeadDays: null }, uploads: [], branches: [] };
+
+  const normalizedShipTo = filters.shipTo ? normalizeShipTo(filters.shipTo) : undefined;
+  const startDate = parseReportBoundary(filters.startDate, false);
+  const endDate = parseReportBoundary(filters.endDate, true);
+  const allUploads = await db.select().from(uploads).orderBy(asc(uploads.uploadDate), asc(uploads.id));
+  const uploadsInRange = allUploads.filter((upload) => {
+    const uploadDate = parseOperationalDate(upload.uploadDate);
+    return uploadDate ? isBetween(uploadDate, startDate, endDate) : false;
+  });
+  const selectedUploadIds = new Set(uploadsInRange.map((upload) => upload.id));
+  if (selectedUploadIds.size === 0) {
+    return { summary: { uploads: 0, itemsRecorded: 0, branches: 0, changeEvents: 0, averagePlannedLeadDays: null }, uploads: [], branches: [] };
+  }
+
+  const historyRows = await db.select({
+    uploadId: predictionHistory.uploadId,
+    orderItemId: predictionHistory.orderItemId,
+    prediction: predictionHistory.prediction,
+    item: orderItems.item,
+    shipTo: orderItems.shipTo,
+    orderCreationDate: orderItems.orderCreationDate,
+  }).from(predictionHistory)
+    .innerJoin(orderItems, eq(predictionHistory.orderItemId, orderItems.id))
+    .orderBy(asc(predictionHistory.orderItemId), asc(predictionHistory.uploadId), asc(predictionHistory.id));
+
+  const previousPredictionByItem = new Map<number, string>();
+  const uploadMetrics = new Map<number, { itemIds: Set<number>; branchNames: Set<string>; changes: number; plannedLeadDays: number[] }>();
+  const branchMetrics = new Map<string, { uploadId: number; uploadDate: Date; branch: string; itemIds: Set<number>; changes: number; plannedLeadDays: number[] }>();
+
+  for (const record of historyRows) {
+    const previousPrediction = previousPredictionByItem.get(record.orderItemId);
+    previousPredictionByItem.set(record.orderItemId, record.prediction);
+    if (!selectedUploadIds.has(record.uploadId)) continue;
+
+    const branch = normalizeShipTo(record.shipTo) || "Sem filial informada";
+    if (normalizedShipTo && branch !== normalizedShipTo) continue;
+    const upload = uploadsInRange.find((entry) => entry.id === record.uploadId);
+    if (!upload) continue;
+    const metric = uploadMetrics.get(record.uploadId) ?? { itemIds: new Set<number>(), branchNames: new Set<string>(), changes: 0, plannedLeadDays: [] };
+    metric.itemIds.add(record.orderItemId);
+    metric.branchNames.add(branch);
+    const branchKey = `${record.uploadId}:${branch}`;
+    const branchMetric = branchMetrics.get(branchKey) ?? { uploadId: record.uploadId, uploadDate: parseOperationalDate(upload.uploadDate) ?? new Date(), branch, itemIds: new Set<number>(), changes: 0, plannedLeadDays: [] };
+    branchMetric.itemIds.add(record.orderItemId);
+
+    if (previousPrediction !== undefined && previousPrediction !== record.prediction) {
+      metric.changes += 1;
+      branchMetric.changes += 1;
+    }
+
+    const createdAt = parseOperationalDate(record.orderCreationDate);
+    const predictionDate = parseValidPredictionDate(record.prediction);
+    if (createdAt && predictionDate) {
+      const leadDays = getOperationalAgeDays(createdAt, predictionDate);
+      metric.plannedLeadDays.push(leadDays);
+      branchMetric.plannedLeadDays.push(leadDays);
+    }
+    uploadMetrics.set(record.uploadId, metric);
+    branchMetrics.set(branchKey, branchMetric);
+  }
+
+  const uploadRows = uploadsInRange.map((upload) => {
+    const metric = uploadMetrics.get(upload.id) ?? { itemIds: new Set<number>(), branchNames: new Set<string>(), changes: 0, plannedLeadDays: [] };
+    return {
+      uploadId: upload.id,
+      uploadDate: upload.uploadDate,
+      fileName: upload.fileName,
+      acceptedRows: upload.acceptedRows ?? upload.totalRows,
+      rejectedRows: upload.rejectedRows ?? 0,
+      itemsRecorded: metric.itemIds.size,
+      branches: metric.branchNames.size,
+      changeEvents: metric.changes,
+      averagePlannedLeadDays: metric.plannedLeadDays.length ? Math.round(metric.plannedLeadDays.reduce((sum, value) => sum + value, 0) / metric.plannedLeadDays.length) : null,
+    };
+  }).filter((row) => !normalizedShipTo || row.itemsRecorded > 0);
+
+  const branchRows = Array.from(branchMetrics.values())
+    .map((metric) => ({
+      uploadId: metric.uploadId,
+      uploadDate: metric.uploadDate,
+      branch: metric.branch,
+      itemsRecorded: metric.itemIds.size,
+      changeEvents: metric.changes,
+      averagePlannedLeadDays: metric.plannedLeadDays.length ? Math.round(metric.plannedLeadDays.reduce((sum, value) => sum + value, 0) / metric.plannedLeadDays.length) : null,
+    }))
+    .sort((left, right) => left.uploadDate.getTime() - right.uploadDate.getTime() || left.branch.localeCompare(right.branch, "pt-BR"));
+  const allLeadDays = uploadRows.flatMap((row) => {
+    const metric = uploadMetrics.get(row.uploadId);
+    return metric?.plannedLeadDays ?? [];
+  });
+
+  return {
+    summary: {
+      uploads: uploadRows.length,
+      itemsRecorded: uploadRows.reduce((sum, row) => sum + row.itemsRecorded, 0),
+      branches: new Set(branchRows.map((row) => row.branch)).size,
+      changeEvents: uploadRows.reduce((sum, row) => sum + row.changeEvents, 0),
+      averagePlannedLeadDays: allLeadDays.length ? Math.round(allLeadDays.reduce((sum, value) => sum + value, 0) / allLeadDays.length) : null,
+    },
+    uploads: uploadRows,
+    branches: branchRows,
+  };
+}
+
 export async function getPredictionAlerts(thresholdDays: number, shipTo?: string) {
   const db = await getDb();
   if (!db) return [];

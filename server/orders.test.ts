@@ -1080,3 +1080,43 @@ describe("Open Orders Backend & Upload Logic", () => {
     const report = await caller.orders.getCompleteChangesReport({});
     expect(report).not.toEqual(expect.arrayContaining([expect.objectContaining({ item: "ITEM-B" })]));
   });
+
+  it("summarizes opened orders, lifecycle bands and upload history for the selected period", async () => {
+    await db.resetImportedData();
+    const caller = appRouter.createCaller({
+      user: { id: 1, openId: "analytics-admin", name: "Analytics Admin", email: "analytics@test.com", loginMethod: "oauth", role: "admin", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() },
+      req: {} as any,
+      res: {} as any,
+    });
+    const toBase64 = (rows: Record<string, string>[]) => {
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), "OpenOrders");
+      return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }).toString("base64");
+    };
+    const firstUpload = [
+      { "Filial": "PORTO ALEGRE", "Item": "LIFECYCLE-A", "Customer PO": "PO-LIFE-A", "Data de criação": "2025-01-15", "Previsão": "2025-03-01" },
+      { "Filial": "PORTO ALEGRE", "Item": "LIFECYCLE-B", "Customer PO": "PO-LIFE-B", "Data de criação": "2025-02-10", "Previsão": "2025-04-01" },
+    ];
+    await caller.orders.uploadExcel({ fileName: "lifecycle-week-1.xlsx", fileBase64: toBase64(firstUpload) });
+    await caller.orders.uploadExcel({
+      fileName: "lifecycle-week-2.xlsx",
+      fileBase64: toBase64([firstUpload[0]]),
+    });
+
+    const today = new Date().toISOString().slice(0, 10);
+    const lifecycle = await caller.orders.getOrderLifecycleAnalysis({ startDate: "2025-01-01", endDate: today });
+    expect(lifecycle.summary.openedOrders).toBe(2);
+    expect(lifecycle.monthly).toEqual(expect.arrayContaining([
+      expect.objectContaining({ month: "2025-01", openedOrders: 1 }),
+      expect.objectContaining({ month: "2025-02", openedOrders: 1 }),
+    ]));
+    expect(lifecycle.monthly.reduce((sum, month) => sum + month.above90, 0)).toBeGreaterThanOrEqual(1);
+
+    const historical = await caller.orders.getHistoricalAssessment({ startDate: "2025-01-01", endDate: today, shipTo: "PORTO ALEGRE" });
+    expect(historical.summary.uploads).toBe(2);
+    expect(historical.summary.branches).toBe(1);
+    expect(historical.uploads).toHaveLength(2);
+    expect(historical.branches).toEqual(expect.arrayContaining([
+      expect.objectContaining({ branch: "PORTO ALEGRE" }),
+    ]));
+  });

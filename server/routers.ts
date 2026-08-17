@@ -264,6 +264,28 @@ export const appRouter = router({
       return await db.getCompleteChangesReport(input);
     }),
 
+    getOrderLifecycleAnalysis: publicProcedure.input(z.object({
+      shipTo: z.string().optional(),
+      startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data inicial no formato AAAA-MM-DD.").optional(),
+      endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data final no formato AAAA-MM-DD.").optional(),
+    }).refine((input) => !input.startDate || !input.endDate || input.startDate <= input.endDate, {
+      message: "A data inicial não pode ser posterior à data final.",
+      path: ["endDate"],
+    })).query(async ({ input }) => {
+      return await db.getOrderLifecycleAnalysis(input);
+    }),
+
+    getHistoricalAssessment: publicProcedure.input(z.object({
+      shipTo: z.string().optional(),
+      startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data inicial no formato AAAA-MM-DD.").optional(),
+      endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data final no formato AAAA-MM-DD.").optional(),
+    }).refine((input) => !input.startDate || !input.endDate || input.startDate <= input.endDate, {
+      message: "A data inicial não pode ser posterior à data final.",
+      path: ["endDate"],
+    })).query(async ({ input }) => {
+      return await db.getHistoricalAssessment(input);
+    }),
+
     getStats: publicProcedure.input(z.object({ shipTo: z.string().optional() }).optional()).query(async ({ input }) => {
       return await db.getDashboardStats(input?.shipTo);
     }),
@@ -360,7 +382,7 @@ export const appRouter = router({
           const shipmentPriorityVal = getExcelRowValue(row, ['Shipment Priority', 'Prioridade', 'Priority']);
           const shipmentPriority = String(shipmentPriorityVal || '').trim();
 
-          const orderCreationDateVal = getExcelRowValue(row, ['Data Criacao da Ordem', 'Data Criação da Ordem', 'Data da Ordem', 'Data Ordem', 'Creation Date']);
+          const orderCreationDateVal = getExcelRowValue(row, ['Data Criacao da Ordem', 'Data Criação da Ordem', 'Data da criação', 'Data de criação', 'Data Criacao', 'Data Criação', 'Data da Ordem', 'Data Ordem', 'Creation Date']);
           const orderCreationDate = parseExcelDate(orderCreationDateVal);
 
           const itemCodeVal = getExcelRowValue(row, ['Item', 'Código do Item', 'Codigo do Item', 'Material', 'SKU', 'Item Code', 'Cod Item']);

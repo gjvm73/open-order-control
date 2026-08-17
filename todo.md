@@ -318,3 +318,10 @@
 - [x] Ajustar o Relatório Gerencial para apresentar as cargas pertinentes ao período selecionado
 - [x] Calcular métricas de tempo de vida tomando o recorte de datas como referência
 - [x] Cobrir o recorte temporal com testes, validar visualmente e salvar a atualização
+
+### Pendências registradas em 17/08/2026 - redesenho analítico de relatórios
+- [x] Definir regras de abertura, fechamento no mês e faixas de duração dos pedidos
+- [x] Implementar métricas mensais de pedidos efetuados, finalizados e pendentes por faixa de vida
+- [x] Reconstruir o Relatório Gerencial com os novos indicadores e visualizações
+- [x] Criar o menu Avaliação Histórica com filtros e análise temporal de cargas, filiais, itens e tempos
+- [x] Adicionar testes das métricas, validar visualmente e salvar a atualização
