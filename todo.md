@@ -268,3 +268,8 @@
 - [x] Remover o Relatório Completo e o painel de envelhecimento do Dashboard Ativo
 - [x] Tornar a guia Relatório Gerencial uma área exclusiva com filtros, indicadores, tabela e exportação
 - [x] Validar a alternância entre Dashboard, Itens Entregues e Relatório Gerencial
+
+### Pendências registradas em 17/08/2026 - faixa fixa de navegação
+- [x] Tornar fixa a faixa de menus Dashboard Ativo, Itens Entregues e Relatório Gerencial
+- [x] Preservar responsividade, contraste e acesso por teclado durante a rolagem
+- [x] Validar visualmente o cabeçalho fixo e salvar a atualização

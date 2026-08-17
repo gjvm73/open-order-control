@@ -483,13 +483,15 @@ export default function Home() {
         <ItemHistoryDialog detail={itemDetailQuery.data} isLoading={itemDetailQuery.isLoading} />
       </Dialog>
 
-      <div className="border-b border-zinc-900 bg-zinc-950 text-white px-6 py-3 flex items-center justify-between no-print">
-        <div className="flex flex-wrap items-center gap-4 md:gap-6 text-xs font-mono uppercase tracking-wider">
-          <button type="button" onClick={() => setActiveTab("active")} className={`pb-1 border-b-2 transition-all ${activeTab === "active" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Dashboard Ativo</button>
-          <button type="button" onClick={() => setActiveTab("delivered")} className={`pb-1 border-b-2 transition-all ${activeTab === "delivered" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Itens Entregues ({deliveredItems.length})</button>
-          <button type="button" onClick={handleOpenCompleteChangesReport} className={`pb-1 border-b-2 transition-all ${activeTab === "report" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Relatório Gerencial</button>
+      <div className="sticky top-0 z-50 border-b border-zinc-900 bg-zinc-950 px-4 py-3 text-white shadow-lg shadow-zinc-950/20 no-print sm:px-6">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <nav aria-label="Navegação principal do controle de pedidos" className="flex max-w-full items-center gap-4 overflow-x-auto whitespace-nowrap text-xs font-mono uppercase tracking-wider md:gap-6">
+            <button type="button" onClick={() => setActiveTab("active")} aria-current={activeTab === "active" ? "page" : undefined} className={`shrink-0 pb-1 border-b-2 transition-all ${activeTab === "active" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Dashboard Ativo</button>
+            <button type="button" onClick={() => setActiveTab("delivered")} aria-current={activeTab === "delivered" ? "page" : undefined} className={`shrink-0 pb-1 border-b-2 transition-all ${activeTab === "delivered" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Itens Entregues ({deliveredItems.length})</button>
+            <button type="button" onClick={handleOpenCompleteChangesReport} aria-current={activeTab === "report" ? "page" : undefined} className={`shrink-0 pb-1 border-b-2 transition-all ${activeTab === "report" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Relatório Gerencial</button>
+          </nav>
+          <span className="hidden shrink-0 text-[10px] font-mono text-zinc-400 xl:block">Regra: Desaparecidos no upload mais recente são considerados entregues</span>
         </div>
-        <span className="text-[10px] font-mono text-zinc-400">Regra: Desaparecidos no upload mais recente são considerados entregues</span>
       </div>
 
       <main className="print-report p-6 md:p-10 max-w-[1500px] mx-auto space-y-12">

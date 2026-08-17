@@ -82,6 +82,16 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(within(stabilityCard!).queryByText("100%")).toBeNull();
   });
 
+  it("mantém a navegação principal em uma faixa fixa com a guia ativa identificada", () => {
+    itemDetailQuery.mockReturnValue(emptyQuery(null));
+
+    render(<Home />);
+
+    const navigation = screen.getByRole("navigation", { name: "Navegação principal do controle de pedidos" });
+    expect(navigation.parentElement?.parentElement?.className).toContain("sticky");
+    expect(screen.getByRole("button", { name: "Dashboard Ativo" }).getAttribute("aria-current")).toBe("page");
+  });
+
   it("exibe o Relatório Gerencial em uma guia exclusiva pelo menu superior", () => {
     itemDetailQuery.mockReturnValue(emptyQuery(null));
 
