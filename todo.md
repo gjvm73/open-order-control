@@ -179,3 +179,6 @@
 - [x] Adicionar teste de interface que acione Ver histórico no alerta e valide a abertura do modal
 - [x] Validar no preview a interação de Ver histórico dos alertas com o modal aberto
 - [x] Registrar evidência automatizada explícita do modal aberto a partir de Ver histórico em 01A / Alertas de variação
+- [x] Normalizar previsões vazias, inválidas ou sem data como “Sem previsão” no upload
+- [x] Exibir “Sem previsão” de modo consistente no dashboard, alertas, histórico e exportações
+- [x] Adicionar testes de importação para a coluna Previsão sem data

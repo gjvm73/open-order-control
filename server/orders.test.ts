@@ -151,6 +151,7 @@ describe("Open Orders Backend & Upload Logic", () => {
 
   it("processes Excel buffer and tracks prediction history correctly", async () => {
     const itemCode = `ITEM-TEST-${Date.now()}`;
+    const itemWithoutPrediction = `ITEM-SEM-PREVISAO-${Date.now()}`;
     const customerPo = `PO-${Date.now()}`;
 
     // Criar uma planilha Excel em memória para teste
@@ -168,6 +169,20 @@ describe("Open Orders Backend & Upload Logic", () => {
         "Extended Price": 1000,
         "Previsão": "2025-06-01",
         "Long Text": "Teste inicial"
+      },
+      {
+        "Endereco (ship To)": "TESTE RS",
+        "Customer PO": customerPo,
+        "Shipment Priority": "Normal",
+        "Data Criacao da Ordem": new Date("2025-01-01T00:00:00.000Z"),
+        "Item": itemWithoutPrediction,
+        "Descricao do Item": "PEÇA SEM DATA DE PREVISÃO",
+        "Quantidade": 1,
+        "Scheduled Reserved": 0,
+        "Unit Selling Price": 10,
+        "Extended Price": 10,
+        "Previsão": "A definir",
+        "Long Text": "Previsão não informada"
       }
     ];
 
@@ -202,15 +217,17 @@ describe("Open Orders Backend & Upload Logic", () => {
     });
 
     expect(res1.success).toBe(true);
-    expect(res1.totalRows).toBe(1);
+    expect(res1.totalRows).toBe(2);
 
     // Verificar listagem
-    const items = await caller.orders.listItems({ item: itemCode, customerPo, shipTo: "TESTE RS" });
+    const items = await caller.orders.listItems({ customerPo, shipTo: "TESTE RS" });
     expect(items.length).toBeGreaterThan(0);
     const targetItem = items.find(i => i.item === itemCode && i.customerPo === customerPo);
     expect(targetItem).toBeDefined();
     expect(targetItem?.currentPrediction).toBe("2025-06-01");
     expect(targetItem?.predictionChangesCount).toBe(0);
+    const itemWithoutPredictionResult = items.find(i => i.item === itemWithoutPrediction && i.customerPo === customerPo);
+    expect(itemWithoutPredictionResult?.currentPrediction).toBe("Sem previsão");
 
     // Segundo upload com mudança na Previsão
     const wsData2 = [

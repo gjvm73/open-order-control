@@ -118,6 +118,20 @@ function parseExcelDate(raw: any): string {
   return str;
 }
 
+function parsePredictionDate(raw: any): string {
+  const parsed = parseExcelDate(raw);
+  const isoMatch = parsed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!isoMatch) return "Sem previsão";
+
+  const [, year, month, day] = isoMatch;
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+  const isValid = date.getUTCFullYear() === Number(year)
+    && date.getUTCMonth() === Number(month) - 1
+    && date.getUTCDate() === Number(day);
+
+  return isValid ? parsed : "Sem previsão";
+}
+
 export const appRouter = router({
   system: systemRouter,
   auth: router({
@@ -323,7 +337,7 @@ export const appRouter = router({
           const extendedPrice = String(extendedPriceVal || '0');
 
           const rawPrediction = getExcelRowValue(row, ['Previsão', 'Previsao', 'Data Previsão', 'Data Previsao', 'Data de Entrega', 'Previsão de Entrega', 'Previsao de Entrega', 'Delivery Date', 'Previsao Entrega', 'Data Entrega', 'Data Entr']);
-          const prediction = parseExcelDate(rawPrediction);
+          const prediction = parsePredictionDate(rawPrediction);
 
           const longTextVal = getExcelRowValue(row, ['Long Text', 'Observações', 'Observacoes', 'Notes', 'Texto Longo']);
           const longText = String(longTextVal || '');
