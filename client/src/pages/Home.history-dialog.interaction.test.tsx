@@ -82,17 +82,17 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(within(stabilityCard!).queryByText("100%")).toBeNull();
   });
 
-  it("abre o Relatório Gerencial diretamente pelo menu superior", () => {
+  it("exibe o Relatório Gerencial em uma guia exclusiva pelo menu superior", () => {
     itemDetailQuery.mockReturnValue(emptyQuery(null));
-    const scrollIntoView = vi.fn();
-    const getElementById = vi.spyOn(document, "getElementById").mockReturnValue({ scrollIntoView } as unknown as HTMLElement);
 
     render(<Home />);
+    expect(screen.getByText("Onde a gestão deve concentrar atenção")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Relatório Gerencial" }));
 
-    expect(getElementById).toHaveBeenCalledWith("relatorio-gerencial");
-    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
-    getElementById.mockRestore();
+    expect(screen.getByText("Alterações por filial e período")).toBeTruthy();
+    expect(screen.getByText("Envelhecimento das pendências")).toBeTruthy();
+    expect(screen.queryByText("Onde a gestão deve concentrar atenção")).toBeNull();
+    expect(screen.queryByText("Itens, previsões e respectivas alterações")).toBeNull();
   });
 
   it("abre o modal global com o detalhe do item selecionado", async () => {

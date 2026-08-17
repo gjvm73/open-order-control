@@ -263,3 +263,8 @@
 - [x] Exibir no Relatório Gerencial os indicadores Até 30 dias, 31–60 dias, 61–90 dias e Maior que 90 dias
 - [x] Integrar a visualização aos filtros de filial e período do relatório
 - [x] Adicionar testes, validar visualmente e salvar a atualização
+
+### Pendências registradas em 17/08/2026 - guia exclusiva do relatório
+- [x] Remover o Relatório Completo e o painel de envelhecimento do Dashboard Ativo
+- [x] Tornar a guia Relatório Gerencial uma área exclusiva com filtros, indicadores, tabela e exportação
+- [x] Validar a alternância entre Dashboard, Itens Entregues e Relatório Gerencial
