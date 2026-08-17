@@ -11,6 +11,7 @@ const completeChangesReportRefetch = vi.hoisted(() => vi.fn().mockResolvedValue(
 const deliveredItemsInvalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const completeChangesReportInvalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const completeChangesReportRows = vi.hoisted(() => ({ current: [] as any[] }));
+const uploadsRows = vi.hoisted(() => ({ current: [] as any[] }));
 const resetImportsMutate = vi.hoisted(() => vi.fn().mockResolvedValue({ deletedUploads: 1, deletedItems: 4, deletedHistory: 2 }));
 const uploadExcelMutate = vi.hoisted(() => vi.fn());
 const authState = vi.hoisted(() => ({ user: null as { role: string; name: string } | null, isAuthenticated: false, logout: vi.fn() }));
@@ -27,7 +28,7 @@ vi.mock("@/lib/trpc", () => ({
       listDeliveredItems: { useQuery: () => ({ ...emptyQuery([]), refetch: deliveredItemsRefetch }) },
       getStats: { useQuery: () => emptyQuery(statsQuery()) },
       listItems: { useQuery: () => emptyQuery([]) },
-      listUploads: { useQuery: () => emptyQuery([]) },
+      listUploads: { useQuery: () => emptyQuery(uploadsRows.current) },
       listShipTo: { useQuery: () => emptyQuery([]) },
       getBranchSummary: { useQuery: () => emptyQuery(branchSummary) },
       getAlerts: { useQuery: () => emptyQuery({ alerts: [{ id: 42, severity: "CRÍTICO", direction: "ADIAMENTO", item: "ITEM-42", itemDescription: "Item de teste", shipTo: "PORTO ALEGRE", customerPo: "PO-42", previousPrediction: "2025-05-01", currentPrediction: "2025-05-20", differenceDays: 19 }], summary: { totalAlerts: 1, criticalCount: 1, attentionCount: 0, criticalRatio: 100, attentionRatio: 0 } }) },
@@ -58,6 +59,7 @@ beforeEach(() => {
   authState.user = null;
   authState.isAuthenticated = false;
   completeChangesReportRows.current = [];
+  uploadsRows.current = [];
   vi.clearAllMocks();
 });
 
@@ -134,6 +136,23 @@ describe("histórico acionado pelos Alertas de Variação", () => {
 
     expect(screen.getByText("Dias pendentes por item ativo")).toBeTruthy();
     expect(screen.getByLabelText("Gráfico de colunas da distribuição de dias pendentes")).toBeTruthy();
+  });
+
+  it("mostra todas as cargas pertinentes e usa a última carga como referência temporal sem filtro final", () => {
+    itemDetailQuery.mockReturnValue(emptyQuery(null));
+    uploadsRows.current = [
+      { id: 1, fileName: "carga-abril.xlsx", uploadDate: "2026-04-15T10:00:00.000Z", totalRows: 49, acceptedRows: 49, changedRowsCount: 2 },
+      { id: 2, fileName: "carga-maio.xlsx", uploadDate: "2026-05-20T10:00:00.000Z", totalRows: 51, acceptedRows: 50, changedRowsCount: 4 },
+    ];
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Relatório Gerencial" }));
+
+    expect(screen.getByText("Cargas consideradas no período")).toBeTruthy();
+    expect(screen.getByText("2 carga(s)")).toBeTruthy();
+    expect(screen.getByText("carga-abril.xlsx")).toBeTruthy();
+    expect(screen.getByText("carga-maio.xlsx")).toBeTruthy();
+    expect(screen.getByText(/Referência: 20\/05\/2026/)).toBeTruthy();
   });
 
   it("exibe a quantidade de eventos e as alterações de cada item no período do Relatório Gerencial", () => {

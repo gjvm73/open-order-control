@@ -141,9 +141,34 @@ export default function Home() {
   }), [reportShipTo, reportStartDate, reportEndDate]);
   const completeChangesReportQuery = trpc.orders.getCompleteChangesReport.useQuery(completeChangesReportInput);
   const completeChangesReport = completeChangesReportQuery.data ?? [];
+  const reportUploads = React.useMemo(() => {
+    const startTimestamp = reportStartDate ? Date.parse(`${reportStartDate}T00:00:00.000Z`) : null;
+    const endTimestamp = reportEndDate ? Date.parse(`${reportEndDate}T23:59:59.999Z`) : null;
+
+    return (uploadsQuery.data ?? []).filter((upload) => {
+      const uploadTimestamp = new Date(upload.uploadDate).getTime();
+      if (!Number.isFinite(uploadTimestamp)) return false;
+      if (startTimestamp !== null && uploadTimestamp < startTimestamp) return false;
+      if (endTimestamp !== null && uploadTimestamp > endTimestamp) return false;
+      return true;
+    });
+  }, [uploadsQuery.data, reportStartDate, reportEndDate]);
+  const reportReferenceDate = React.useMemo(() => {
+    if (reportEndDate) return new Date(`${reportEndDate}T00:00:00.000Z`);
+    const latestUpload = reportUploads.reduce<typeof reportUploads[number] | null>((latest, upload) => {
+      if (!latest) return upload;
+      return new Date(upload.uploadDate).getTime() > new Date(latest.uploadDate).getTime() ? upload : latest;
+    }, null);
+    return latestUpload ? new Date(latestUpload.uploadDate) : new Date();
+  }, [reportEndDate, reportUploads]);
+  const reportUploadSummary = React.useMemo(() => reportUploads.reduce((summary, upload) => ({
+    totalRows: summary.totalRows + Number(upload.totalRows ?? 0),
+    acceptedRows: summary.acceptedRows + Number(upload.acceptedRows || upload.totalRows || 0),
+    changedRows: summary.changedRows + Number(upload.changedRowsCount ?? 0),
+  }), { totalRows: 0, acceptedRows: 0, changedRows: 0 }), [reportUploads]);
   const pendingAging = React.useMemo(
-    () => getPendingAgingSummary(completeChangesReport),
-    [completeChangesReport],
+    () => getPendingAgingSummary(completeChangesReport, reportReferenceDate),
+    [completeChangesReport, reportReferenceDate],
   );
   const changeEventsByItem = React.useMemo(() => {
     const eventCounts = new Map<number, number>();
@@ -863,9 +888,16 @@ export default function Home() {
           <div className="border-b border-zinc-900 pb-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">Relatório gerencial</h2><h3 className="text-xl font-bold tracking-tight">Alterações por filial e período</h3><p className="text-xs font-mono text-zinc-500 mt-1">Audite cada mudança de previsão com datas, variação, origem e informações completas do item.</p></div><Button type="button" variant="outline" onClick={handleExportCompleteChangesReport} className="rounded-none border-zinc-900 text-xs font-mono uppercase h-10 whitespace-nowrap"><Download className="w-4 h-4 mr-2" />Exportar relatório</Button></div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 border border-zinc-900 bg-zinc-50 p-4"><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Filial solicitante</label><select value={reportShipTo} onChange={(event) => setReportShipTo(event.target.value)} className="h-10 w-full rounded-none border border-zinc-900 bg-white px-3 text-xs font-mono"><option value="">Todas as filiais</option>{shipToOptions.map((shipTo) => <option key={`report-${shipTo}`} value={shipTo}>{shipTo}</option>)}</select></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Data inicial da alteração</label><Input type="date" value={reportStartDate} onChange={(event) => setReportStartDate(event.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Data final da alteração</label><Input type="date" value={reportEndDate} onChange={(event) => setReportEndDate(event.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div><div className="flex items-end"><Button type="button" variant="outline" onClick={() => { setReportShipTo(""); setReportStartDate(""); setReportEndDate(""); }} className="w-full rounded-none border-zinc-900 text-xs font-mono uppercase h-10">Limpar filtros</Button></div></div>
           <div className="border border-zinc-900 bg-white p-4">
+            <div className="flex flex-col gap-3 border-b border-zinc-200 pb-3 mb-3 md:flex-row md:items-end md:justify-between">
+              <div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Histórico de cargas</p><h4 className="text-base font-bold tracking-tight">Cargas consideradas no período</h4><p className="text-[10px] font-mono text-zinc-500 mt-1">O recorte usa as datas de upload; sem datas selecionadas, todas as cargas são apresentadas.</p></div>
+              <div className="flex flex-wrap gap-2 text-[10px] font-mono"><Badge className="rounded-none bg-zinc-950 text-white">{reportUploads.length} carga(s)</Badge><Badge variant="outline" className="rounded-none border-zinc-900">{reportUploadSummary.acceptedRows} linha(s) aceita(s)</Badge><Badge variant="outline" className="rounded-none border-zinc-900">{reportUploadSummary.changedRows} alteração(ões) reportadas</Badge></div>
+            </div>
+            {reportUploads.length === 0 ? <p className="py-3 text-center text-xs font-mono text-zinc-500">Nenhuma carga encontrada para o período selecionado.</p> : <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{reportUploads.map((upload) => <div key={upload.id} className="border border-zinc-200 p-3"><p className="font-mono text-[10px] text-zinc-500">{formatDate(upload.uploadDate)}</p><p className="font-bold text-sm truncate mt-1" title={upload.fileName}>{upload.fileName}</p><div className="grid grid-cols-3 gap-2 mt-3 text-[10px] font-mono"><div><p className="text-zinc-500">Linhas</p><p className="font-bold text-zinc-900 mt-1">{upload.totalRows}</p></div><div><p className="text-zinc-500">Aceitas</p><p className="font-bold text-emerald-700 mt-1">{upload.acceptedRows || upload.totalRows}</p></div><div><p className="text-zinc-500">Alterações</p><p className="font-bold text-red-600 mt-1">{upload.changedRowsCount}</p></div></div></div>)}</div>}
+          </div>
+          <div className="border border-zinc-900 bg-white p-4">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-2 border-b border-zinc-200 pb-3 mb-3">
               <div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Envelhecimento das pendências</p><h4 className="text-base font-bold tracking-tight">Pendências ativas com alteração no período</h4></div>
-              <div className="border border-zinc-900 bg-white px-3 py-2 text-right"><p className="text-[9px] font-mono uppercase tracking-wider text-zinc-500">Tempo médio de vida</p><p className="text-lg leading-none font-black text-zinc-950 mt-1">{pendingAging.averageAgeInDays === null ? "—" : `${pendingAging.averageAgeInDays} dias`}</p><p className="text-[9px] font-mono text-zinc-500 mt-1">{pendingAging.itemsWithCreationDate} item(ns) com data válida</p></div>
+              <div className="border border-zinc-900 bg-white px-3 py-2 text-right"><p className="text-[9px] font-mono uppercase tracking-wider text-zinc-500">Tempo médio de vida</p><p className="text-lg leading-none font-black text-zinc-950 mt-1">{pendingAging.averageAgeInDays === null ? "—" : `${pendingAging.averageAgeInDays} dias`}</p><p className="text-[9px] font-mono text-zinc-500 mt-1">Referência: {formatDate(reportReferenceDate)} · {pendingAging.itemsWithCreationDate} item(ns) com data válida</p></div>
             </div>
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
               <div className="border border-emerald-200 bg-emerald-50 p-3"><p className="text-[10px] font-mono uppercase text-emerald-800">Até 30 dias</p><p className="text-2xl font-black text-emerald-700 mt-1">{pendingAging.upTo30}</p><p className="text-[10px] font-mono text-emerald-800 mt-1">Pendências recentes</p></div>

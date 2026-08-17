@@ -312,3 +312,9 @@
 - [x] Calcular o tempo médio de vida dos itens conforme os filtros selecionados
 - [x] Exibir a quantidade de alterações sofridas por cada item na tabela do relatório
 - [x] Adicionar testes, validar visualmente e salvar a atualização
+
+### Pendências registradas em 17/08/2026 - histórico de cargas e tempo de vida por período
+- [x] Mapear todas as cargas realizadas e sua relação com os eventos históricos
+- [x] Ajustar o Relatório Gerencial para apresentar as cargas pertinentes ao período selecionado
+- [x] Calcular métricas de tempo de vida tomando o recorte de datas como referência
+- [x] Cobrir o recorte temporal com testes, validar visualmente e salvar a atualização
