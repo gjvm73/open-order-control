@@ -198,7 +198,7 @@
 
 ### Pendências registradas em 17/08/2026 - diagnóstico de importação
 - [x] Confirmar se a diferença ocorre por item duplicado na chave Ship To + Item + Customer PO ou por linha rejeitada no parser
-- [ ] Exibir no resultado do upload a quantidade de linhas lidas, aceitas, consolidadas e rejeitadas, com motivo da rejeição
+- [x] Exibir no resultado do upload a quantidade de linhas lidas, aceitas, consolidadas e rejeitadas, com motivo da rejeição
 - [x] Adicionar teste de importação que preserve 49 linhas válidas e identifique duplicidades explicitamente
 
 ### Pendências registradas em 17/08/2026 - rastreabilidade da divergência
@@ -209,11 +209,11 @@
 ### Pendências registradas em 17/08/2026 - validação de importação
 - [x] Adicionar teste para garantir que linhas com valores válidos em Item, Previsão, Ship To e Customer PO não sejam descartadas
 - [x] Adicionar teste separado para confirmar o comportamento esperado quando duas linhas compartilham a mesma chave de negócio
-- [ ] Atualizar a mensagem de resultado do upload para explicar claramente itens consolidados ou rejeitados
+- [x] Atualizar a mensagem de resultado do upload para explicar claramente itens consolidados ou rejeitados
 
 ### Pendências registradas em 17/08/2026 - acompanhamento
 - [x] Confirmar com a planilha real se as 49 linhas representam itens distintos ou se existe uma duplicidade pela chave de negócio
-- [ ] Registrar no histórico do upload o motivo de qualquer diferença entre linhas lidas e itens ativos
+- [x] Registrar no histórico do upload o motivo de qualquer diferença entre linhas lidas e itens ativos
 - [x] Validar a correção com a planilha real de 49 itens
 
 ### Pendências registradas em 17/08/2026 - item ausente

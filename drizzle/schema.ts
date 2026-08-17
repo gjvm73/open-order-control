@@ -21,6 +21,11 @@ export const uploads = mysqlTable("uploads", {
   fileName: varchar("fileName", { length: 255 }).notNull(),
   uploadDate: timestamp("uploadDate").defaultNow().notNull(),
   totalRows: int("totalRows").notNull().default(0),
+  acceptedRows: int("acceptedRows").notNull().default(0),
+  consolidatedRows: int("consolidatedRows").notNull().default(0),
+  rejectedRows: int("rejectedRows").notNull().default(0),
+  duplicateRows: int("duplicateRows").notNull().default(0),
+  rejectionReasons: text("rejectionReasons"),
   changedRowsCount: int("changedRowsCount").notNull().default(0),
   uploadedBy: int("uploadedBy"),
 });

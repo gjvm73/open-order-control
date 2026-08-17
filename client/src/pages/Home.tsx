@@ -295,7 +295,12 @@ export default function Home() {
         const dataUrl = String(uploadEvent.target?.result || "");
         const fileBase64 = dataUrl.includes(",") ? dataUrl.slice(dataUrl.indexOf(",") + 1) : dataUrl;
         const result = await utils.client.orders.uploadExcel.mutate({ fileName: file.name, fileBase64 });
-        toast.success(`${result.totalRows} linhas processadas; ${result.changedRowsCount} alterações identificadas.`);
+        const rejectionSummary = result.rejectionReasons?.length
+          ? ` Motivos: ${result.rejectionReasons.map((entry: { reason: string; count: number }) => `${entry.reason} (${entry.count})`).join(", ")}.`
+          : "";
+        toast.success(
+          `Upload concluído: ${result.acceptedRows} de ${result.totalRows} linhas aceitas; ${result.duplicateRows} duplicidade(s) preservada(s); ${result.rejectedRows} rejeitada(s); ${result.changedRowsCount} alteração(ões).${rejectionSummary}`,
+        );
         setUploadStatus("refreshing");
         setIsUploading(false);
         void Promise.all([

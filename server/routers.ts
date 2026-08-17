@@ -417,10 +417,27 @@ export const appRouter = router({
         if (preparedRows.length === 0) {
           throw new Error("Nenhuma linha válida foi reconhecida. Verifique se a planilha contém as colunas de Item e Previsão de entrega no cabeçalho.");
         }
+        const duplicateRows = Array.from(rowsByBaseKey.values()).reduce(
+          (total, group) => total + Math.max(group.length - 1, 0),
+          0,
+        );
+        const acceptedRows = rawPreparedRows.length;
+        const rejectedRows = Math.max(rows.length - acceptedRows, 0);
+        const rejectionReasons = rejectedRows > 0
+          ? JSON.stringify([{ reason: "Linha sem código de Item", count: rejectedRows }])
+          : null;
+        const uploadDiagnostics = {
+          totalRows: rows.length,
+          acceptedRows,
+          consolidatedRows: 0,
+          rejectedRows,
+          duplicateRows,
+          rejectionReasons,
+        };
         const result = await database.transaction(async (tx) => {
           const [uploadResult] = await tx.insert(db.uploads).values({
             fileName: input.fileName,
-            totalRows: rows.length,
+            ...uploadDiagnostics,
             uploadedBy: ctx.user?.id ?? null,
             changedRowsCount: 0,
           });
@@ -587,13 +604,18 @@ export const appRouter = router({
             await tx.insert(db.predictionHistory).values(historyRows.slice(start, start + importBatchSize));
           }
           await tx.update(db.uploads).set({ changedRowsCount: changedCount }).where(sql`id = ${uploadId}`);
-          return { uploadId, changedCount };
+          return { uploadId, changedCount, ...uploadDiagnostics };
         });
 
         return {
           success: true,
           uploadId: result.uploadId,
-          totalRows: rows.length,
+          totalRows: result.totalRows,
+          acceptedRows: result.acceptedRows,
+          consolidatedRows: result.consolidatedRows,
+          rejectedRows: result.rejectedRows,
+          duplicateRows: result.duplicateRows,
+          rejectionReasons: result.rejectionReasons ? JSON.parse(result.rejectionReasons) : [],
           changedRowsCount: result.changedCount,
         };
       } catch (error: any) {

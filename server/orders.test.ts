@@ -154,6 +154,50 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(statsAfterReset.valueAtRisk).toBe(0);
   });
 
+  it("returns upload diagnostics with rejection reasons", async () => {
+    const ctx: TrpcContext = {
+      user: {
+        id: 1,
+        openId: `test-admin-upload-diagnostics-${Date.now()}`,
+        name: "Test Admin",
+        email: `admin-upload-diagnostics-${Date.now()}@test.com`,
+        loginMethod: "manus",
+        role: "admin",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      },
+      req: { protocol: "https", headers: {} } as any,
+      res: {} as any,
+    };
+    const caller = appRouter.createCaller(ctx);
+    await caller.orders.resetImports();
+    const sheet = XLSX.utils.aoa_to_sheet([
+      ["Item", "Previsão", "Ship To", "Customer PO"],
+      ["ITEM-DIAGNOSTICO-VALIDO", "2026-09-01", "PORTO ALEGRE", "PO-DIAGNOSTICO-1"],
+      ["", "2026-09-02", "PORTO ALEGRE", "PO-DIAGNOSTICO-2"],
+    ]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, sheet, "Open Orders");
+    const fileBase64 = XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }).toString("base64");
+
+    const result = await caller.orders.uploadExcel({
+      fileName: "diagnostico-upload.xlsx",
+      fileBase64,
+    });
+
+    expect(result.totalRows).toBe(2);
+    expect(result.acceptedRows).toBe(1);
+    expect(result.consolidatedRows).toBe(0);
+    expect(result.rejectedRows).toBe(1);
+    expect(result.duplicateRows).toBe(0);
+    expect(result.rejectionReasons).toEqual([{ reason: "Linha sem código de Item", count: 1 }]);
+    const uploads = await caller.orders.listUploads();
+    const latestUpload = uploads.find((upload) => upload.id === result.uploadId);
+    expect(latestUpload?.rejectedRows).toBe(1);
+    expect(latestUpload?.rejectionReasons).toBe('[{"reason":"Linha sem código de Item","count":1}]');
+  });
+
   it("processes Excel buffer and tracks prediction history correctly", async () => {
     const itemCode = `ITEM-TEST-${Date.now()}`;
     const itemWithoutPrediction = `ITEM-SEM-PREVISAO-${Date.now()}`;
@@ -527,6 +571,16 @@ describe("Open Orders Backend & Upload Logic", () => {
     });
     expect(result.success).toBe(true);
     expect(result.totalRows).toBe(49);
+    expect(result.acceptedRows).toBe(49);
+    expect(result.consolidatedRows).toBe(0);
+    expect(result.rejectedRows).toBe(0);
+    expect(result.duplicateRows).toBe(1);
+    expect(result.rejectionReasons).toEqual([]);
+    const uploads = await caller.orders.listUploads();
+    const latestUpload = uploads.find((upload) => upload.id === result.uploadId);
+    expect(latestUpload?.acceptedRows).toBe(49);
+    expect(latestUpload?.duplicateRows).toBe(1);
+    expect(latestUpload?.rejectedRows).toBe(0);
     const items = await caller.orders.listItems();
     expect(items).toHaveLength(49);
     const stats = await caller.orders.getStats();
