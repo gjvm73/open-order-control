@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    .slide-container { width: 1280px; min-height: 720px; background: #0b0d12; color: #fff; font-family: Calibri, Arial, sans-serif; position: relative; overflow: hidden; }
+    .rail { position: absolute; left: 0; top: 0; width: 112px; min-height: 720px; background: #000; }
+    .rail-mark { position: absolute; top: 92px; left: 44px; width: 9px; height: 78px; background: #e30613; }
+    
+    .content { width: 100%; min-height: 720px; padding: 180px 120px 0 200px; }
+    .thanks { font-family: 'Calibri Light', Calibri, Arial, sans-serif; font-size: 72px; font-weight: 300; letter-spacing: -2px; line-height: 1; }
+    .tagline { margin-top: 24px; font-size: 24px; color: #a0a4ac; letter-spacing: 1px; }
+    
+    /* Reduced vertical spacing to avoid overflow while preserving title padding */
+    .recommendations { margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 40px; border-top: 1px solid #333; padding-top: 20px; }
+    .rec-item { position: relative; }
+    .rec-label { font-size: 12px; font-weight: 700; color: #e30613; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 12px; }
+    .rec-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+    .rec-text { font-size: 14px; line-height: 1.4; color: #888c94; }
+    
+    /* Bring footer elements a bit higher to keep inside the slide */
+    .brand { position: absolute; bottom: 40px; left: 200px; font-size: 14px; font-weight: 700; letter-spacing: 2px; }
+    .brand-mark { color: #e30613; margin-right: 8px; }
+    .footer-info { position: absolute; bottom: 40px; right: 80px; font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 1px; }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <div id="end-rail" class="rail"><div id="end-rail-mark" class="rail-mark"></div></div>
+    <div id="end-content" class="content">
+      <div id="end-thanks" class="thanks">Obrigado.</div>
+      <div id="end-tagline" class="tagline">Decisões baseadas em evidências, não em suposições.</div>
+      
+      <div id="end-recs" class="recommendations">
+        <div class="rec-item">
+          <div class="rec-label">Adoção</div>
+          <div class="rec-title">Ritual Semanal</div>
+          <div class="rec-text">Estabelecer o upload de sexta-feira como gatilho para a reunião de alinhamento de segunda-feira.</div>
+        </div>
+        <div class="rec-item">
+          <div class="rec-label">Governança</div>
+          <div class="rec-title">Gestão de Pesos</div>
+          <div class="rec-text">Revisar mensalmente os pesos do score para refletir mudanças na estratégia de suprimentos.</div>
+        </div>
+        <div class="rec-item">
+          <div class="rec-label">Estratégia</div>
+          <div class="rec-title">Risco Financeiro</div>
+          <div class="rec-text">Utilizar o Índice de Risco para priorizar negociações de alto impacto no fluxo de caixa.</div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="end-brand" class="brand"><span class="brand-mark">▮</span>OPEN ORDER CONTROL</div>
+    <div id="end-footer" class="footer-info">2026 • Giovani Martino</div>
+  </div>
+</body>
+</html>

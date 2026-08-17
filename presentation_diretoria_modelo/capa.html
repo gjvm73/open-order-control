@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Open Order Control</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    .slide-container { width: 1280px; min-height: 720px; position: relative; overflow: hidden; background: #090b10; color: #fff; font-family: Calibri, Arial, sans-serif; }
+    .cover-image { position: absolute; left: 350px; top: 0; width: 930px; height: 712px; object-fit: cover; }
+    .image-wash { position: absolute; left: 350px; top: 0; width: 930px; height: 712px; background: linear-gradient(90deg, #090b10 0%, #090b10cc 18%, #090b1040 58%, #090b1033 100%); }
+    .left-panel { position: absolute; left: 0; top: 0; width: 430px; min-height: 720px; padding: 68px 54px 0 64px; background: #090b10eF; }
+    .red-rule { width: 72px; height: 5px; background: #e30613; margin-bottom: 24px; }
+    .eyebrow { font-size: 15px; letter-spacing: 2.5px; text-transform: uppercase; color: #d2d5db; }
+    .title { margin-top: 30px; font-family: 'Calibri Light', Calibri, Arial, sans-serif; font-size: 58px; line-height: 0.98; font-weight: 300; letter-spacing: -1px; }
+    .subtitle { margin-top: 26px; width: 300px; font-size: 23px; line-height: 1.2; color: #f1f2f4; }
+    .promise { position: absolute; left: 64px; bottom: 86px; width: 290px; padding-top: 16px; border-top: 1px solid #6d727b; color: #c7cad0; font-size: 15px; line-height: 1.35; }
+    .brand { position: absolute; right: 48px; top: 42px; font-size: 14px; font-weight: 700; letter-spacing: 1.8px; color: #fff; }
+    .brand-mark { color: #e30613; margin-right: 8px; }
+    .footer { position: absolute; right: 48px; bottom: 36px; font-size: 12px; color: #d8dbe0; letter-spacing: 1px; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <img id="cover-control-room" class="cover-image" src="/home/ubuntu/open-order-control/executive_materials/assets/logistics_control_room.jpg" alt="Sala de controle logístico" />
+    <div id="cover-image-wash" class="image-wash"></div>
+    <div id="cover-panel" class="left-panel">
+      <div id="cover-red-rule" class="red-rule"></div>
+      <div id="cover-eyebrow" class="eyebrow">Diretoria • apresentação executiva</div>
+      <div id="cover-title" class="title">Open Order<br />Control</div>
+      <div id="cover-subtitle" class="subtitle">Da planilha semanal à decisão baseada em evidências.</div>
+      <div id="cover-promise" class="promise">Controle de previsões de entrega, histórico de alterações, risco executivo e fila de ação para a próxima reunião.</div>
+    </div>
+    <div id="cover-brand" class="brand"><span class="brand-mark">▮</span>OPEN ORDER CONTROL</div>
+    <div id="cover-footer" class="footer">2026 • Giovani Martino</div>
+  </div>
+</body>
+</html>

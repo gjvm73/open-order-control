@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    .slide-container { width: 1280px; min-height: 720px; background: #fff; color: #101116; font-family: Calibri, Arial, sans-serif; display: flex; position: relative; margin-top: -1px; }
+    .rail { width: 112px; min-height: 720px; background: #0b0d12; position: relative; }
+    .rail-mark { position: absolute; top: 92px; left: 44px; width: 9px; height: 78px; background: #e30613; }
+    .rail-text { position: absolute; left: 38px; bottom: 52px; writing-mode: vertical-rl; transform: rotate(180deg); color: #c9ccd2; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
+    .content { width: 1168px; min-height: 720px; padding: 64px 78px 0 84px; }
+    .eyebrow { font-size: 13px; color: #737780; letter-spacing: 2.2px; text-transform: uppercase; }
+    .title { margin-top: 18px; font-family: 'Calibri Light', Calibri, Arial, sans-serif; font-size: 44px; line-height: 1.04; font-weight: 300; }
+    .main-grid { display: grid; grid-template-columns: 1fr 400px; gap: 48px; margin-top: 42px; }
+    .visual-evidence { border: 1px solid #e2e4e8; background: #f8f9fa; }
+    .visual-evidence img { width: 600px; height: 400px; object-fit: contain; display: block; }
+    .feature-list { margin-top: 12px; }
+    .feature-item { margin-top: 18px; }
+    .feature-title { font-size: 20px; font-weight: 700; color: #101116; display: flex; align-items: center; }
+    .feature-title i { color: #e30613; margin-right: 12px; font-size: 16px; }
+    .feature-desc { margin-top: 8px; font-size: 15px; line-height: 1.4; color: #50545c; }
+    .city-tag-container { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .city-tag { padding: 4px 12px; background: #f1f2f4; border: 1px solid #d8dade; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #454952; }
+    .brand { position: absolute; top: 46px; right: 54px; font-size: 12px; letter-spacing: 1.6px; font-weight: 700; }
+    .brand-mark { color: #e30613; margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <div id="alertas-rail" class="rail"><div id="alertas-rail-mark" class="rail-mark"></div><div id="alertas-rail-text" class="rail-text">Open Order Control • diretoria</div></div>
+    <div id="alertas-content" class="content">
+      <div id="alertas-eyebrow" class="eyebrow">03 / Inteligência Geográfica e Severidade</div>
+      <div id="alertas-title" class="title">Alertas e filiais mostram onde agir primeiro</div>
+      <div class="main-grid">
+        <div id="alertas-visual" class="visual-evidence">
+          <img src="/home/ubuntu/open-order-control/executive_materials/assets/manual_base_operacional.png" alt="Alertas e Consolidação por Filial" />
+        </div>
+        <div id="alertas-features" class="feature-list">
+          <div class="feature-item">
+            <div class="feature-title"><i class="fas fa-exclamation-triangle"></i>Alertas de Variação</div>
+            <div class="feature-desc">Identificação automática de desvios críticos (>14 dias) e de atenção (>7 dias), com tendência histórica por upload.</div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-title"><i class="fas fa-map-marker-alt"></i>Normalização de Filiais</div>
+            <div class="feature-desc">Consolidação inteligente de endereços complexos em polos logísticos estratégicos para análise de pressão operacional.</div>
+            <div class="city-tag-container">
+              <span class="city-tag">Porto Alegre</span>
+              <span class="city-tag">Colombo</span>
+              <span class="city-tag">São José</span>
+              <span class="city-tag">Maringá</span>
+              <span class="city-tag">Chapecó</span>
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="feature-title"><i class="fas fa-chart-pie"></i>Valor sob Risco</div>
+            <div class="feature-desc">Cálculo monetário da exposição por filial, permitindo priorizar o suporte onde o impacto financeiro é maior.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="alertas-brand" class="brand"><span class="brand-mark">▮</span>OPEN ORDER CONTROL</div>
+  </div>
+</body>
+</html>

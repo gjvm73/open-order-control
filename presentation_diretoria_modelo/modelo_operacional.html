@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    .slide-container { width: 1280px; min-height: 720px; background: #fff; color: #101116; font-family: Calibri, Arial, sans-serif; display: flex; position: relative; }
+    .rail { width: 112px; min-height: 720px; background: #0b0d12; position: relative; }
+    .rail-mark { position: absolute; top: 92px; left: 44px; width: 9px; height: 78px; background: #e30613; }
+    .rail-text { position: absolute; left: 38px; bottom: 52px; writing-mode: vertical-rl; transform: rotate(180deg); color: #c9ccd2; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
+    .content { width: 1168px; min-height: 720px; padding: 60px 78px 0 84px; }
+    .eyebrow { font-size: 13px; color: #737780; letter-spacing: 2.2px; text-transform: uppercase; }
+    .title { margin-top: 18px; font-family: 'Calibri Light', Calibri, Arial, sans-serif; font-size: 44px; line-height: 1.04; font-weight: 300; }
+    
+    .flow-container { margin-top: 40px; display: flex; gap: 40px; }
+    .flow-step { width: 240px; position: relative; }
+    .step-box { height: 140px; border: 1px solid #121419; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; }
+    .step-num { font-size: 12px; font-weight: 700; color: #e30613; text-transform: uppercase; letter-spacing: 1px; }
+    .step-title { font-size: 18px; font-weight: 700; margin-top: 8px; }
+    .step-arrow { position: absolute; right: -30px; top: 70px; width: 20px; height: 1px; background: #121419; }
+    
+    .rules-panel { margin-top: 40px; padding-top: 24px; border-top: 1px solid #d8dade; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+    .rule-item { position: relative; padding-left: 24px; }
+    .rule-dot { position: absolute; left: 0; top: 8px; width: 8px; height: 8px; background: #e30613; }
+    .rule-title { font-size: 19px; font-weight: 700; margin-bottom: 8px; }
+    .rule-text { font-size: 15px; line-height: 1.4; color: #454952; }
+    
+    .brand { position: absolute; top: 46px; right: 54px; font-size: 12px; letter-spacing: 1.6px; font-weight: 700; }
+    .brand-mark { color: #e30613; margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <div id="operacional-rail" class="rail"><div id="operacional-rail-mark" class="rail-mark"></div><div id="operacional-rail-text" class="rail-text">Open Order Control • operação</div></div>
+    <div id="operacional-content" class="content">
+      <div id="operacional-eyebrow" class="eyebrow">02 / modelo operacional</div>
+      <div id="operacional-title" class="title">A comparação semanal transforma dados em histórico</div>
+      
+      <div id="operacional-flow" class="flow-container">
+        <div class="flow-step">
+          <div class="step-box">
+            <div class="step-num">Passo 01</div>
+            <div class="step-title">Upload da Planilha Semanal</div>
+          </div>
+          <div class="step-arrow"></div>
+        </div>
+        <div class="flow-step">
+          <div class="step-box">
+            <div class="step-num">Passo 02</div>
+            <div class="step-title">Identificação Única do Item</div>
+          </div>
+          <div class="step-arrow"></div>
+        </div>
+        <div class="flow-step">
+          <div class="step-box">
+            <div class="step-num">Passo 03</div>
+            <div class="step-title">Comparação de Previsões</div>
+          </div>
+          <div class="step-arrow"></div>
+        </div>
+        <div class="flow-step">
+          <div class="step-box">
+            <div class="step-num">Passo 04</div>
+            <div class="step-title">Atualização do Histórico</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="operacional-rules" class="rules-panel">
+        <div class="rule-item">
+          <div class="rule-dot"></div>
+          <div class="rule-title">Chave de Rastreabilidade</div>
+          <div class="rule-text">O sistema vincula os dados através da combinação de <strong>Filial (Ship To) + Código do Item + PO do Cliente</strong>, garantindo que a evolução seja monitorada no nível correto de detalhe.</div>
+        </div>
+        <div class="rule-item">
+          <div class="rule-dot"></div>
+          <div class="rule-title">Memória de Alterações</div>
+          <div class="rule-text">Diferente de uma planilha estática, o sistema detecta se a "Previsão Atual" mudou em relação ao registro anterior, computando a variância e arquivando a data exata da modificação.</div>
+        </div>
+      </div>
+    </div>
+    <div id="operacional-brand" class="brand"><span class="brand-mark">▮</span>OPEN ORDER CONTROL</div>
+  </div>
+</body>
+</html>

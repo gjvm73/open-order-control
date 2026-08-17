@@ -1,0 +1,144 @@
+{
+  "project_info": {
+    "title": "Open Order Control",
+    "created": 1786968725.615,
+    "last_updated": 1786969359.36,
+    "total_slides": 12
+  },
+  "slides": [
+    {
+      "id": "capa",
+      "state": "edited",
+      "pageNum": 1
+    },
+    {
+      "id": "agenda",
+      "state": "edited",
+      "pageNum": 2
+    },
+    {
+      "id": "modelo_operacional",
+      "state": "edited",
+      "pageNum": 3
+    },
+    {
+      "id": "visao_executiva",
+      "state": "edited",
+      "pageNum": 4
+    },
+    {
+      "id": "alertas_filiais",
+      "state": "edited",
+      "pageNum": 5
+    },
+    {
+      "id": "historico_item",
+      "state": "edited",
+      "pageNum": 6
+    },
+    {
+      "id": "fila_score",
+      "state": "edited",
+      "pageNum": 7
+    },
+    {
+      "id": "risco_executivo",
+      "state": "edited",
+      "pageNum": 8
+    },
+    {
+      "id": "entregues_sem_previsao",
+      "state": "edited",
+      "pageNum": 9
+    },
+    {
+      "id": "relatorios_controles",
+      "state": "edited",
+      "pageNum": 10
+    },
+    {
+      "id": "rotina_beneficios",
+      "state": "edited",
+      "pageNum": 11
+    },
+    {
+      "id": "encerramento",
+      "state": "edited",
+      "pageNum": 12
+    }
+  ],
+  "outline": [
+    {
+      "id": "capa",
+      "title": "Open Order Control",
+      "summary": "Capa executiva com imagem de sala de controle/logística, identidade preta e branca, acento vermelho e promessa central: transformar uploads semanais em decisão gerencial.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "agenda",
+      "title": "Da planilha semanal à decisão",
+      "summary": "Apresentar o problema de gestão, o objetivo da solução e o roteiro da apresentação em cinco movimentos: contexto, operação, indicadores, governança e benefícios.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "modelo_operacional",
+      "title": "A comparação semanal transforma dados em histórico",
+      "summary": "Explicar o ciclo de upload, identificação por Ship To + Item + Customer PO, comparação de previsões, registro de alterações e manutenção da base ativa.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "visao_executiva",
+      "title": "A visão executiva concentra atenção onde o risco aparece",
+      "summary": "Usar tela real do dashboard para explicar KPIs, estabilidade do ciclo, valor total, valor sob risco e o Centro de Comando Estratégico.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "alertas_filiais",
+      "title": "Alertas e filiais mostram onde agir primeiro",
+      "summary": "Usar telas reais para demonstrar alertas por variação, histórico de severidade, pressão por filial e normalização de endereços em cidades como Porto Alegre, Colombo, São José, Maringá e Chapecó.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "historico_item",
+      "title": "Cada item deixa uma trilha auditável de alterações",
+      "summary": "Demonstrar Base Operacional, previsões anterior/atual, datas de alteração, quantidade de ocorrências, modal Ver histórico e Mapa de Alterações.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "fila_score",
+      "title": "A Fila de Ação converte risco em prioridade de reunião",
+      "summary": "Explicar o score por instabilidade, fornecedor, vencimento, prioridade e impacto financeiro proporcional; mostrar que o peso é configurável e que o maior valor recebe maior impacto.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "risco_executivo",
+      "title": "O Índice de Risco Executivo oferece uma leitura de 0 a 100",
+      "summary": "Apresentar a fórmula ponderada, seus componentes e como a diretoria pode usar o índice para comparar estabilidade, vencimentos, disponibilidade, prioridade e exposição financeira.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "entregues_sem_previsao",
+      "title": "Entregues e sem previsão deixam de ser pontos cegos",
+      "summary": "Explicar a regra de itens ausentes no upload mais recente como entregues e a normalização de valores vazios, inválidos ou textuais em Previsão como Sem previsão.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "relatorios_controles",
+      "title": "Relatórios e controles sustentam a governança",
+      "summary": "Mostrar exportações PDF executivo/completo, Excel com resumo, base operacional e histórico, exportação somente alterados, login ADM, reset protegido e modo noturno.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "rotina_beneficios",
+      "title": "A rotina semanal reduz surpresa e acelera resposta",
+      "summary": "Descrever o roteiro recomendado da operação semanal e consolidar benefícios para diretoria, planejamento, compras, logística e filiais solicitantes.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "encerramento",
+      "title": "Obrigado — decisão baseada em evidência",
+      "summary": "Encerramento no padrão preto do modelo, com síntese dos ganhos e três decisões recomendadas para adoção: ritual semanal, governança de pesos e acompanhamento de risco financeiro.",
+      "image_plan": "Use a suitable image if needed"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { box-sizing: border-box; }
+    .slide-container { width: 1280px; min-height: 720px; background: #fff; color: #101116; font-family: Calibri, Arial, sans-serif; display: flex; position: relative; }
+    .rail { width: 112px; min-height: 720px; background: #0b0d12; position: relative; }
+    .rail-mark { position: absolute; top: 92px; left: 44px; width: 9px; height: 78px; background: #e30613; }
+    .rail-text { position: absolute; left: 38px; bottom: 52px; writing-mode: vertical-rl; transform: rotate(180deg); color: #c9ccd2; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
+    .content { width: 1168px; min-height: 720px; padding: 64px 78px 0 84px; }
+    .eyebrow { font-size: 13px; color: #737780; letter-spacing: 2.2px; text-transform: uppercase; }
+    .title { margin-top: 18px; font-family: 'Calibri Light', Calibri, Arial, sans-serif; font-size: 44px; line-height: 1.04; font-weight: 300; }
+    .main-layout { display: flex; margin-top: 24px; gap: 36px; }
+    /* Reduced image frame height to shave vertical space without changing fonts */
+    .image-frame { width: 680px; height: 384px; border: 1px solid #e1e3e8; background: #f8f9fa; display: flex; align-items: flex-start; overflow: hidden; }
+    .dashboard-img { width: auto; height: auto; max-height: 100%; object-fit: contain; }
+    .insights { width: 320px; padding-top: 8px; }
+    /* Reduced spacing between insight items to save height */
+    .insight-item { margin-bottom: 16px; }
+    .insight-label { font-size: 12px; font-weight: 700; color: #e30613; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 8px; }
+    .insight-text { font-size: 16px; line-height: 1.4; color: #454952; }
+    .brand { position: absolute; top: 46px; right: 54px; font-size: 12px; letter-spacing: 1.6px; font-weight: 700; }
+    .brand-mark { color: #e30613; margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <div id="exec-rail" class="rail"><div id="exec-rail-mark" class="rail-mark"></div><div id="exec-rail-text" class="rail-text">Open Order Control • diretoria</div></div>
+    <div id="exec-content" class="content">
+      <div id="exec-eyebrow" class="eyebrow">02 / Visão Estratégica</div>
+      <div id="exec-title" class="title">A visão executiva concentra atenção onde o risco aparece</div>
+      <div id="exec-main" class="main-layout">
+        <div id="exec-image-frame" class="image-frame">
+          <img id="exec-dashboard-img" class="dashboard-img" src="/home/ubuntu/open-order-control/executive_materials/assets/open_order_control_dashboard_topo.png" alt="Dashboard Executivo Topo" />
+        </div>
+        <div id="exec-insights" class="insights">
+          <div id="insight-1" class="insight-item">
+            <div class="insight-label">Índice de Risco</div>
+            <div class="insight-text">Leitura instantânea de 0 a 100 baseada em instabilidade, vencimento e exposição financeira.</div>
+          </div>
+          <div id="insight-2" class="insight-item">
+            <div class="insight-label">Estabilidade do Ciclo</div>
+            <div class="insight-text">Percentual de itens que mantiveram a previsão original no último upload semanal.</div>
+          </div>
+          <div id="insight-3" class="insight-item">
+            <div class="insight-label">Exposição Monetária</div>
+            <div class="insight-text">Valor total dos pedidos sob risco de atraso ou sem confirmação de fornecedor.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="exec-brand" class="brand"><span class="brand-mark">▮</span>OPEN ORDER CONTROL</div>
+  </div>
+</body>
+</html>

@@ -185,3 +185,7 @@
 - [x] Adicionar impacto financeiro como critério configurável no score da Fila de Ação
 - [x] Atualizar a configuração, simulação e explicação do score com o novo peso financeiro
 - [x] Cobrir o impacto financeiro com testes e validar a aplicação
+- [x] Corrigir a contabilização de itens vencidos no quadro de Prazos críticos por filial
+- [x] Adicionar teste de agregação de vencimentos por filial e validar o dashboard
+- [x] Cobrir o resumo de vencimentos com múltiplas filiais e contagens exatas por filial
+- [x] Adicionar evidência automatizada do consumo de vencimentos por filial no dashboard estratégico

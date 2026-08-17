@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    * { box-sizing: border-box; }
+    .slide-container { width: 1280px; min-height: 720px; background: #fff; color: #101116; font-family: Calibri, Arial, sans-serif; display: flex; position: relative; }
+    .rail { width: 112px; min-height: 720px; background: #0b0d12; position: relative; }
+    .rail-mark { position: absolute; top: 92px; left: 44px; width: 9px; height: 78px; background: #e30613; }
+    .rail-text { position: absolute; left: 38px; bottom: 52px; writing-mode: vertical-rl; transform: rotate(180deg); color: #c9ccd2; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
+    .content { width: 1168px; min-height: 720px; padding: 64px 78px 0 84px; }
+    .eyebrow { font-size: 13px; color: #737780; letter-spacing: 2.2px; text-transform: uppercase; }
+    .title { margin-top: 18px; font-family: 'Calibri Light', Calibri, Arial, sans-serif; font-size: 44px; line-height: 1.04; font-weight: 300; }
+    .intro { width: 720px; margin-top: 22px; font-size: 19px; line-height: 1.32; color: #454952; }
+    .agenda { margin-top: 48px; width: 880px; border-top: 1px solid #121419; }
+    .agenda-row { display: grid; grid-template-columns: 74px 300px 1fr; align-items: center; min-height: 60px; border-bottom: 1px solid #d8dade; }
+    .num { font-family: 'Calibri Light', Calibri, Arial, sans-serif; font-size: 28px; color: #e30613; }
+    .row-title { font-size: 21px; font-weight: 700; }
+    .row-desc { font-size: 15px; line-height: 1.25; color: #60646c; }
+    .brand { position: absolute; top: 46px; right: 54px; font-size: 12px; letter-spacing: 1.6px; font-weight: 700; }
+    .brand-mark { color: #e30613; margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <div id="agenda-rail" class="rail"><div id="agenda-rail-mark" class="rail-mark"></div><div id="agenda-rail-text" class="rail-text">Open Order Control • diretoria</div></div>
+    <div id="agenda-content" class="content">
+      <div id="agenda-eyebrow" class="eyebrow">01 / roteiro de decisão</div>
+      <div id="agenda-title" class="title">Da planilha semanal à decisão</div>
+      <div id="agenda-intro" class="intro">A apresentação percorre o sistema como um mecanismo de gestão: captura a mudança, mede o risco, prioriza a resposta e deixa a evidência pronta para a reunião.</div>
+      <div id="agenda-list" class="agenda">
+        <div id="agenda-row-1" class="agenda-row"><div class="num">01</div><div class="row-title">O problema de gestão</div><div class="row-desc">Por que uma nova planilha não pode apagar a memória operacional.</div></div>
+        <div id="agenda-row-2" class="agenda-row"><div class="num">02</div><div class="row-title">O modelo de comparação</div><div class="row-desc">Como o upload semanal vira histórico por item e pedido.</div></div>
+        <div id="agenda-row-3" class="agenda-row"><div class="num">03</div><div class="row-title">A leitura executiva</div><div class="row-desc">Como risco, alertas, filiais e fila de ação orientam a decisão.</div></div>
+        <div id="agenda-row-4" class="agenda-row"><div class="num">04</div><div class="row-title">Controles e evidências</div><div class="row-desc">Como exportações, login ADM e histórico sustentam governança.</div></div>
+        <div id="agenda-row-5" class="agenda-row"><div class="num">05</div><div class="row-title">Benefício e adoção</div><div class="row-desc">Como transformar a rotina semanal em um ritual previsível de gestão.</div></div>
+      </div>
+    </div>
+    <div id="agenda-brand" class="brand"><span class="brand-mark">▮</span>OPEN ORDER CONTROL</div>
+  </div>
+</body>
+</html>

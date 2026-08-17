@@ -347,6 +347,7 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(branch?.totalItems).toBeGreaterThanOrEqual(1);
     expect(branch?.changedItems).toBeGreaterThanOrEqual(1);
     expect(branch?.valueAtRisk).toBeGreaterThanOrEqual(1000);
+    expect(branch?.overdueItems).toBeGreaterThanOrEqual(1);
 
     const filteredStats = await caller.orders.getStats({ shipTo: "TESTE RS" });
     expect(filteredStats.totalItems).toBeGreaterThanOrEqual(1);
@@ -587,6 +588,16 @@ describe("Open Orders Backend & Upload Logic", () => {
 
     const allStatsAfterClear = await caller.orders.getStats({ shipTo: undefined });
     expect(allStatsAfterClear.totalItems).toBe(2);
+
+    const branchSummary = await caller.orders.getBranchSummary();
+    expect(branchSummary.find(branch => branch.shipTo === "PORTO ALEGRE")).toMatchObject({
+      totalItems: 1,
+      overdueItems: 1,
+    });
+    expect(branchSummary.find(branch => branch.shipTo === "COLOMBO")).toMatchObject({
+      totalItems: 1,
+      overdueItems: 1,
+    });
 
     const alertsAfterClear = await caller.orders.getAlerts({ thresholdDays: 7, shipTo: undefined });
     expect(alertsAfterClear.alerts).toBeDefined();

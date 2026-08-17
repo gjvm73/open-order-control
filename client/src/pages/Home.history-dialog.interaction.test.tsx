@@ -6,6 +6,10 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 const itemDetailQuery = vi.hoisted(() => vi.fn());
 const invalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const emptyQuery = <T,>(data: T) => ({ data, isLoading: false, refetch: vi.fn() });
+const branchSummary = [
+  { shipTo: "PORTO ALEGRE", totalItems: 3, changedItems: 2, overdueItems: 2, noSupplier: 0, highPriorityItems: 1, valueAtRisk: 18000, changeRate: 66.7, shareOfItems: 60 },
+  { shipTo: "COLOMBO", totalItems: 2, changedItems: 1, overdueItems: 1, noSupplier: 0, highPriorityItems: 0, valueAtRisk: 7000, changeRate: 50, shareOfItems: 40 },
+];
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
@@ -15,7 +19,7 @@ vi.mock("@/lib/trpc", () => ({
       listItems: { useQuery: () => emptyQuery([]) },
       listUploads: { useQuery: () => emptyQuery([]) },
       listShipTo: { useQuery: () => emptyQuery([]) },
-      getBranchSummary: { useQuery: () => emptyQuery([]) },
+      getBranchSummary: { useQuery: () => emptyQuery(branchSummary) },
       getAlerts: { useQuery: () => emptyQuery({ alerts: [{ id: 42, severity: "CRÍTICO", direction: "ADIAMENTO", item: "ITEM-42", itemDescription: "Item de teste", shipTo: "PORTO ALEGRE", customerPo: "PO-42", previousPrediction: "2025-05-01", currentPrediction: "2025-05-20", differenceDays: 19 }], summary: { totalAlerts: 1, criticalCount: 1, attentionCount: 0, criticalRatio: 100, attentionRatio: 0 } }) },
       getAlertsTrend: { useQuery: () => emptyQuery([]) },
       getItemDetail: { useQuery: itemDetailQuery },
@@ -40,6 +44,16 @@ import Home from "./Home";
 afterEach(() => cleanup());
 
 describe("histórico acionado pelos Alertas de Variação", () => {
+  it("mostra a quantidade de vencidos de cada filial no quadro de Prazos críticos", () => {
+    itemDetailQuery.mockReturnValue(emptyQuery(null));
+
+    render(<Home />);
+
+    expect(screen.getByText("Prazos críticos por filial")).toBeTruthy();
+    expect(screen.getByText("2 vencidos")).toBeTruthy();
+    expect(screen.getByText("1 vencidos")).toBeTruthy();
+  });
+
   it("abre o modal global com o detalhe do item selecionado", async () => {
     itemDetailQuery.mockImplementation(({ id }: { id: number | null }) => emptyQuery(id === 42 ? {
       item: { item: "ITEM-42", customerPo: "PO-42", currentPrediction: "2025-05-20", previousPrediction: "2025-05-01", predictionChangesCount: 1 },

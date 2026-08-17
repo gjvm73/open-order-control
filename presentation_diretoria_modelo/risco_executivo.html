@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
+  <style>
+    * { box-sizing: border-box; }
+    .slide-container { width: 1280px; min-height: 720px; background: #fff; color: #101116; font-family: Calibri, Arial, sans-serif; display: flex; position: relative; }
+    .rail { width: 112px; min-height: 720px; background: #0b0d12; position: relative; }
+    .rail-mark { position: absolute; top: 92px; left: 44px; width: 9px; height: 78px; background: #e30613; }
+    .rail-text { position: absolute; left: 38px; bottom: 52px; writing-mode: vertical-rl; transform: rotate(180deg); color: #c9ccd2; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
+    .content { width: 1168px; min-height: 720px; padding: 64px 78px 0 84px; }
+    .eyebrow { font-size: 13px; color: #737780; letter-spacing: 2.2px; text-transform: uppercase; }
+    .title { margin-top: 18px; font-family: 'Calibri Light', Calibri, Arial, sans-serif; font-size: 44px; line-height: 1.04; font-weight: 300; }
+    
+    .main-grid { display: grid; grid-template-columns: 1fr 480px; gap: 60px; margin-top: 40px; }
+    .formula-section { padding-top: 10px; }
+    .formula-display { background: #0b0d12; color: #fff; padding: 32px; margin-bottom: 32px; position: relative; }
+    .formula-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #e30613; margin-bottom: 16px; }
+    .formula-math { font-family: 'Calibri Light', Calibri, sans-serif; font-size: 22px; line-height: 1.4; }
+    .formula-math span { color: #e30613; font-weight: 700; }
+    
+    .chart-container { position: relative; height: 320px; display: flex; align-items: center; justify-content: center; }
+    .chart-center-text { position: absolute; text-align: center; }
+    .chart-center-value { font-size: 48px; font-weight: 300; font-family: 'Calibri Light', sans-serif; }
+    .chart-center-label { font-size: 12px; text-transform: uppercase; color: #737780; letter-spacing: 1px; }
+    
+    .components-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    .components-table th { text-align: left; font-size: 12px; text-transform: uppercase; color: #737780; padding: 12px 0; border-bottom: 1px solid #101116; }
+    .components-table td { padding: 14px 0; border-bottom: 1px solid #e9ecef; font-size: 15px; }
+    .comp-weight { font-weight: 700; color: #e30613; text-align: right; }
+    
+    .brand { position: absolute; top: 46px; right: 54px; font-size: 12px; letter-spacing: 1.6px; font-weight: 700; }
+    .brand-mark { color: #e30613; margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <div id="risco-rail" class="rail"><div id="risco-rail-mark" class="rail-mark"></div><div id="risco-rail-text" class="rail-text">Open Order Control • métricas</div></div>
+    <div id="risco-content" class="content">
+      <div id="risco-eyebrow" class="eyebrow">05 / Inteligência Executiva</div>
+      <div id="risco-title" class="title">O Índice de Risco Executivo oferece uma leitura de 0 a 100</div>
+      
+      <div class="main-grid">
+        <div class="formula-section">
+          <div class="formula-display">
+            <div class="formula-label">Fórmula Ponderada</div>
+            <div class="formula-math">
+              Risco = min(100, <span>35%</span> Instabilidade + <span>25%</span> Vencimento + <span>20%</span> Sem Fornecedor + <span>10%</span> Prioridade + <span>10%</span> Exposição Financeira)
+            </div>
+          </div>
+          
+          <table class="components-table">
+            <thead>
+              <tr>
+                <th>Componente do Risco</th>
+                <th>O que mede</th>
+                <th style="text-align: right;">Peso</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Instabilidade</strong></td>
+                <td>Frequência de mudanças na previsão</td>
+                <td class="comp-weight">35%</td>
+              </tr>
+              <tr>
+                <td><strong>Vencimento</strong></td>
+                <td>Itens com data de entrega ultrapassada</td>
+                <td class="comp-weight">25%</td>
+              </tr>
+              <tr>
+                <td><strong>Sem Fornecedor</strong></td>
+                <td>Pedidos sem confirmação de data</td>
+                <td class="comp-weight">20%</td>
+              </tr>
+              <tr>
+                <td><strong>Prioridade</strong></td>
+                <td>Itens marcados como críticos</td>
+                <td class="comp-weight">10%</td>
+              </tr>
+              <tr>
+                <td><strong>Exposição Financeira</strong></td>
+                <td>Valor monetário total sob risco</td>
+                <td class="comp-weight">10%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="chart-section">
+          <div class="chart-container">
+            <canvas id="riskChart"></canvas>
+            <div class="chart-center-text">
+              <div class="chart-center-value">0-100</div>
+              <div class="chart-center-label">Escala de Risco</div>
+            </div>
+          </div>
+          <div style="margin-top: 40px; padding: 20px; background: #f8f9fa; border-left: 4px solid #e30613;">
+            <p style="font-size: 15px; line-height: 1.4; color: #454952;">
+              <strong>Aplicação:</strong> O índice permite comparar a saúde da carteira entre diferentes filiais e períodos, orientando a alocação de recursos e esforços de negociação.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="risco-brand" class="brand"><span class="brand-mark">▮</span>OPEN ORDER CONTROL</div>
+  </div>
+
+  <script>
+    const ctx = document.getElementById('riskChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Instabilidade', 'Vencimento', 'Sem Fornecedor', 'Prioridade', 'Exposição Financeira'],
+        datasets: [{
+          data: [35, 25, 20, 10, 10],
+          backgroundColor: ['#e30613', '#101116', '#454952', '#737780', '#d8dade'],
+          borderWidth: 0,
+          hoverOffset: 4
+        }]
+      },
+      options: {
+        cutout: '80%',
+        plugins: {
+          legend: { display: false }
+        },
+        responsive: true,
+        maintainAspectRatio: false
+      }
+    });
+  </script>
+</body>
+</html>

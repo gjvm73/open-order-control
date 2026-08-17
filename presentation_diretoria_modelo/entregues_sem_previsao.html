@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    .slide-container { width: 1280px; min-height: 720px; background: #fff; color: #101116; font-family: Calibri, Arial, sans-serif; display: flex; position: relative; }
+    .rail { width: 112px; min-height: 720px; background: #0b0d12; position: relative; }
+    .rail-mark { position: absolute; top: 92px; left: 44px; width: 9px; height: 78px; background: #e30613; }
+    .rail-text { position: absolute; left: 38px; bottom: 52px; writing-mode: vertical-rl; transform: rotate(180deg); color: #c9ccd2; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
+    .content { width: 1168px; min-height: 720px; padding: 64px 78px 0 84px; }
+    .eyebrow { font-size: 13px; color: #737780; letter-spacing: 2.2px; text-transform: uppercase; }
+    .title { margin-top: 18px; font-family: 'Calibri Light', Calibri, Arial, sans-serif; font-size: 44px; line-height: 1.04; font-weight: 300; }
+    
+    .rules-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 60px; }
+    .rule-card { border-top: 1px solid #121419; padding-top: 24px; }
+    .rule-icon { font-size: 32px; color: #e30613; margin-bottom: 20px; }
+    .rule-name { font-size: 24px; font-weight: 700; margin-bottom: 16px; }
+    .rule-desc { font-size: 17px; line-height: 1.5; color: #454952; }
+    
+    .logic-box { margin-top: 24px; background: #f8f9fa; padding: 20px; border-left: 4px solid #101116; }
+    .logic-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #737780; margin-bottom: 8px; }
+    .logic-text { font-size: 15px; color: #101116; font-style: italic; }
+
+    .brand { position: absolute; top: 46px; right: 54px; font-size: 12px; letter-spacing: 1.6px; font-weight: 700; }
+    .brand-mark { color: #e30613; margin-right: 8px; }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <div id="blind-rail" class="rail"><div id="blind-rail-mark" class="rail-mark"></div><div id="blind-rail-text" class="rail-text">Open Order Control • Governança</div></div>
+    <div id="blind-content" class="content">
+      <div id="blind-eyebrow" class="eyebrow">05 / Integridade de Dados</div>
+      <div id="blind-title" class="title">Entregues e sem previsão deixam de ser pontos cegos</div>
+      
+      <div id="blind-grid" class="rules-grid">
+        <div id="rule-delivered" class="rule-card">
+          <div class="rule-icon"><i class="fas fa-box-open"></i></div>
+          <div class="rule-name">Itens Entregues</div>
+          <div class="rule-desc">O sistema identifica automaticamente pedidos que foram concluídos, evitando que itens antigos poluam a visão de ordens abertas.</div>
+          <div class="logic-box">
+            <div class="logic-title">Lógica de Detecção</div>
+            <div class="logic-text">"Se um item existia no upload anterior e deixou de constar no arquivo mais recente, ele é movido para o menu de Entregues."</div>
+          </div>
+        </div>
+        
+        <div id="rule-no-date" class="rule-card">
+          <div class="rule-icon"><i class="fas fa-calendar-times"></i></div>
+          <div class="rule-name">Normalização de Datas</div>
+          <div class="rule-desc">Eliminação de ruídos causados por campos de data mal preenchidos ou textos informativos do fornecedor.</div>
+          <div class="logic-box">
+            <div class="logic-title">Regra de Tratamento</div>
+            <div class="logic-text">"Valores vazios, inválidos ou textos (ex: 'A definir', 'Pendente') são normalizados como 'Sem previsão' para manter a consistência."</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="blind-brand" class="brand"><span class="brand-mark">▮</span>OPEN ORDER CONTROL</div>
+  </div>
+</body>
+</html>
