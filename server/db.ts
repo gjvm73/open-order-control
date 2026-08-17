@@ -323,6 +323,101 @@ export async function getPredictionHistoryByItemIds(orderItemIds: number[]) {
   });
 }
 
+export type CompleteChangesReportFilters = {
+  shipTo?: string;
+  startDate?: string;
+  endDate?: string;
+};
+
+function parseReportBoundary(value: string | undefined, endOfDay: boolean) {
+  if (!value) return null;
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const [, year, month, day] = match;
+  const date = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * Retorna somente os eventos em que a previsão mudou, mantendo a linha
+ * operacional completa e a sequência histórica necessária para auditoria.
+ */
+export async function getCompleteChangesReport(filters: CompleteChangesReportFilters = {}) {
+  const db = await getDb();
+  if (!db) return [];
+
+  const conditions: any[] = [];
+  const normalizedShipTo = filters.shipTo ? normalizeShipTo(filters.shipTo) : undefined;
+  if (normalizedShipTo) {
+    conditions.push(sql`TRIM(${orderItems.shipTo}) = ${normalizedShipTo}`);
+  }
+
+  const recordsQuery = db.select({
+    historyId: predictionHistory.id,
+    orderItemId: predictionHistory.orderItemId,
+    uploadId: predictionHistory.uploadId,
+    prediction: predictionHistory.prediction,
+    recordedAt: predictionHistory.recordedAt,
+    fileName: uploads.fileName,
+    uploadDate: uploads.uploadDate,
+    item: orderItems.item,
+    itemDescription: orderItems.itemDescription,
+    shipTo: orderItems.shipTo,
+    customerPo: orderItems.customerPo,
+    shipmentPriority: orderItems.shipmentPriority,
+    orderCreationDate: orderItems.orderCreationDate,
+    quantity: orderItems.quantity,
+    scheduledReserved: orderItems.scheduledReserved,
+    unitSellingPrice: orderItems.unitSellingPrice,
+    extendedPrice: orderItems.extendedPrice,
+    currentPrediction: orderItems.currentPrediction,
+    previousPrediction: orderItems.previousPrediction,
+    predictionChangesCount: orderItems.predictionChangesCount,
+    lastPredictionChangeDate: orderItems.lastPredictionChangeDate,
+    status: orderItems.status,
+    deliveredAt: orderItems.deliveredAt,
+    longText: orderItems.longText,
+  }).from(predictionHistory)
+    .innerJoin(orderItems, eq(predictionHistory.orderItemId, orderItems.id))
+    .innerJoin(uploads, eq(predictionHistory.uploadId, uploads.id));
+
+  const records = conditions.length > 0
+    ? await recordsQuery.where(and(...conditions)).orderBy(asc(predictionHistory.orderItemId), asc(predictionHistory.uploadId), asc(predictionHistory.id))
+    : await recordsQuery.orderBy(asc(predictionHistory.orderItemId), asc(predictionHistory.uploadId), asc(predictionHistory.id));
+
+  const startDate = parseReportBoundary(filters.startDate, false);
+  const endDate = parseReportBoundary(filters.endDate, true);
+  const previousPredictionByItem = new Map<number, string>();
+
+  return records.flatMap((record) => {
+    const previousPrediction = previousPredictionByItem.get(record.orderItemId) ?? null;
+    previousPredictionByItem.set(record.orderItemId, record.prediction);
+    if (previousPrediction === null || previousPrediction === record.prediction) return [];
+
+    const changedAt = record.recordedAt ?? record.uploadDate;
+    if (!changedAt) return [];
+    const changeMoment = new Date(changedAt);
+    if (startDate && changeMoment < startDate) return [];
+    if (endDate && changeMoment > endDate) return [];
+
+    const previousDate = parseValidPredictionDate(previousPrediction);
+    const currentDate = parseValidPredictionDate(record.prediction);
+    const differenceDays = previousDate && currentDate
+      ? Math.round((currentDate.getTime() - previousDate.getTime()) / 86400000)
+      : null;
+
+    return [{
+      ...record,
+      shipTo: normalizeShipTo(record.shipTo) || "Sem filial informada",
+      previousPrediction,
+      currentPredictionAtChange: record.prediction,
+      differenceDays,
+      direction: differenceDays === null ? "SEM DATA" : differenceDays > 0 ? "ADIAMENTO" : differenceDays < 0 ? "ANTECIPAÇÃO" : "SEM ALTERAÇÃO DE DIAS",
+      changedAt: changeMoment,
+    }];
+  }).sort((left, right) => right.changedAt.getTime() - left.changedAt.getTime() || right.historyId - left.historyId);
+}
+
 export async function getPredictionAlerts(thresholdDays: number, shipTo?: string) {
   const db = await getDb();
   if (!db) return [];

@@ -246,3 +246,9 @@
 - [x] Corrigir o cálculo de estabilidade para carteira vazia
 - [x] Exibir estado neutro no card Estabilidade do último ciclo quando não houver importação
 - [x] Adicionar testes e validar visualmente o estado sem dados
+
+### Pendências registradas em 17/08/2026 - relatório completo de alterações
+- [x] Definir filtros por filial e intervalo de datas para o relatório completo
+- [x] Criar consulta de itens alterados com datas de alteração e dados operacionais completos
+- [x] Criar interface de relatório com filtros, tabela detalhada e exportação em Excel
+- [x] Adicionar testes de filtros e validar visualmente o novo módulo

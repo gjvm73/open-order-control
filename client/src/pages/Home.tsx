@@ -82,6 +82,9 @@ export default function Home() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [pdfMode, setPdfMode] = useState<"executive" | "detailed" | null>(null);
   const [prioritizationOpen, setPrioritizationOpen] = useState(false);
+  const [reportShipTo, setReportShipTo] = useState("");
+  const [reportStartDate, setReportStartDate] = useState("");
+  const [reportEndDate, setReportEndDate] = useState("");
 
   const deliveredInput = React.useMemo(() => ({
     search: deliveredSearch,
@@ -124,6 +127,13 @@ export default function Home() {
   const prioritizationSettingsQuery = trpc.orders.getPrioritizationSettings.useQuery();
   const updatePrioritizationMutation = trpc.orders.updatePrioritizationSettings.useMutation();
   const resetPrioritizationMutation = trpc.orders.resetPrioritizationSettings.useMutation();
+  const completeChangesReportInput = React.useMemo(() => ({
+    shipTo: reportShipTo.trim() || undefined,
+    startDate: reportStartDate || undefined,
+    endDate: reportEndDate || undefined,
+  }), [reportShipTo, reportStartDate, reportEndDate]);
+  const completeChangesReportQuery = trpc.orders.getCompleteChangesReport.useQuery(completeChangesReportInput);
+  const completeChangesReport = completeChangesReportQuery.data ?? [];
   const utils = trpc.useUtils();
   const clearShipToFilter = React.useCallback(() => {
     setFilterShipTo("");
@@ -225,6 +235,44 @@ export default function Home() {
       console.error("Falha ao carregar o histórico para exportação:", error);
       toast.error("Não foi possível carregar todas as datas de alteração para o Excel.");
     }
+  };
+
+  const handleExportCompleteChangesReport = () => {
+    if (completeChangesReport.length === 0) {
+      toast.info("Nenhuma alteração de previsão foi encontrada para os filtros do Relatório Completo.");
+      return;
+    }
+
+    const rows = completeChangesReport.map((row) => ({
+      "Data da alteração": formatDate(row.changedAt),
+      "Hora do registro": formatDateTime(row.changedAt),
+      "Filial solicitante": row.shipTo,
+      "Item": row.item,
+      "Descrição do item": row.itemDescription || "",
+      "Customer PO": row.customerPo || "",
+      "Previsão anterior": formatPrediction(row.previousPrediction),
+      "Previsão alterada": formatPrediction(row.currentPredictionAtChange),
+      "Variação (dias)": row.differenceDays ?? "Sem comparação entre datas",
+      "Direção": row.direction,
+      "Prioridade de embarque": row.shipmentPriority || "",
+      "Data de criação": formatPrediction(row.orderCreationDate),
+      "Quantidade": row.quantity ?? "",
+      "Reserva programada": row.scheduledReserved ?? "",
+      "Preço unitário": Number(row.unitSellingPrice || 0),
+      "Valor total": Number(row.extendedPrice || 0),
+      "Previsão atual do item": formatPrediction(row.currentPrediction),
+      "Alterações acumuladas": row.predictionChangesCount,
+      "Última alteração do item": formatDate(row.lastPredictionChangeDate),
+      "Status atual": row.status,
+      "Arquivo de origem": row.fileName,
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    worksheet["!cols"] = Array.from({ length: 21 }, (_, index) => ({ wch: [15, 19, 24, 18, 42, 18, 18, 18, 20, 18, 22, 16, 12, 18, 16, 18, 20, 20, 19, 14, 30][index] }));
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Alterações completas");
+    const period = reportStartDate || reportEndDate ? `${reportStartDate || "inicio"}_a_${reportEndDate || "hoje"}` : "todo-periodo";
+    XLSX.writeFile(workbook, `relatorio-completo-alteracoes_${period}.xlsx`);
+    toast.success(`${completeChangesReport.length} alteração(ões) exportada(s) para Excel.`);
   };
 
   const handleAdminLogin = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -769,7 +817,14 @@ export default function Home() {
           <div className="border border-zinc-900 bg-white overflow-x-auto"><table className="w-full text-left border-collapse min-w-[1420px]"><thead><tr className="border-b border-zinc-900 bg-zinc-50 text-xs font-mono uppercase tracking-wider"><th className="p-4 border-r border-zinc-900">Filial solicitante</th><th className="p-4 border-r border-zinc-900">Item / descrição</th><th className="p-4 border-r border-zinc-900">Customer PO</th><th className="p-4 border-r border-zinc-900">Previsão anterior</th><th className="p-4 border-r border-zinc-900">Previsão atual</th><th className="p-4 border-r border-zinc-900">Último upload</th><th className="p-4 border-r border-zinc-900">Resumo de alterações</th><th className="p-4 border-r border-zinc-900">Última alteração</th><th className="p-4 border-r border-zinc-900 text-center">Total alterações</th><th className="p-4 text-center">Detalhes</th></tr></thead><tbody className="divide-y divide-zinc-200 text-sm font-mono">{items.length === 0 ? <tr><td colSpan={10} className="p-12 text-center text-zinc-500">Nenhum item encontrado.</td></tr> : items.map((row) => <tr key={row.id} className="hover:bg-zinc-50 align-top"><td className="p-4 border-r border-zinc-200"><p className="font-bold text-xs truncate max-w-[220px]" title={row.shipTo || "Sem filial informada"}>{row.shipTo || "Sem filial informada"}</p></td><td className="p-4 border-r border-zinc-200"><p className="font-bold">{row.item}</p><p className="text-xs text-zinc-500 mt-1 max-w-[240px]">{row.itemDescription || "Sem descrição"}</p></td><td className="p-4 border-r border-zinc-200">{row.customerPo || "—"}</td><td className="p-4 border-r border-zinc-200 text-zinc-500">{row.previousPrediction || "Primeiro registro"}</td><td className="p-4 border-r border-zinc-200"><span className="font-bold text-red-600">{row.currentPrediction || "Sem previsão"}</span></td><td className="p-4 border-r border-zinc-200"><p>{formatDate(row.lastUploadDate)}</p><p className="text-[10px] text-zinc-500 mt-1 truncate max-w-[180px]" title={row.lastUploadFileName || "Sem arquivo"}>{row.lastUploadFileName || "Sem arquivo"}</p></td><td className="p-4 border-r border-zinc-200"><p className={`font-bold ${row.predictionChangesCount > 0 ? "text-red-600" : "text-zinc-500"}`}>{row.predictionChangesCount > 0 ? `${row.predictionChangesCount} alteração(ões) acumulada(s)` : "Sem alteração registrada"}</p><p className="text-[10px] text-zinc-500 mt-1">Anterior: {row.previousPrediction || "Primeiro registro"}</p></td><td className="p-4 border-r border-zinc-200"><p>{row.predictionChangesCount > 0 ? formatDate(row.lastPredictionChangeDate) : "Sem alteração"}</p><p className="text-[10px] text-zinc-500 mt-1">Registro: {formatDate(row.updatedAt)}</p></td><td className="p-4 border-r border-zinc-200 text-center"><span className={`inline-block px-3 py-1 text-xs font-bold border ${row.predictionChangesCount > 0 ? "bg-red-100 text-red-700 border-red-200" : "bg-zinc-100 text-zinc-700 border-zinc-200"}`}>{row.predictionChangesCount}x</span></td><td className="p-4 text-center"><Button variant="outline" size="sm" className="rounded-none border-zinc-900 text-xs font-mono h-8 hover:bg-zinc-950 hover:text-white" onClick={() => setSelectedItemId(row.id)}><History className="w-3.5 h-3.5 mr-1" /> Ver histórico</Button></td></tr>)}</tbody></table></div>
         </section>
 
-        <section className="space-y-4"><div className="border-b border-zinc-900 pb-2"><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">07 / Mapa de alterações</h2><h3 className="text-xl font-bold tracking-tight">Itens que tiveram a previsão modificada</h3></div><div className="border border-zinc-900 overflow-x-auto"><table className="w-full text-left border-collapse min-w-[900px]"><thead><tr className="border-b border-zinc-900 bg-zinc-950 text-white text-xs font-mono uppercase tracking-wider"><th className="p-4">Item / nome</th><th className="p-4">Customer PO</th><th className="p-4">De</th><th className="p-4">Para</th><th className="p-4">Data</th><th className="p-4 text-center">Ocorrências</th><th className="p-4">Ação</th></tr></thead><tbody className="divide-y divide-zinc-200 text-sm font-mono">{changedItems.length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-zinc-500">Nenhuma alteração para os filtros atuais.</td></tr> : changedItems.map((row) => <tr key={`change-${row.id}`} className="hover:bg-red-50"><td className="p-4"><p className="font-bold">{row.item}</p><p className="text-xs text-zinc-500 mt-1 max-w-[280px]">{row.itemDescription || "Sem descrição"}</p></td><td className="p-4">{row.customerPo || "—"}</td><td className="p-4 text-zinc-500">{row.previousPrediction || "—"}</td><td className="p-4 text-red-600 font-bold">{row.currentPrediction || "—"}</td><td className="p-4">{formatDate(row.lastPredictionChangeDate)}</td><td className="p-4 text-center"><span className="px-2 py-1 bg-red-100 text-red-700 font-bold">{row.predictionChangesCount}x</span></td><td className="p-4"><Button variant="outline" size="sm" className="rounded-none border-zinc-900 text-xs font-mono" onClick={() => setSelectedItemId(row.id)}>Linha do tempo</Button></td></tr>)}</tbody></table></div></section>
+        <section className="space-y-4">
+          <div className="border-b border-zinc-900 pb-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">07 / Relatório completo</h2><h3 className="text-xl font-bold tracking-tight">Alterações por filial e período</h3><p className="text-xs font-mono text-zinc-500 mt-1">Audite cada mudança de previsão com datas, variação, origem e informações completas do item.</p></div><Button type="button" variant="outline" onClick={handleExportCompleteChangesReport} className="rounded-none border-zinc-900 text-xs font-mono uppercase h-10 whitespace-nowrap"><Download className="w-4 h-4 mr-2" />Exportar relatório</Button></div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 border border-zinc-900 bg-zinc-50 p-4"><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Filial solicitante</label><select value={reportShipTo} onChange={(event) => setReportShipTo(event.target.value)} className="h-10 w-full rounded-none border border-zinc-900 bg-white px-3 text-xs font-mono"><option value="">Todas as filiais</option>{shipToOptions.map((shipTo) => <option key={`report-${shipTo}`} value={shipTo}>{shipTo}</option>)}</select></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Data inicial da alteração</label><Input type="date" value={reportStartDate} onChange={(event) => setReportStartDate(event.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Data final da alteração</label><Input type="date" value={reportEndDate} onChange={(event) => setReportEndDate(event.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div><div className="flex items-end"><Button type="button" variant="outline" onClick={() => { setReportShipTo(""); setReportStartDate(""); setReportEndDate(""); }} className="w-full rounded-none border-zinc-900 text-xs font-mono uppercase h-10">Limpar filtros</Button></div></div>
+          <div className="flex flex-wrap items-center gap-3"><Badge className="rounded-none bg-zinc-950 text-white font-mono">{completeChangesReport.length} alteração(ões)</Badge>{reportShipTo && <Badge className="rounded-none bg-red-600 text-white font-mono">Filial: {reportShipTo}</Badge>}{(reportStartDate || reportEndDate) && <span className="text-[10px] font-mono text-zinc-500">Período: {formatDate(reportStartDate)} até {formatDate(reportEndDate)}</span>}</div>
+          <div className="border border-zinc-900 bg-white overflow-x-auto"><table className="w-full min-w-[1750px] text-left border-collapse"><thead><tr className="border-b border-zinc-900 bg-zinc-950 text-white text-[10px] font-mono uppercase tracking-wider"><th className="p-3">Data / hora</th><th className="p-3">Filial</th><th className="p-3">Item / descrição</th><th className="p-3">PO</th><th className="p-3">De</th><th className="p-3">Para</th><th className="p-3 text-right">Variação</th><th className="p-3">Direção</th><th className="p-3">Prioridade</th><th className="p-3 text-right">Quantidade</th><th className="p-3 text-right">Valor total</th><th className="p-3">Status atual</th><th className="p-3 text-center">Histórico</th></tr></thead><tbody className="divide-y divide-zinc-200 text-xs font-mono">{completeChangesReportQuery.isLoading ? <tr><td colSpan={13} className="p-10 text-center text-zinc-500">Carregando alterações...</td></tr> : completeChangesReport.length === 0 ? <tr><td colSpan={13} className="p-10 text-center text-zinc-500">Nenhuma alteração de previsão encontrada para os filtros selecionados.</td></tr> : completeChangesReport.map((row) => <tr key={row.historyId} className="hover:bg-red-50 align-top"><td className="p-3 whitespace-nowrap"><p className="font-bold">{formatDate(row.changedAt)}</p><p className="text-[10px] text-zinc-500">{formatDateTime(row.changedAt).split(", ")[1] || ""}</p></td><td className="p-3 max-w-[180px] truncate" title={row.shipTo}>{row.shipTo}</td><td className="p-3"><p className="font-bold">{row.item}</p><p className="text-[10px] text-zinc-500 max-w-[260px] truncate" title={row.itemDescription || ""}>{row.itemDescription || "Sem descrição"}</p></td><td className="p-3">{row.customerPo || "—"}</td><td className="p-3 text-zinc-600">{formatPrediction(row.previousPrediction)}</td><td className="p-3 font-bold text-red-700">{formatPrediction(row.currentPredictionAtChange)}</td><td className={`p-3 text-right font-bold ${row.differenceDays !== null && row.differenceDays > 0 ? "text-red-700" : "text-zinc-700"}`}>{row.differenceDays === null ? "—" : `${row.differenceDays > 0 ? "+" : ""}${row.differenceDays} dias`}</td><td className="p-3"><Badge className={`rounded-none text-[9px] ${row.direction === "ADIAMENTO" ? "bg-red-600 text-white" : row.direction === "ANTECIPAÇÃO" ? "bg-emerald-600 text-white" : "bg-zinc-200 text-zinc-800"}`}>{row.direction}</Badge></td><td className="p-3">{row.shipmentPriority || "—"}</td><td className="p-3 text-right">{row.quantity ?? "—"}</td><td className="p-3 text-right">{formatCurrency(row.extendedPrice)}</td><td className="p-3">{row.status}</td><td className="p-3 text-center"><Button variant="outline" size="sm" onClick={() => setSelectedItemId(row.orderItemId)} className="rounded-none border-zinc-900 text-[10px] font-mono h-8">Ver histórico</Button></td></tr>)}</tbody></table></div>
+        </section>
+
+        <section className="space-y-4"><div className="border-b border-zinc-900 pb-2"><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">08 / Mapa de alterações</h2><h3 className="text-xl font-bold tracking-tight">Itens que tiveram a previsão modificada</h3></div><div className="border border-zinc-900 overflow-x-auto"><table className="w-full text-left border-collapse min-w-[900px]"><thead><tr className="border-b border-zinc-900 bg-zinc-950 text-white text-xs font-mono uppercase tracking-wider"><th className="p-4">Item / nome</th><th className="p-4">Customer PO</th><th className="p-4">De</th><th className="p-4">Para</th><th className="p-4">Data</th><th className="p-4 text-center">Ocorrências</th><th className="p-4">Ação</th></tr></thead><tbody className="divide-y divide-zinc-200 text-sm font-mono">{changedItems.length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-zinc-500">Nenhuma alteração para os filtros atuais.</td></tr> : changedItems.map((row) => <tr key={`change-${row.id}`} className="hover:bg-red-50"><td className="p-4"><p className="font-bold">{row.item}</p><p className="text-xs text-zinc-500 mt-1 max-w-[280px]">{row.itemDescription || "Sem descrição"}</p></td><td className="p-4">{row.customerPo || "—"}</td><td className="p-4 text-zinc-500">{row.previousPrediction || "—"}</td><td className="p-4 text-red-600 font-bold">{row.currentPrediction || "—"}</td><td className="p-4">{formatDate(row.lastPredictionChangeDate)}</td><td className="p-4 text-center"><span className="px-2 py-1 bg-red-100 text-red-700 font-bold">{row.predictionChangesCount}x</span></td><td className="p-4"><Button variant="outline" size="sm" className="rounded-none border-zinc-900 text-xs font-mono" onClick={() => setSelectedItemId(row.id)}>Linha do tempo</Button></td></tr>)}</tbody></table></div></section>
           </>
         )}
         </div>

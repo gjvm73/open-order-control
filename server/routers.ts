@@ -253,6 +253,17 @@ export const appRouter = router({
       return await db.getPredictionHistoryByItemIds(input.orderItemIds);
     }),
 
+    getCompleteChangesReport: publicProcedure.input(z.object({
+      shipTo: z.string().optional(),
+      startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data inicial no formato AAAA-MM-DD.").optional(),
+      endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Informe a data final no formato AAAA-MM-DD.").optional(),
+    }).refine((input) => !input.startDate || !input.endDate || input.startDate <= input.endDate, {
+      message: "A data inicial não pode ser posterior à data final.",
+      path: ["endDate"],
+    })).query(async ({ input }) => {
+      return await db.getCompleteChangesReport(input);
+    }),
+
     getStats: publicProcedure.input(z.object({ shipTo: z.string().optional() }).optional()).query(async ({ input }) => {
       return await db.getDashboardStats(input?.shipTo);
     }),

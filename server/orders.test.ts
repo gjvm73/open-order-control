@@ -731,6 +731,95 @@ describe("Open Orders Backend & Upload Logic", () => {
       fileBase64: invalidBuffer.toString("base64"),
     })).rejects.toThrow("Não foi possível localizar uma tabela válida");
   });
+
+  it("returns a complete changes report filtered by branch and change period", async () => {
+    await db.resetImportedData();
+    const suffix = Date.now();
+    const ctx: TrpcContext = {
+      user: {
+        id: 1,
+        openId: `report-complete-admin-${suffix}`,
+        name: "Admin User",
+        email: `report-complete-${suffix}@test.com`,
+        loginMethod: "local",
+        role: "admin",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        lastSignedIn: new Date(),
+      },
+      req: { protocol: "https", headers: {} } as any,
+      res: {} as any,
+    };
+    const caller = appRouter.createCaller(ctx);
+    const toBase64 = (rows: Record<string, unknown>[]) => {
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(rows), "OpenOrders");
+      return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }).toString("base64");
+    };
+    const portoItem = `ITEM-REPORT-POA-${suffix}`;
+    const colomboItem = `ITEM-REPORT-CWB-${suffix}`;
+    const baseRows = [
+      {
+        "Endereco (ship To)": "AVENIDA ASSIS BRASIL RS BR",
+        "Customer PO": `PO-REPORT-POA-${suffix}`,
+        "Shipment Priority": "High",
+        "Data Criacao da Ordem": "2025-01-10",
+        "Item": portoItem,
+        "Descricao do Item": "Item com alteração em Porto Alegre",
+        "Quantidade": 4,
+        "Scheduled Reserved": 1,
+        "Unit Selling Price": 25,
+        "Extended Price": 100,
+        "Previsão": "2026-06-10",
+        "Long Text": "Rastreabilidade completa",
+      },
+      {
+        "Endereco (ship To)": "RUA ABEL SCUISSIATO PR BR",
+        "Customer PO": `PO-REPORT-CWB-${suffix}`,
+        "Shipment Priority": "Normal",
+        "Data Criacao da Ordem": "2025-01-11",
+        "Item": colomboItem,
+        "Descricao do Item": "Item com alteração em Colombo",
+        "Quantidade": 2,
+        "Scheduled Reserved": 0,
+        "Unit Selling Price": 30,
+        "Extended Price": 60,
+        "Previsão": "2026-06-12",
+        "Long Text": "Outro item alterado",
+      },
+    ];
+    await caller.orders.uploadExcel({ fileName: "report-week-1.xlsx", fileBase64: toBase64(baseRows) });
+    await caller.orders.uploadExcel({
+      fileName: "report-week-2.xlsx",
+      fileBase64: toBase64([
+        { ...baseRows[0], "Previsão": "2026-06-25" },
+        { ...baseRows[1], "Previsão": "2026-06-05" },
+      ]),
+    });
+
+    const today = new Date().toISOString().slice(0, 10);
+    const portoReport = await caller.orders.getCompleteChangesReport({
+      shipTo: "PORTO ALEGRE",
+      startDate: today,
+      endDate: today,
+    });
+    expect(portoReport).toHaveLength(1);
+    expect(portoReport[0]).toMatchObject({
+      item: portoItem,
+      shipTo: "PORTO ALEGRE",
+      previousPrediction: "2026-06-10",
+      currentPredictionAtChange: "2026-06-25",
+      differenceDays: 15,
+      direction: "ADIAMENTO",
+      quantity: "4.00",
+      extendedPrice: "100.0000",
+    });
+
+    const fullReport = await caller.orders.getCompleteChangesReport({ startDate: today, endDate: today });
+    expect(fullReport).toHaveLength(2);
+    expect(fullReport.map((entry) => entry.shipTo)).toEqual(expect.arrayContaining(["PORTO ALEGRE", "COLOMBO"]));
+    await expect(caller.orders.getCompleteChangesReport({ startDate: "2026-12-31", endDate: "2026-01-01" })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
 });
 
 

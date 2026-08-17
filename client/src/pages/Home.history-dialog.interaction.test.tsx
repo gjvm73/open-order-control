@@ -24,6 +24,7 @@ vi.mock("@/lib/trpc", () => ({
       getBranchSummary: { useQuery: () => emptyQuery(branchSummary) },
       getAlerts: { useQuery: () => emptyQuery({ alerts: [{ id: 42, severity: "CRÍTICO", direction: "ADIAMENTO", item: "ITEM-42", itemDescription: "Item de teste", shipTo: "PORTO ALEGRE", customerPo: "PO-42", previousPrediction: "2025-05-01", currentPrediction: "2025-05-20", differenceDays: 19 }], summary: { totalAlerts: 1, criticalCount: 1, attentionCount: 0, criticalRatio: 100, attentionRatio: 0 } }) },
       getAlertsTrend: { useQuery: () => emptyQuery([]) },
+      getCompleteChangesReport: { useQuery: () => emptyQuery([]) },
       getItemDetail: { useQuery: itemDetailQuery },
       resetImports: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) },
       getPrioritizationSettings: { useQuery: () => emptyQuery(null) },
