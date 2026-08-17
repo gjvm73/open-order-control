@@ -173,3 +173,9 @@
 - [x] Adicionar interface de Configurações para ajuste e restauração dos pesos padrão
 - [x] Atualizar a apresentação executiva com as funcionalidades e controles mais recentes
 - [x] Atualizar o manual Word ilustrado com a área de Configurações de Priorização e os roteiros completos
+- [x] Confirmar que a marcação de itens entregues ausentes está funcionando corretamente (sem correção necessária)
+- [x] Corrigir o botão Ver histórico nos Alertas de Variação
+- [x] Adicionar teste estrutural de ligação entre alerta e modal global de histórico
+- [x] Adicionar teste de interface que acione Ver histórico no alerta e valide a abertura do modal
+- [x] Validar no preview a interação de Ver histórico dos alertas com o modal aberto
+- [x] Registrar evidência automatizada explícita do modal aberto a partir de Ver histórico em 01A / Alertas de variação
