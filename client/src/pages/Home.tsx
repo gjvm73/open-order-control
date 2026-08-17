@@ -7,6 +7,7 @@ import { getPendingAgingSummary } from "@/lib/pendingAging";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -16,6 +17,7 @@ import {
   SlidersHorizontal, RotateCcw, Save,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, XAxis, YAxis } from "recharts";
 
 type PrioritizationWeights = {
   predictionChangeWeight: number;
@@ -32,6 +34,10 @@ const DEFAULT_PRIORITIZATION_WEIGHTS: PrioritizationWeights = {
   highPriorityWeight: 2,
   financialImpactWeight: 3,
 };
+
+const pendingAgingChartConfig = {
+  items: { label: "Pendências", color: "#18181b" },
+} satisfies ChartConfig;
 
 function formatDate(value: unknown) {
   if (!value) return "—";
@@ -139,6 +145,12 @@ export default function Home() {
     () => getPendingAgingSummary(completeChangesReport),
     [completeChangesReport],
   );
+  const pendingAgingChartData = React.useMemo(() => [
+    { range: "Até 30", items: pendingAging.upTo30, fill: "#047857" },
+    { range: "31–60", items: pendingAging.from31To60, fill: "#b45309" },
+    { range: "61–90", items: pendingAging.from61To90, fill: "#c2410c" },
+    { range: "> 90", items: pendingAging.above90, fill: "#dc2626" },
+  ], [pendingAging]);
   const utils = trpc.useUtils();
   const handleOpenCompleteChangesReport = () => setActiveTab("report");
   const clearShipToFilter = React.useCallback(() => {
@@ -300,7 +312,17 @@ export default function Home() {
       setResetConfirmation("");
       setSelectedItemId(null);
       toast.success(`Importações resetadas: ${result.deletedUploads} uploads, ${result.deletedItems} itens e ${result.deletedHistory} registros históricos removidos.`);
-      await Promise.all([statsQuery.refetch(), itemsQuery.refetch(), uploadsQuery.refetch(), shipToQuery.refetch(), branchSummaryQuery.refetch(), alertsQuery.refetch(), alertsTrendQuery.refetch()]);
+      await Promise.all([
+        statsQuery.refetch(),
+        itemsQuery.refetch(),
+        uploadsQuery.refetch(),
+        shipToQuery.refetch(),
+        branchSummaryQuery.refetch(),
+        alertsQuery.refetch(),
+        alertsTrendQuery.refetch(),
+        deliveredItemsQuery.refetch(),
+        completeChangesReportQuery.refetch(),
+      ]);
     } catch (err: any) {
       toast.error(err.message || "Não foi possível resetar as importações.");
     }
@@ -365,6 +387,8 @@ export default function Home() {
           utils.orders.getBranchSummary.invalidate(),
           utils.orders.getAlerts.invalidate(alertsInput),
           utils.orders.getAlertsTrend.invalidate(alertsInput),
+          utils.orders.listDeliveredItems.invalidate(deliveredInput),
+          utils.orders.getCompleteChangesReport.invalidate(completeChangesReportInput),
         ]).finally(() => setUploadStatus("idle"));
       } catch (err: any) {
         toast.error(err.message || "Erro ao processar o upload do arquivo.");
@@ -841,6 +865,21 @@ export default function Home() {
               <div className="border border-amber-200 bg-amber-50 p-3"><p className="text-[10px] font-mono uppercase text-amber-800">31–60 dias</p><p className="text-2xl font-black text-amber-700 mt-1">{pendingAging.from31To60}</p><p className="text-[10px] font-mono text-amber-800 mt-1">Acompanhamento</p></div>
               <div className="border border-orange-200 bg-orange-50 p-3"><p className="text-[10px] font-mono uppercase text-orange-800">61–90 dias</p><p className="text-2xl font-black text-orange-700 mt-1">{pendingAging.from61To90}</p><p className="text-[10px] font-mono text-orange-800 mt-1">Atenção reforçada</p></div>
               <div className="border border-red-300 bg-red-50 p-3"><p className="text-[10px] font-mono uppercase text-red-800">Acima de 90 dias</p><p className="text-2xl font-black text-red-700 mt-1">{pendingAging.above90}</p><p className="text-[10px] font-mono text-red-800 mt-1">Pendências críticas</p></div>
+            </div>
+            <div className="mt-5 border-t border-zinc-200 pt-4">
+              <div className="flex items-baseline justify-between gap-3 mb-3"><div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Distribuição por faixa</p><h5 className="text-sm font-bold">Dias pendentes por item ativo</h5></div><span className="text-[10px] font-mono text-zinc-500">Quantidade de itens</span></div>
+              <ChartContainer aria-label="Gráfico de colunas da distribuição de dias pendentes" config={pendingAgingChartConfig} className="h-[220px] w-full aspect-auto">
+                <BarChart data={pendingAgingChartData} margin={{ top: 20, right: 12, left: -12, bottom: 0 }}>
+                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                  <XAxis dataKey="range" tickLine={false} axisLine={false} tickMargin={10} className="font-mono text-[10px]" />
+                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={30} className="font-mono text-[10px]" />
+                  <ChartTooltip cursor={{ fill: "rgba(24, 24, 27, 0.06)" }} content={<ChartTooltipContent hideLabel />} />
+                  <Bar dataKey="items" radius={[2, 2, 0, 0]} maxBarSize={68}>
+                    <LabelList dataKey="items" position="top" className="fill-zinc-700 font-mono text-[10px]" />
+                    {pendingAgingChartData.map((entry) => <Cell key={entry.range} fill={entry.fill} />)}
+                  </Bar>
+                </BarChart>
+              </ChartContainer>
             </div>
             {pendingAging.withoutCreationDate > 0 && <p className="text-[10px] font-mono text-zinc-500 mt-3">{pendingAging.withoutCreationDate} item(ns) não entrou(ram) nas faixas por não possuir(em) Data de criação válida.</p>}
           </div>

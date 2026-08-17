@@ -6,6 +6,13 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 const itemDetailQuery = vi.hoisted(() => vi.fn());
 const invalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const statsQuery = vi.hoisted(() => vi.fn());
+const deliveredItemsRefetch = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const completeChangesReportRefetch = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const deliveredItemsInvalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const completeChangesReportInvalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const resetImportsMutate = vi.hoisted(() => vi.fn().mockResolvedValue({ deletedUploads: 1, deletedItems: 4, deletedHistory: 2 }));
+const uploadExcelMutate = vi.hoisted(() => vi.fn());
+const authState = vi.hoisted(() => ({ user: null as { role: string; name: string } | null, isAuthenticated: false, logout: vi.fn() }));
 const emptyQuery = <T,>(data: T) => ({ data, isLoading: false, refetch: vi.fn() });
 const branchSummary = [
   { shipTo: "PORTO ALEGRE", totalItems: 3, changedItems: 2, overdueItems: 2, noSupplier: 0, highPriorityItems: 1, valueAtRisk: 18000, changeRate: 66.7, shareOfItems: 60 },
@@ -16,7 +23,7 @@ const defaultStats = { totalItems: 4, changedLastUpload: 0, noSupplier: 1, obsol
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     orders: {
-      listDeliveredItems: { useQuery: () => emptyQuery([]) },
+      listDeliveredItems: { useQuery: () => ({ ...emptyQuery([]), refetch: deliveredItemsRefetch }) },
       getStats: { useQuery: () => emptyQuery(statsQuery()) },
       listItems: { useQuery: () => emptyQuery([]) },
       listUploads: { useQuery: () => emptyQuery([]) },
@@ -24,28 +31,33 @@ vi.mock("@/lib/trpc", () => ({
       getBranchSummary: { useQuery: () => emptyQuery(branchSummary) },
       getAlerts: { useQuery: () => emptyQuery({ alerts: [{ id: 42, severity: "CRÍTICO", direction: "ADIAMENTO", item: "ITEM-42", itemDescription: "Item de teste", shipTo: "PORTO ALEGRE", customerPo: "PO-42", previousPrediction: "2025-05-01", currentPrediction: "2025-05-20", differenceDays: 19 }], summary: { totalAlerts: 1, criticalCount: 1, attentionCount: 0, criticalRatio: 100, attentionRatio: 0 } }) },
       getAlertsTrend: { useQuery: () => emptyQuery([]) },
-      getCompleteChangesReport: { useQuery: () => emptyQuery([]) },
+      getCompleteChangesReport: { useQuery: () => ({ ...emptyQuery([]), refetch: completeChangesReportRefetch }) },
       getItemDetail: { useQuery: itemDetailQuery },
-      resetImports: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) },
+      resetImports: { useMutation: () => ({ mutateAsync: resetImportsMutate, isPending: false }) },
       getPrioritizationSettings: { useQuery: () => emptyQuery(null) },
       updatePrioritizationSettings: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) },
       resetPrioritizationSettings: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) },
     },
     auth: { localLogin: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) } },
     useUtils: () => ({
-      client: { orders: { uploadExcel: { mutate: vi.fn() } } },
+      client: { orders: { uploadExcel: { mutate: uploadExcelMutate } } },
       auth: { me: { invalidate } },
-      orders: { listPredictionHistory: { fetch: vi.fn().mockResolvedValue([]) }, getStats: { invalidate }, listItems: { invalidate }, listUploads: { invalidate }, listShipTo: { invalidate }, getBranchSummary: { invalidate }, getAlerts: { invalidate }, getAlertsTrend: { invalidate }, getPrioritizationSettings: { invalidate } },
+      orders: { listPredictionHistory: { fetch: vi.fn().mockResolvedValue([]) }, getStats: { invalidate }, listItems: { invalidate }, listUploads: { invalidate }, listShipTo: { invalidate }, getBranchSummary: { invalidate }, getAlerts: { invalidate }, getAlertsTrend: { invalidate }, listDeliveredItems: { invalidate: deliveredItemsInvalidate }, getCompleteChangesReport: { invalidate: completeChangesReportInvalidate }, getPrioritizationSettings: { invalidate } },
     }),
   },
 }));
 
-vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => ({ user: null, isAuthenticated: false, logout: vi.fn() }) }));
+vi.mock("@/_core/hooks/useAuth", () => ({ useAuth: () => authState }));
 
 import Home from "./Home";
 
 afterEach(() => cleanup());
-beforeEach(() => statsQuery.mockReturnValue(defaultStats));
+beforeEach(() => {
+  statsQuery.mockReturnValue(defaultStats);
+  authState.user = null;
+  authState.isAuthenticated = false;
+  vi.clearAllMocks();
+});
 
 describe("histórico acionado pelos Alertas de Variação", () => {
   it("mostra a quantidade de vencidos de cada filial no quadro de Prazos críticos", () => {
@@ -110,6 +122,56 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(reportTable.parentElement?.className).not.toContain("overflow-x-auto");
     expect(screen.queryByRole("columnheader", { name: "Prioridade" })).toBeNull();
     expect(screen.queryByRole("columnheader", { name: "Status atual" })).toBeNull();
+  });
+
+  it("exibe o gráfico de colunas logo abaixo do envelhecimento das pendências", () => {
+    itemDetailQuery.mockReturnValue(emptyQuery(null));
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Relatório Gerencial" }));
+
+    expect(screen.getByText("Dias pendentes por item ativo")).toBeTruthy();
+    expect(screen.getByLabelText("Gráfico de colunas da distribuição de dias pendentes")).toBeTruthy();
+  });
+
+  it("recarrega Itens Entregues e Relatório Gerencial após reset das importações", async () => {
+    authState.user = { role: "admin", name: "Giovani Martino" };
+    itemDetailQuery.mockReturnValue(emptyQuery(null));
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: /Resetar importações/i }));
+    fireEvent.change(screen.getByPlaceholderText("RESETAR"), { target: { value: "RESETAR" } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar reset" }));
+
+    await waitFor(() => expect(deliveredItemsRefetch).toHaveBeenCalledTimes(1));
+    expect(completeChangesReportRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("invalida Itens Entregues e Relatório Gerencial após upload de planilha", async () => {
+    authState.user = { role: "admin", name: "Giovani Martino" };
+    itemDetailQuery.mockReturnValue(emptyQuery(null));
+    uploadExcelMutate.mockResolvedValue({ acceptedRows: 1, totalRows: 1, duplicateRows: 0, rejectedRows: 0, changedRowsCount: 0, rejectionReasons: [] });
+
+    class TestFileReader {
+      onload: ((event: ProgressEvent<FileReader>) => void) | null = null;
+
+      readAsDataURL() {
+        this.onload?.({ target: { result: "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,ZmFrZQ==" } } as unknown as ProgressEvent<FileReader>);
+      }
+    }
+
+    vi.stubGlobal("FileReader", TestFileReader);
+    try {
+      render(<Home />);
+      const uploadInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+      expect(uploadInput).toBeTruthy();
+      fireEvent.change(uploadInput!, { target: { files: [new File(["conteúdo"], "carga.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })] } });
+
+      await waitFor(() => expect(deliveredItemsInvalidate).toHaveBeenCalledTimes(1));
+      expect(completeChangesReportInvalidate).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("abre o modal global com o detalhe do item selecionado", async () => {
