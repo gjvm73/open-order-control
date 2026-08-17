@@ -82,6 +82,19 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(within(stabilityCard!).queryByText("100%")).toBeNull();
   });
 
+  it("abre o Relatório Gerencial diretamente pelo menu superior", () => {
+    itemDetailQuery.mockReturnValue(emptyQuery(null));
+    const scrollIntoView = vi.fn();
+    const getElementById = vi.spyOn(document, "getElementById").mockReturnValue({ scrollIntoView } as unknown as HTMLElement);
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Relatório Gerencial" }));
+
+    expect(getElementById).toHaveBeenCalledWith("relatorio-gerencial");
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth", block: "start" });
+    getElementById.mockRestore();
+  });
+
   it("abre o modal global com o detalhe do item selecionado", async () => {
     itemDetailQuery.mockImplementation(({ id }: { id: number | null }) => emptyQuery(id === 42 ? {
       item: { item: "ITEM-42", customerPo: "PO-42", currentPrediction: "2025-05-20", previousPrediction: "2025-05-01", predictionChangesCount: 1 },

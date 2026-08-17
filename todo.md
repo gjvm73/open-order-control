@@ -252,3 +252,8 @@
 - [x] Criar consulta de itens alterados com datas de alteração e dados operacionais completos
 - [x] Criar interface de relatório com filtros, tabela detalhada e exportação em Excel
 - [x] Adicionar testes de filtros e validar visualmente o novo módulo
+
+### Pendências registradas em 17/08/2026 - acesso direto ao relatório
+- [x] Criar item de menu próprio para o Relatório Completo de Alterações
+- [x] Implementar navegação direta para o módulo e acesso de retorno ao dashboard
+- [x] Validar a navegação, os testes e o preview antes de salvar o ponto de verificação
