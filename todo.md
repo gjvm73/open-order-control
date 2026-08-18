@@ -357,3 +357,9 @@
 - [x] Diagnosticar por que o botão Salvar pesos não persiste as configurações
 - [x] Corrigir o fluxo de gravação e atualização dos pesos de priorização
 - [x] Cobrir o salvamento com teste de regressão e validar a correção
+
+### Pendências registradas em 18/08/2026 - ranking de instabilidade
+- [x] Restringir o ranking aos itens ativos e limitar a lista aos 10 primeiros
+- [x] Usar o valor financeiro como critério de desempate após a quantidade de alterações
+- [x] Atualizar os textos do bloco e cobrir o ranking com testes de regressão
+- [x] Validar a atualização e salvar o ponto de verificação

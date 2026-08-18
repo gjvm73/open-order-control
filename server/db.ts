@@ -1101,8 +1101,14 @@ export async function getDashboardStats(shipTo?: string) {
     .slice(0, 10);
 
   const mostChanged = [...allItems]
-    .sort((a, b) => b.predictionChangesCount - a.predictionChangesCount)
-    .slice(0, 8)
+    .filter((item) => item.predictionChangesCount > 0)
+    .sort((a, b) =>
+      b.predictionChangesCount - a.predictionChangesCount
+      || toNumber(b.extendedPrice) - toNumber(a.extendedPrice)
+      || a.item.localeCompare(b.item, "pt-BR")
+      || a.id - b.id,
+    )
+    .slice(0, 10)
     .map(rankItem);
 
   const trend = [...uploadList].reverse().map(upload => ({

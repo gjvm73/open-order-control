@@ -536,6 +536,44 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(items.find((entry) => entry.item === "COM-PRAZO")?.currentPrediction).toBe("2030-12-31");
   });
 
+  it("lista no ranking de instabilidade somente os 10 itens ativos com alterações e desempata pelo maior valor", async () => {
+    const suffix = Date.now();
+    const shipTo = `RANKING RS ${suffix}`;
+    const rows = Array.from({ length: 11 }, (_, index) => ({
+      "Endereco (ship To)": shipTo,
+      "Customer PO": `PO-RANK-${index + 1}`,
+      "Shipment Priority": "Normal",
+      "Data Criacao da Ordem": "2025-01-01",
+      "Item": index === 0 ? "RANK-MAIOR-VALOR" : `RANK-${String(index + 1).padStart(2, "0")}`,
+      "Descricao do Item": `Item do ranking ${index + 1}`,
+      "Quantidade": 1,
+      "Scheduled Reserved": 0,
+      "Unit Selling Price": index === 0 ? 1000 : 10,
+      "Extended Price": index === 0 ? 1000 : 10,
+      "Previsão": "2030-01-10",
+    }));
+    const makeBase64 = (data: typeof rows) => {
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(data), "OpenOrders");
+      return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }).toString("base64");
+    };
+    const caller = appRouter.createCaller({
+      user: { id: 1, openId: `test-ranking-${suffix}`, name: "Test Admin", email: "admin@test.com", loginMethod: "manus", role: "admin", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() },
+      req: { protocol: "https", headers: {} } as any,
+      res: {} as any,
+    });
+    await caller.orders.uploadExcel({ fileName: "ranking-semana-1.xlsx", fileBase64: makeBase64(rows) });
+    const changedRows = rows.map((row) => ({ ...row, "Previsão": "2030-02-10" }));
+    await caller.orders.uploadExcel({ fileName: "ranking-semana-2.xlsx", fileBase64: makeBase64(changedRows) });
+
+    const stats = await caller.orders.getStats({ shipTo });
+    expect(stats.totalItems).toBe(11);
+    expect(stats.mostChanged).toHaveLength(10);
+    expect(stats.mostChanged.every((item) => item.predictionChangesCount === 1)).toBe(true);
+    expect(stats.mostChanged[0]).toMatchObject({ item: "RANK-MAIOR-VALOR", extendedPrice: 1000 });
+    expect(stats.mostChanged.some((item) => item.item === "RANK-11")).toBe(false);
+  });
+
   it("preserves all rows when two lines share the base business key", async () => {
     const suffix = Date.now();
     const shipTo = `TEST DUP RS ${suffix}`;
