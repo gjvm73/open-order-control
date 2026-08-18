@@ -347,3 +347,8 @@
 - [x] Registrar e utilizar a data da carga em que o item deixa de aparecer como data de entrega
 - [x] Atualizar os gráficos, métricas e detalhamentos da Avaliação Histórica com a nova regra
 - [x] Cobrir a regra de negócio com testes e validar a atualização
+
+### Pendências registradas em 18/08/2026 - visualização da entrega
+- [x] Exibir a Data de entrega na tabela de Itens Entregues
+- [x] Formatar a data no padrão brasileiro e cobrir a coluna com teste
+- [x] Validar a atualização e salvar o ponto de verificação

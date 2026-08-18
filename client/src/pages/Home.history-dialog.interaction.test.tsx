@@ -14,6 +14,7 @@ const deliveredItemsInvalidate = vi.hoisted(() => vi.fn().mockResolvedValue(unde
 const completeChangesReportInvalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const completeChangesReportRows = vi.hoisted(() => ({ current: [] as any[] }));
 const uploadsRows = vi.hoisted(() => ({ current: [] as any[] }));
+const deliveredItemRows = vi.hoisted(() => ({ current: [] as any[] }));
 const lifecycleQueryInputs = vi.hoisted(() => ({ current: [] as Array<{ scope?: "active" | "all" }> }));
 const resetImportsMutate = vi.hoisted(() => vi.fn().mockResolvedValue({ deletedUploads: 1, deletedItems: 4, deletedHistory: 2 }));
 const uploadExcelMutate = vi.hoisted(() => vi.fn());
@@ -28,7 +29,7 @@ const defaultStats = { totalItems: 4, changedLastUpload: 0, noSupplier: 1, obsol
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     orders: {
-      listDeliveredItems: { useQuery: () => ({ ...emptyQuery([]), refetch: deliveredItemsRefetch }) },
+      listDeliveredItems: { useQuery: () => ({ ...emptyQuery(deliveredItemRows.current), refetch: deliveredItemsRefetch }) },
       getStats: { useQuery: () => emptyQuery(statsQuery()) },
       listItems: { useQuery: () => emptyQuery([]) },
       listUploads: { useQuery: () => emptyQuery(uploadsRows.current) },
@@ -69,6 +70,7 @@ beforeEach(() => {
   authState.isAuthenticated = false;
   completeChangesReportRows.current = [];
   uploadsRows.current = [];
+  deliveredItemRows.current = [];
   lifecycleQueryInputs.current = [];
   lifecycleAnalysisRefetch.mockClear();
   historicalAssessmentRefetch.mockClear();
@@ -118,6 +120,27 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     const navigation = screen.getByRole("navigation", { name: "Navegação principal do controle de pedidos" });
     expect(navigation.parentElement?.parentElement?.className).toContain("sticky");
     expect(screen.getByRole("button", { name: "Dashboard Ativo" }).getAttribute("aria-current")).toBe("page");
+  });
+
+  it("exibe a data de entrega formatada na tabela de itens concluídos", () => {
+    itemDetailQuery.mockReturnValue(emptyQuery(null));
+    deliveredItemRows.current = [{
+      id: 81,
+      shipTo: "PORTO ALEGRE",
+      item: "ITEM-ENTREGUE",
+      itemDescription: "Item concluído para teste",
+      customerPo: "PO-ENTREGA",
+      currentPrediction: "2026-08-10",
+      deliveredAt: "2026-08-18T15:00:00.000Z",
+      quantity: "3",
+      extendedPrice: "4500",
+    }];
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: /Itens Entregues/i }));
+
+    expect(screen.getByRole("columnheader", { name: "Data de entrega" })).toBeTruthy();
+    expect(screen.getByText("18/08/2026")).toBeTruthy();
   });
 
   it("exibe o Relatório Gerencial em uma guia exclusiva pelo menu superior", () => {

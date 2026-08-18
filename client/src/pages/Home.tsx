@@ -701,7 +701,7 @@ export default function Home() {
                     <th className="p-4 border-r border-zinc-900">Item / descrição</th>
                     <th className="p-4 border-r border-zinc-900">Customer PO</th>
                     <th className="p-4 border-r border-zinc-900">Última previsão</th>
-                    <th className="p-4 border-r border-zinc-900">Data de entrega (Baixa)</th>
+                    <th className="p-4 border-r border-zinc-900">Data de entrega</th>
                     <th className="p-4 border-r border-zinc-900 text-center">Quantidade</th>
                     <th className="p-4 border-r border-zinc-900 text-right">Valor estendido</th>
                     <th className="p-4 text-center">Histórico</th>
@@ -717,7 +717,7 @@ export default function Home() {
                         <td className="p-4 border-r border-zinc-200"><p className="font-bold">{row.item}</p><p className="text-xs text-zinc-500 mt-1 max-w-[260px]">{row.itemDescription || "Sem descrição"}</p></td>
                         <td className="p-4 border-r border-zinc-200">{row.customerPo || "—"}</td>
                         <td className="p-4 border-r border-zinc-200 text-zinc-600">{row.currentPrediction || "—"}</td>
-                        <td className="p-4 border-r border-zinc-200 font-bold text-emerald-700">{formatDate(row.deliveredAt)}</td>
+                        <td className="p-4 border-r border-zinc-200 font-bold text-emerald-700">{row.deliveredAt ? formatDate(row.deliveredAt) : "—"}</td>
                         <td className="p-4 border-r border-zinc-200 text-center">{Number(row.quantity || 0).toLocaleString("pt-BR")}</td>
                         <td className="p-4 border-r border-zinc-200 text-right font-bold">{formatCurrency(row.extendedPrice)}</td>
                         <td className="p-4 text-center">
