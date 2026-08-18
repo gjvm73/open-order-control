@@ -1292,7 +1292,12 @@ describe("Open Orders Backend & Upload Logic", () => {
       deliveredItems: 1,
       averageDeliveryLeadDays: expect.any(Number),
     }));
-    expect(historical.branches).toEqual(expect.arrayContaining([
-      expect.objectContaining({ branch: "PORTO ALEGRE" }),
-    ]));
+    expect(historical.branches).toEqual([
+      expect.objectContaining({
+        branch: "PORTO ALEGRE",
+        itemsRecorded: 2,
+        deliveredItems: 1,
+        changeEvents: 0,
+      }),
+    ]);
   });

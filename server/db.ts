@@ -638,7 +638,7 @@ export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
     .orderBy(asc(predictionHistory.uploadId), asc(predictionHistory.id));
 
   const createUploadMetric = () => ({ newItemIds: new Set<string>(), deliveredItemKeys: new Set<string>(), branchNames: new Set<string>(), changes: 0, plannedLeadDays: [] as number[], deliveryLeadDays: [] as number[] });
-  const createBranchMetric = (uploadId: number, uploadDate: Date, branch: string) => ({ uploadId, uploadDate, branch, newItemIds: new Set<string>(), deliveredItemKeys: new Set<string>(), changes: 0, plannedLeadDays: [] as number[], deliveryLeadDays: [] as number[] });
+  const createBranchMetric = (branch: string) => ({ branch, newItemIds: new Set<string>(), deliveredItemKeys: new Set<string>(), changes: 0, plannedLeadDays: [] as number[], deliveryLeadDays: [] as number[] });
   const previousPredictionByItem = new Map<string, string>();
   const firstUploadIdByItem = new Map<string, number>();
   const uploadMetrics = new Map<number, ReturnType<typeof createUploadMetric>>();
@@ -657,8 +657,7 @@ export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
     if (!upload) continue;
     const metric = uploadMetrics.get(record.uploadId) ?? createUploadMetric();
     metric.branchNames.add(branch);
-    const branchKey = `${record.uploadId}:${branch}`;
-    const branchMetric = branchMetrics.get(branchKey) ?? createBranchMetric(record.uploadId, parseOperationalDate(upload.uploadDate) ?? new Date(), branch);
+    const branchMetric = branchMetrics.get(branch) ?? createBranchMetric(branch);
     const isFirstOccurrence = firstUploadIdByItem.get(itemKey) === record.uploadId;
     if (isFirstOccurrence) {
       metric.newItemIds.add(itemKey);
@@ -680,7 +679,7 @@ export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
       }
     }
     uploadMetrics.set(record.uploadId, metric);
-    branchMetrics.set(branchKey, branchMetric);
+    branchMetrics.set(branch, branchMetric);
   }
 
   const deliveredRows = await db.select({
@@ -723,13 +722,12 @@ export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
     metric.deliveryLeadDays.push(deliveryLeadDays);
     uploadMetrics.set(deliveryUpload.id, metric);
 
-    const branchKey = `${deliveryUpload.id}:${branch}`;
-    const branchMetric = branchMetrics.get(branchKey) ?? createBranchMetric(deliveryUpload.id, deliveryUploadDate, branch);
+    const branchMetric = branchMetrics.get(branch) ?? createBranchMetric(branch);
     if (!branchMetric.deliveredItemKeys.has(itemKey)) {
       branchMetric.deliveredItemKeys.add(itemKey);
       branchMetric.deliveryLeadDays.push(deliveryLeadDays);
     }
-    branchMetrics.set(branchKey, branchMetric);
+    branchMetrics.set(branch, branchMetric);
   }
 
   const uploadRows = uploadsInRange.map((upload) => {
@@ -751,8 +749,6 @@ export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
 
   const branchRows = Array.from(branchMetrics.values())
     .map((metric) => ({
-      uploadId: metric.uploadId,
-      uploadDate: metric.uploadDate,
       branch: metric.branch,
       itemsRecorded: metric.newItemIds.size,
       changeEvents: metric.changes,
@@ -760,7 +756,7 @@ export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
       averagePlannedLeadDays: metric.plannedLeadDays.length ? Math.round(metric.plannedLeadDays.reduce((sum, value) => sum + value, 0) / metric.plannedLeadDays.length) : null,
       averageDeliveryLeadDays: metric.deliveryLeadDays.length ? Math.round(metric.deliveryLeadDays.reduce((sum, value) => sum + value, 0) / metric.deliveryLeadDays.length) : null,
     }))
-    .sort((left, right) => left.uploadDate.getTime() - right.uploadDate.getTime() || left.branch.localeCompare(right.branch, "pt-BR"));
+    .sort((left, right) => left.branch.localeCompare(right.branch, "pt-BR"));
   const allLeadDays = uploadRows.flatMap((row) => {
     const metric = uploadMetrics.get(row.uploadId);
     return metric?.plannedLeadDays ?? [];

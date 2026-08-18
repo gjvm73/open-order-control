@@ -393,3 +393,8 @@
 - [x] Exibir um modal de confirmação após a escolha da planilha e antes do processamento
 - [x] Permitir cancelar sem iniciar a leitura ou a atualização da carteira
 - [x] Cobrir o fluxo de confirmação com testes e validar a atualização
+
+### Pendências registradas em 18/08/2026 - Avaliação Histórica por filial
+- [x] Identificar a origem da duplicidade de filiais no painel Comportamento por filial
+- [x] Consolidar os resultados históricos em uma única linha por filial normalizada
+- [x] Cobrir a correção com teste de regressão e validar o painel
