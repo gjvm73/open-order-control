@@ -71,6 +71,17 @@ function formatDateTime(value: unknown) {
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString("pt-BR");
 }
 
+function getOpenDays(orderCreationDate: unknown, deliveredAt: unknown) {
+  if (!orderCreationDate || !deliveredAt) return null;
+  const createdAt = new Date(orderCreationDate as string | number | Date);
+  const deliveredOn = new Date(deliveredAt as string | number | Date);
+  if (Number.isNaN(createdAt.getTime()) || Number.isNaN(deliveredOn.getTime())) return null;
+
+  const createdDay = Date.UTC(createdAt.getUTCFullYear(), createdAt.getUTCMonth(), createdAt.getUTCDate());
+  const deliveredDay = Date.UTC(deliveredOn.getUTCFullYear(), deliveredOn.getUTCMonth(), deliveredOn.getUTCDate());
+  return Math.max(0, Math.round((deliveredDay - createdDay) / 86_400_000));
+}
+
 function formatCurrency(value: unknown) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(Number(value || 0));
 }
@@ -737,6 +748,7 @@ export default function Home() {
                     <th className="p-4 border-r border-zinc-900">Customer PO</th>
                     <th className="p-4 border-r border-zinc-900">Última previsão</th>
                     <th className="p-4 border-r border-zinc-900">Data de entrega</th>
+                    <th className="p-4 border-r border-zinc-900 text-center">Dias em aberto</th>
                     <th className="p-4 border-r border-zinc-900 text-center">Quantidade</th>
                     <th className="p-4 border-r border-zinc-900 text-right">Valor estendido</th>
                     <th className="p-4 text-center">Histórico</th>
@@ -744,7 +756,7 @@ export default function Home() {
                 </thead>
                 <tbody className="divide-y divide-zinc-200 text-sm font-mono">
                   {deliveredItems.length === 0 ? (
-                    <tr><td colSpan={8} className="p-16 text-center text-zinc-500">Nenhum item entregue registrado com os filtros atuais.</td></tr>
+                    <tr><td colSpan={9} className="p-16 text-center text-zinc-500">Nenhum item entregue registrado com os filtros atuais.</td></tr>
                   ) : (
                     deliveredItems.map((row) => (
                       <tr key={row.id} className="hover:bg-zinc-50 align-top">
@@ -753,6 +765,10 @@ export default function Home() {
                         <td className="p-4 border-r border-zinc-200">{row.customerPo || "—"}</td>
                         <td className="p-4 border-r border-zinc-200 text-zinc-600">{row.currentPrediction || "—"}</td>
                         <td className="p-4 border-r border-zinc-200 font-bold text-emerald-700">{row.deliveredAt ? formatDate(row.deliveredAt) : "—"}</td>
+                        <td className="p-4 border-r border-zinc-200 text-center font-bold text-zinc-700">{(() => {
+                          const openDays = getOpenDays(row.orderCreationDate, row.deliveredAt);
+                          return openDays === null ? "—" : `${openDays} ${openDays === 1 ? "dia" : "dias"}`;
+                        })()}</td>
                         <td className="p-4 border-r border-zinc-200 text-center">{Number(row.quantity || 0).toLocaleString("pt-BR")}</td>
                         <td className="p-4 border-r border-zinc-200 text-right font-bold">{formatCurrency(row.extendedPrice)}</td>
                         <td className="p-4 text-center">

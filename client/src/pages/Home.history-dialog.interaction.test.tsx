@@ -128,7 +128,7 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(screen.getByRole("button", { name: "Dashboard Ativo" }).getAttribute("aria-current")).toBe("page");
   });
 
-  it("exibe a data de entrega formatada na tabela de itens concluídos", () => {
+  it("exibe a data de entrega e os dias em aberto na tabela de itens concluídos", () => {
     itemDetailQuery.mockReturnValue(emptyQuery(null));
     deliveredItemRows.current = [{
       id: 81,
@@ -137,6 +137,7 @@ describe("histórico acionado pelos Alertas de Variação", () => {
       itemDescription: "Item concluído para teste",
       customerPo: "PO-ENTREGA",
       currentPrediction: "2026-08-10",
+      orderCreationDate: "2026-08-01",
       deliveredAt: "2026-08-18T15:00:00.000Z",
       quantity: "3",
       extendedPrice: "4500",
@@ -146,7 +147,9 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     fireEvent.click(screen.getByRole("button", { name: /Itens Entregues/i }));
 
     expect(screen.getByRole("columnheader", { name: "Data de entrega" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Dias em aberto" })).toBeTruthy();
     expect(screen.getByText("18/08/2026")).toBeTruthy();
+    expect(screen.getByText("17 dias")).toBeTruthy();
   });
 
   it("salva os pesos configurados e atualiza a consulta imediatamente", async () => {

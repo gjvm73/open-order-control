@@ -398,3 +398,8 @@
 - [x] Identificar a origem da duplicidade de filiais no painel Comportamento por filial
 - [x] Consolidar os resultados históricos em uma única linha por filial normalizada
 - [x] Cobrir a correção com teste de regressão e validar o painel
+
+### Pendências registradas em 18/08/2026 - tempo em aberto dos itens entregues
+- [x] Calcular os dias entre a Data de criação e a Data de entrega de cada pedido
+- [x] Exibir a coluna Dias em aberto imediatamente após Data de entrega
+- [x] Cobrir o cálculo e validar a tabela de itens entregues
