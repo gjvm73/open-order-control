@@ -192,7 +192,7 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(screen.queryByText("Onde a gestão deve concentrar atenção")).toBeNull();
     expect(screen.queryByText("Itens, previsões e respectivas alterações")).toBeNull();
 
-    const reportTable = screen.getByRole("table", { name: "Alterações do relatório gerencial" });
+    const reportTable = screen.getByRole("table", { name: "Itens alterados do relatório gerencial" });
     expect(reportTable.className).toContain("table-fixed");
     expect(reportTable.className).not.toContain("min-w");
     expect(reportTable.parentElement?.className).not.toContain("overflow-x-auto");
@@ -264,13 +264,7 @@ describe("histórico acionado pelos Alertas de Variação", () => {
         historyId: 10, orderItemId: 88, item: "ITEM-88", itemDescription: "Item em acompanhamento", shipTo: "PORTO ALEGRE", customerPo: "PO-88",
         previousPrediction: "2026-07-10", currentPredictionAtChange: "2026-07-30", currentPrediction: "2026-08-12", differenceDays: 20,
         direction: "ADIAMENTO", quantity: "2", extendedPrice: "1500", status: "active", orderCreationDate: "2026-06-01",
-        predictionChangesCount: 2, lastPredictionChangeDate: "2026-08-17T12:00:00.000Z", fileName: "semana-2.xlsx", changedAt: "2026-07-20T12:00:00.000Z",
-      },
-      {
-        historyId: 11, orderItemId: 88, item: "ITEM-88", itemDescription: "Item em acompanhamento", shipTo: "PORTO ALEGRE", customerPo: "PO-88",
-        previousPrediction: "2026-07-30", currentPredictionAtChange: "2026-08-12", currentPrediction: "2026-08-12", differenceDays: 13,
-        direction: "ADIAMENTO", quantity: "2", extendedPrice: "1500", status: "active", orderCreationDate: "2026-06-01",
-        predictionChangesCount: 2, lastPredictionChangeDate: "2026-08-17T12:00:00.000Z", fileName: "semana-3.xlsx", changedAt: "2026-08-17T12:00:00.000Z",
+        predictionChangesCount: 2, changesInPeriod: 2, lastPredictionChangeDate: "2026-08-17T12:00:00.000Z", fileName: "semana-3.xlsx", changedAt: "2026-08-17T12:00:00.000Z",
       },
     ];
 
@@ -278,9 +272,10 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     fireEvent.click(screen.getByRole("button", { name: "Relatório Gerencial" }));
 
     expect(screen.getByText("Itens alterados")).toBeTruthy();
-    expect(screen.getByText("Registros exibidos na tabela final")).toBeTruthy();
-    expect(screen.getByText("2 alteração(ões)")).toBeTruthy();
-    expect(screen.getAllByText("2 alterações no período").length).toBe(2);
+    expect(screen.getByText("Pedidos únicos exibidos na tabela final")).toBeTruthy();
+    expect(screen.getByText("1 item(ns) alterado(s)")).toBeTruthy();
+    expect(screen.getByText("2 alteração(ões) histórica(s)")).toBeTruthy();
+    expect(screen.getAllByText("2 alterações no período").length).toBe(1);
     expect(screen.getByText("Tempo médio de vida")).toBeTruthy();
   });
 

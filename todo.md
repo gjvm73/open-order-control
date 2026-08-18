@@ -373,3 +373,13 @@
 - [x] Atualizar o rótulo e a descrição do card para refletir o novo indicador
 - [x] Cobrir a equivalência entre o card e a tabela final com teste de regressão
 - [x] Validar a atualização e salvar o ponto de verificação
+
+### Pendências registradas em 18/08/2026 - consolidação de itens analíticos
+- [x] Identificar onde cargas posteriores entram indevidamente como novos itens nos relatórios
+- [x] Consolidar cada pedido por chave de negócio, preservando as alterações como histórico
+- [x] Remover duplicidades das tabelas do Relatório Gerencial e da Avaliação Histórica
+- [x] Cobrir a distinção entre item único e eventos de alteração com testes de regressão
+- [x] Validar a correção e salvar o ponto de verificação
+
+### Pendente posterior - peso por envelhecimento do pedido
+- [ ] Adicionar peso configurável para o tempo transcorrido desde a Data de criação do pedido

@@ -60,6 +60,21 @@ function classifyPrediction(value: string | null): PredictionClassification {
   return "noDeadline";
 }
 
+/**
+ * Chave de negócio dos relatórios: o mesmo pedido permanece único entre cargas,
+ * mesmo quando existirem registros legados com IDs internos distintos.
+ */
+function buildOrderBusinessKey(shipTo: unknown, item: unknown, customerPo: unknown) {
+  const normalizePart = (value: unknown, fallback: string) => String(value ?? fallback)
+    .trim()
+    .toLocaleUpperCase("pt-BR");
+  return [
+    normalizeShipTo(shipTo) || "SEM FILIAL INFORMADA",
+    normalizePart(item, "SEM ITEM"),
+    normalizePart(customerPo, "SEM PO"),
+  ].join("::");
+}
+
 export async function getPrioritizationSettings(): Promise<PrioritizationSettingsResponse> {
   const db = await getDb();
   if (!db) return { ...DEFAULT_PRIORITIZATION_WEIGHTS, updatedAt: null };
@@ -382,16 +397,17 @@ export async function getCompleteChangesReport(filters: CompleteChangesReportFil
     .innerJoin(uploads, eq(predictionHistory.uploadId, uploads.id));
 
   const records = conditions.length > 0
-    ? await recordsQuery.where(and(...conditions)).orderBy(asc(predictionHistory.orderItemId), asc(predictionHistory.uploadId), asc(predictionHistory.id))
-    : await recordsQuery.orderBy(asc(predictionHistory.orderItemId), asc(predictionHistory.uploadId), asc(predictionHistory.id));
+    ? await recordsQuery.where(and(...conditions)).orderBy(asc(predictionHistory.uploadId), asc(predictionHistory.id))
+    : await recordsQuery.orderBy(asc(predictionHistory.uploadId), asc(predictionHistory.id));
 
   const startDate = parseReportBoundary(filters.startDate, false);
   const endDate = parseReportBoundary(filters.endDate, true);
-  const previousPredictionByItem = new Map<number, string>();
+  const previousPredictionByItem = new Map<string, string>();
 
-  return records.flatMap((record) => {
-    const previousPrediction = previousPredictionByItem.get(record.orderItemId) ?? null;
-    previousPredictionByItem.set(record.orderItemId, record.prediction);
+  const changeEvents = records.flatMap((record) => {
+    const businessKey = buildOrderBusinessKey(record.shipTo, record.item, record.customerPo);
+    const previousPrediction = previousPredictionByItem.get(businessKey) ?? null;
+    previousPredictionByItem.set(businessKey, record.prediction);
     if (previousPrediction === null || previousPrediction === record.prediction) return [];
 
     const changedAt = record.recordedAt ?? record.uploadDate;
@@ -415,7 +431,22 @@ export async function getCompleteChangesReport(filters: CompleteChangesReportFil
       direction: differenceDays === null ? "SEM DATA" : differenceDays > 0 ? "ADIAMENTO" : differenceDays < 0 ? "ANTECIPAÇÃO" : "SEM ALTERAÇÃO DE DIAS",
       changedAt: changeMoment,
     }];
-  }).sort((left, right) => right.changedAt.getTime() - left.changedAt.getTime() || right.historyId - left.historyId);
+  });
+
+  const changesCountByItem = new Map<string, number>();
+  const latestChangeByItem = new Map<string, typeof changeEvents[number]>();
+  for (const change of changeEvents) {
+    const businessKey = buildOrderBusinessKey(change.shipTo, change.item, change.customerPo);
+    changesCountByItem.set(businessKey, (changesCountByItem.get(businessKey) ?? 0) + 1);
+    const latestChange = latestChangeByItem.get(businessKey);
+    if (!latestChange || change.changedAt > latestChange.changedAt || (change.changedAt.getTime() === latestChange.changedAt.getTime() && change.historyId > latestChange.historyId)) {
+      latestChangeByItem.set(businessKey, change);
+    }
+  }
+
+  return Array.from(latestChangeByItem.values())
+    .map((change) => ({ ...change, changesInPeriod: changesCountByItem.get(buildOrderBusinessKey(change.shipTo, change.item, change.customerPo)) ?? 0 }))
+    .sort((left, right) => right.changedAt.getTime() - left.changedAt.getTime() || right.historyId - left.historyId);
 }
 
 type LifecycleFilters = CompleteChangesReportFilters & {
@@ -597,20 +628,24 @@ export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
     prediction: predictionHistory.prediction,
     item: orderItems.item,
     shipTo: orderItems.shipTo,
+    customerPo: orderItems.customerPo,
     orderCreationDate: orderItems.orderCreationDate,
   }).from(predictionHistory)
     .innerJoin(orderItems, eq(predictionHistory.orderItemId, orderItems.id))
-    .orderBy(asc(predictionHistory.orderItemId), asc(predictionHistory.uploadId), asc(predictionHistory.id));
+    .orderBy(asc(predictionHistory.uploadId), asc(predictionHistory.id));
 
-  const createUploadMetric = () => ({ itemIds: new Set<number>(), branchNames: new Set<string>(), changes: 0, deliveredItems: 0, plannedLeadDays: [] as number[], deliveryLeadDays: [] as number[] });
-  const createBranchMetric = (uploadId: number, uploadDate: Date, branch: string) => ({ uploadId, uploadDate, branch, itemIds: new Set<number>(), changes: 0, deliveredItems: 0, plannedLeadDays: [] as number[], deliveryLeadDays: [] as number[] });
-  const previousPredictionByItem = new Map<number, string>();
+  const createUploadMetric = () => ({ newItemIds: new Set<string>(), deliveredItemKeys: new Set<string>(), branchNames: new Set<string>(), changes: 0, plannedLeadDays: [] as number[], deliveryLeadDays: [] as number[] });
+  const createBranchMetric = (uploadId: number, uploadDate: Date, branch: string) => ({ uploadId, uploadDate, branch, newItemIds: new Set<string>(), deliveredItemKeys: new Set<string>(), changes: 0, plannedLeadDays: [] as number[], deliveryLeadDays: [] as number[] });
+  const previousPredictionByItem = new Map<string, string>();
+  const firstUploadIdByItem = new Map<string, number>();
   const uploadMetrics = new Map<number, ReturnType<typeof createUploadMetric>>();
   const branchMetrics = new Map<string, ReturnType<typeof createBranchMetric>>();
 
   for (const record of historyRows) {
-    const previousPrediction = previousPredictionByItem.get(record.orderItemId);
-    previousPredictionByItem.set(record.orderItemId, record.prediction);
+    const itemKey = buildOrderBusinessKey(record.shipTo, record.item, record.customerPo);
+    if (!firstUploadIdByItem.has(itemKey)) firstUploadIdByItem.set(itemKey, record.uploadId);
+    const previousPrediction = previousPredictionByItem.get(itemKey);
+    previousPredictionByItem.set(itemKey, record.prediction);
     if (!selectedUploadIds.has(record.uploadId)) continue;
 
     const branch = normalizeShipTo(record.shipTo) || "Sem filial informada";
@@ -618,23 +653,28 @@ export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
     const upload = uploadsInRange.find((entry) => entry.id === record.uploadId);
     if (!upload) continue;
     const metric = uploadMetrics.get(record.uploadId) ?? createUploadMetric();
-    metric.itemIds.add(record.orderItemId);
     metric.branchNames.add(branch);
     const branchKey = `${record.uploadId}:${branch}`;
     const branchMetric = branchMetrics.get(branchKey) ?? createBranchMetric(record.uploadId, parseOperationalDate(upload.uploadDate) ?? new Date(), branch);
-    branchMetric.itemIds.add(record.orderItemId);
+    const isFirstOccurrence = firstUploadIdByItem.get(itemKey) === record.uploadId;
+    if (isFirstOccurrence) {
+      metric.newItemIds.add(itemKey);
+      branchMetric.newItemIds.add(itemKey);
+    }
 
     if (previousPrediction !== undefined && previousPrediction !== record.prediction) {
       metric.changes += 1;
       branchMetric.changes += 1;
     }
 
-    const createdAt = parseOperationalDate(record.orderCreationDate);
-    const predictionDate = parseValidPredictionDate(record.prediction);
-    if (createdAt && predictionDate) {
-      const leadDays = getOperationalAgeDays(createdAt, predictionDate);
-      metric.plannedLeadDays.push(leadDays);
-      branchMetric.plannedLeadDays.push(leadDays);
+    if (isFirstOccurrence) {
+      const createdAt = parseOperationalDate(record.orderCreationDate);
+      const predictionDate = parseValidPredictionDate(record.prediction);
+      if (createdAt && predictionDate) {
+        const leadDays = getOperationalAgeDays(createdAt, predictionDate);
+        metric.plannedLeadDays.push(leadDays);
+        branchMetric.plannedLeadDays.push(leadDays);
+      }
     }
     uploadMetrics.set(record.uploadId, metric);
     branchMetrics.set(branchKey, branchMetric);
@@ -642,6 +682,8 @@ export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
 
   const deliveredRows = await db.select({
     id: orderItems.id,
+    item: orderItems.item,
+    customerPo: orderItems.customerPo,
     shipTo: orderItems.shipTo,
     orderCreationDate: orderItems.orderCreationDate,
     status: orderItems.status,
@@ -669,17 +711,21 @@ export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
     if (normalizedShipTo && branch !== normalizedShipTo) continue;
     const deliveryUploadDate = parseOperationalDate(deliveryUpload.uploadDate);
     if (!deliveryUploadDate) continue;
+    const itemKey = buildOrderBusinessKey(item.shipTo, item.item, item.customerPo);
     const deliveryLeadDays = getOperationalAgeDays(createdAt, deliveryUploadDate);
     const metric = uploadMetrics.get(deliveryUpload.id) ?? createUploadMetric();
-    metric.deliveredItems += 1;
+    if (metric.deliveredItemKeys.has(itemKey)) continue;
+    metric.deliveredItemKeys.add(itemKey);
     metric.branchNames.add(branch);
     metric.deliveryLeadDays.push(deliveryLeadDays);
     uploadMetrics.set(deliveryUpload.id, metric);
 
     const branchKey = `${deliveryUpload.id}:${branch}`;
     const branchMetric = branchMetrics.get(branchKey) ?? createBranchMetric(deliveryUpload.id, deliveryUploadDate, branch);
-    branchMetric.deliveredItems += 1;
-    branchMetric.deliveryLeadDays.push(deliveryLeadDays);
+    if (!branchMetric.deliveredItemKeys.has(itemKey)) {
+      branchMetric.deliveredItemKeys.add(itemKey);
+      branchMetric.deliveryLeadDays.push(deliveryLeadDays);
+    }
     branchMetrics.set(branchKey, branchMetric);
   }
 
@@ -691,23 +737,23 @@ export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
       fileName: upload.fileName,
       acceptedRows: upload.acceptedRows ?? upload.totalRows,
       rejectedRows: upload.rejectedRows ?? 0,
-      itemsRecorded: metric.itemIds.size,
+      itemsRecorded: metric.newItemIds.size,
       branches: metric.branchNames.size,
       changeEvents: metric.changes,
-      deliveredItems: metric.deliveredItems,
+      deliveredItems: metric.deliveredItemKeys.size,
       averagePlannedLeadDays: metric.plannedLeadDays.length ? Math.round(metric.plannedLeadDays.reduce((sum, value) => sum + value, 0) / metric.plannedLeadDays.length) : null,
       averageDeliveryLeadDays: metric.deliveryLeadDays.length ? Math.round(metric.deliveryLeadDays.reduce((sum, value) => sum + value, 0) / metric.deliveryLeadDays.length) : null,
     };
-  }).filter((row) => !normalizedShipTo || row.itemsRecorded > 0);
+  }).filter((row) => !normalizedShipTo || row.itemsRecorded > 0 || row.changeEvents > 0 || row.deliveredItems > 0);
 
   const branchRows = Array.from(branchMetrics.values())
     .map((metric) => ({
       uploadId: metric.uploadId,
       uploadDate: metric.uploadDate,
       branch: metric.branch,
-      itemsRecorded: metric.itemIds.size,
+      itemsRecorded: metric.newItemIds.size,
       changeEvents: metric.changes,
-      deliveredItems: metric.deliveredItems,
+      deliveredItems: metric.deliveredItemKeys.size,
       averagePlannedLeadDays: metric.plannedLeadDays.length ? Math.round(metric.plannedLeadDays.reduce((sum, value) => sum + value, 0) / metric.plannedLeadDays.length) : null,
       averageDeliveryLeadDays: metric.deliveryLeadDays.length ? Math.round(metric.deliveryLeadDays.reduce((sum, value) => sum + value, 0) / metric.deliveryLeadDays.length) : null,
     }))
