@@ -154,6 +154,12 @@ export default function Home() {
     previousPrediction: formatPrediction(item.previousPrediction),
     currentPrediction: formatPrediction(item.currentPrediction),
   }));
+  const deliveredOpenDays = deliveredItems
+    .map((item) => getOpenDays(item.orderCreationDate, item.deliveredAt))
+    .filter((days): days is number => days !== null);
+  const averageDeliveredOpenDays = deliveredOpenDays.length > 0
+    ? Math.round(deliveredOpenDays.reduce((total, days) => total + days, 0) / deliveredOpenDays.length)
+    : null;
 
   React.useEffect(() => {
     const storedTheme = window.localStorage.getItem("open-order-dark-mode");
@@ -715,9 +721,16 @@ export default function Home() {
                 <h3 className="text-2xl font-black tracking-tight mt-1">Itens entregues por ausência em upload recente</h3>
                 <p className="text-xs font-mono text-zinc-500 mt-1">Itens que existiam no histórico e deixaram de figurar nas planilhas semanais mais recentes.</p>
               </div>
-              <div className="w-full md:w-80 relative">
-                <Search className="absolute left-3 top-3 w-4 h-4 text-zinc-400" />
-                <Input placeholder="Buscar item entregue..." value={deliveredSearch} onChange={(e) => setDeliveredSearch(e.target.value)} className="pl-9 rounded-none border-zinc-900 font-mono text-xs bg-white" />
+              <div className="flex w-full flex-col gap-3 md:w-auto md:flex-row md:items-stretch">
+                <div aria-label={`Tempo médio em aberto: ${averageDeliveredOpenDays === null ? "sem dados" : `${averageDeliveredOpenDays} dias`}`} className="border border-amber-700 bg-amber-50 px-4 py-2 min-w-48">
+                  <p className="text-[10px] font-mono uppercase tracking-wider text-amber-800">Tempo médio em aberto</p>
+                  <p className="text-2xl font-black tracking-tight text-amber-900">{averageDeliveredOpenDays === null ? "—" : `${averageDeliveredOpenDays} dias`}</p>
+                  <p className="text-[10px] font-mono text-amber-800">Itens entregues com datas válidas</p>
+                </div>
+                <div className="w-full md:w-80 relative">
+                  <Search className="absolute left-3 top-3 w-4 h-4 text-zinc-400" />
+                  <Input placeholder="Buscar item entregue..." value={deliveredSearch} onChange={(e) => setDeliveredSearch(e.target.value)} className="pl-9 rounded-none border-zinc-900 font-mono text-xs bg-white" />
+                </div>
               </div>
             </div>
 

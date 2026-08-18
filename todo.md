@@ -403,3 +403,8 @@
 - [x] Calcular os dias entre a Data de criação e a Data de entrega de cada pedido
 - [x] Exibir a coluna Dias em aberto imediatamente após Data de entrega
 - [x] Cobrir o cálculo e validar a tabela de itens entregues
+
+### Pendências registradas em 18/08/2026 - média de tempo em aberto
+- [x] Calcular a média de dias em aberto somente para itens entregues com datas válidas
+- [x] Exibir o indicador no topo da guia Itens Entregues
+- [x] Cobrir o indicador com teste de regressão e validar a atualização
