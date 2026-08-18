@@ -296,7 +296,24 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(historicalAssessmentRefetch).toHaveBeenCalledTimes(1);
   });
 
-  it("invalida Itens Entregues e Relatório Gerencial após upload de planilha", async () => {
+  it("exige confirmação antes de processar uma planilha selecionada", () => {
+    authState.user = { role: "admin", name: "Giovani Martino" };
+    itemDetailQuery.mockReturnValue(emptyQuery(null));
+
+    render(<Home />);
+    const uploadInput = document.querySelector<HTMLInputElement>('input[type="file"]');
+    expect(uploadInput).toBeTruthy();
+    fireEvent.change(uploadInput!, { target: { files: [new File(["conteúdo"], "carteira-semanal.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })] } });
+
+    expect(screen.getByRole("heading", { name: "Processar esta planilha?" })).toBeTruthy();
+    expect(screen.getByText("carteira-semanal.xlsx")).toBeTruthy();
+    expect(uploadExcelMutate).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+    expect(uploadExcelMutate).not.toHaveBeenCalled();
+  });
+
+  it("invalida Itens Entregues e Relatório Gerencial somente após confirmar o upload", async () => {
     authState.user = { role: "admin", name: "Giovani Martino" };
     itemDetailQuery.mockReturnValue(emptyQuery(null));
     uploadExcelMutate.mockResolvedValue({ acceptedRows: 1, totalRows: 1, duplicateRows: 0, rejectedRows: 0, changedRowsCount: 0, rejectionReasons: [] });
@@ -315,6 +332,8 @@ describe("histórico acionado pelos Alertas de Variação", () => {
       const uploadInput = document.querySelector<HTMLInputElement>('input[type="file"]');
       expect(uploadInput).toBeTruthy();
       fireEvent.change(uploadInput!, { target: { files: [new File(["conteúdo"], "carga.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" })] } });
+      expect(uploadExcelMutate).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole("button", { name: "Confirmar upload" }));
 
       await waitFor(() => expect(deliveredItemsInvalidate).toHaveBeenCalledTimes(1));
       expect(completeChangesReportInvalidate).toHaveBeenCalledTimes(1);

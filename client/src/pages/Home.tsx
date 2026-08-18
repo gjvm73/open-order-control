@@ -91,6 +91,8 @@ export default function Home() {
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<"idle" | "reading" | "processing" | "refreshing">("idle");
+  const [uploadConfirmationOpen, setUploadConfirmationOpen] = useState(false);
+  const [pendingUploadFile, setPendingUploadFile] = useState<File | null>(null);
   const [resetConfirmation, setResetConfirmation] = useState("");
   const [loginOpen, setLoginOpen] = useState(false);
   const [adminUsername, setAdminUsername] = useState("");
@@ -461,13 +463,7 @@ export default function Home() {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
-      toast.error("Por favor, envie um arquivo Excel (.xlsx ou .xls)");
-      return;
-    }
+  const processFileUpload = (file: File) => {
     setIsUploading(true);
     setUploadStatus("reading");
     const reader = new FileReader();
@@ -503,11 +499,29 @@ export default function Home() {
         toast.error(err.message || "Erro ao processar o upload do arquivo.");
         setUploadStatus("idle");
         setIsUploading(false);
-      } finally {
-        e.target.value = "";
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.name.endsWith(".xlsx") && !file.name.endsWith(".xls")) {
+      toast.error("Por favor, envie um arquivo Excel (.xlsx ou .xls)");
+      return;
+    }
+    setPendingUploadFile(file);
+    setUploadConfirmationOpen(true);
+  };
+
+  const handleUploadConfirmation = () => {
+    const file = pendingUploadFile;
+    if (!file) return;
+    setUploadConfirmationOpen(false);
+    setPendingUploadFile(null);
+    processFileUpload(file);
   };
 
   const rawStats = statsQuery.data || {
@@ -594,9 +608,10 @@ export default function Home() {
           <Button variant="outline" onClick={() => handleExportPdf("executive")} className="no-print rounded-none border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto" aria-label="Exportar relatório executivo em PDF"><Printer className="w-4 h-4 mr-2" />PDF executivo</Button>
           <Button variant="outline" onClick={() => handleExportPdf("detailed")} className="no-print rounded-none border-red-600 text-red-600 hover:bg-red-600 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto" aria-label="Exportar relatório detalhado completo em PDF"><Download className="w-4 h-4 mr-2" />PDF completo</Button>
           {isAdmin && <>
-            <Button variant="outline" onClick={() => setPrioritizationOpen(true)} className="no-print rounded-none border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto" aria-label="Configurar pesos da Fila de Ação"><SlidersHorizontal className="w-4 h-4 mr-2" />Configurações</Button>
-            <label className="cursor-pointer bg-zinc-950 hover:bg-zinc-800 text-white px-5 py-2.5 text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all"><Upload className="w-4 h-4" />{uploadStatusLabel}<input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleFileUpload} disabled={isUploading} /></label>
-            <AlertDialog onOpenChange={(open) => { if (!open) setResetConfirmation(""); }}><AlertDialogTrigger asChild><Button variant="outline" className="rounded-none border-red-600 text-red-600 hover:bg-red-600 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto"><ShieldAlert className="w-4 h-4 mr-2" />Resetar importações</Button></AlertDialogTrigger><AlertDialogContent className="rounded-none border-2 border-red-600 bg-white"><AlertDialogHeader><AlertDialogTitle className="font-black uppercase tracking-tight text-red-700">Resetar todas as importações?</AlertDialogTitle><AlertDialogDescription className="font-mono text-xs leading-6 text-zinc-700">Esta ação excluirá permanentemente todos os uploads, itens cadastrados e o histórico de previsões da base de consulta. Não é possível desfazer esta operação.</AlertDialogDescription></AlertDialogHeader><div className="space-y-2"><label className="text-xs font-mono uppercase tracking-wider text-zinc-600">Digite RESETAR para confirmar</label><Input value={resetConfirmation} onChange={(event) => setResetConfirmation(event.target.value.toUpperCase())} placeholder="RESETAR" className="rounded-none border-zinc-900 font-mono" autoFocus /></div><AlertDialogFooter><AlertDialogCancel className="rounded-none border-zinc-900 font-mono text-xs uppercase">Cancelar</AlertDialogCancel><AlertDialogAction className="rounded-none bg-red-600 hover:bg-red-700 font-mono text-xs uppercase" disabled={resetConfirmation !== "RESETAR" || resetMutation.isPending} onClick={(event) => { event.preventDefault(); void handleResetImports(); }}>{resetMutation.isPending ? "Limpando..." : "Confirmar reset"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+             <Button variant="outline" onClick={() => setPrioritizationOpen(true)} className="no-print rounded-none border-zinc-950 text-zinc-950 hover:bg-zinc-950 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto" aria-label="Configurar pesos da Fila de Ação"><SlidersHorizontal className="w-4 h-4 mr-2" />Configurações</Button>
+             <label className="cursor-pointer bg-zinc-950 hover:bg-zinc-800 text-white px-5 py-2.5 text-xs font-mono uppercase tracking-wider flex items-center gap-2 transition-all"><Upload className="w-4 h-4" />{uploadStatusLabel}<input type="file" accept=".xlsx, .xls" className="hidden" onChange={handleFileUpload} disabled={isUploading} /></label>
+             <AlertDialog open={uploadConfirmationOpen} onOpenChange={(open) => { setUploadConfirmationOpen(open); if (!open) setPendingUploadFile(null); }}><AlertDialogContent className="rounded-none border-2 border-zinc-950 bg-white"><AlertDialogHeader><AlertDialogTitle className="font-black uppercase tracking-tight">Processar esta planilha?</AlertDialogTitle><AlertDialogDescription className="font-mono text-xs leading-6 text-zinc-700">O arquivo será comparado à carteira atual. Itens ativos que não estiverem nesta carga serão tratados como entregues. Revise o nome do arquivo antes de confirmar.</AlertDialogDescription></AlertDialogHeader><div className="border border-zinc-900 bg-zinc-50 px-3 py-3 font-mono text-xs"><span className="block uppercase tracking-wider text-zinc-500">Arquivo selecionado</span><strong className="mt-1 block break-all text-zinc-950">{pendingUploadFile?.name || "Nenhum arquivo selecionado"}</strong></div><AlertDialogFooter><AlertDialogCancel className="rounded-none border-zinc-900 font-mono text-xs uppercase">Cancelar</AlertDialogCancel><AlertDialogAction className="rounded-none bg-zinc-950 hover:bg-zinc-800 font-mono text-xs uppercase" disabled={!pendingUploadFile || isUploading} onClick={(event) => { event.preventDefault(); handleUploadConfirmation(); }}>Confirmar upload</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+             <AlertDialog onOpenChange={(open) => { if (!open) setResetConfirmation(""); }}><AlertDialogTrigger asChild><Button variant="outline" className="rounded-none border-red-600 text-red-600 hover:bg-red-600 hover:text-white px-4 py-2.5 text-xs font-mono uppercase tracking-wider h-auto"><ShieldAlert className="w-4 h-4 mr-2" />Resetar importações</Button></AlertDialogTrigger><AlertDialogContent className="rounded-none border-2 border-red-600 bg-white"><AlertDialogHeader><AlertDialogTitle className="font-black uppercase tracking-tight text-red-700">Resetar todas as importações?</AlertDialogTitle><AlertDialogDescription className="font-mono text-xs leading-6 text-zinc-700">Esta ação excluirá permanentemente todos os uploads, itens cadastrados e o histórico de previsões da base de consulta. Não é possível desfazer esta operação.</AlertDialogDescription></AlertDialogHeader><div className="space-y-2"><label className="text-xs font-mono uppercase tracking-wider text-zinc-600">Digite RESETAR para confirmar</label><Input value={resetConfirmation} onChange={(event) => setResetConfirmation(event.target.value.toUpperCase())} placeholder="RESETAR" className="rounded-none border-zinc-900 font-mono" autoFocus /></div><AlertDialogFooter><AlertDialogCancel className="rounded-none border-zinc-900 font-mono text-xs uppercase">Cancelar</AlertDialogCancel><AlertDialogAction className="rounded-none bg-red-600 hover:bg-red-700 font-mono text-xs uppercase" disabled={resetConfirmation !== "RESETAR" || resetMutation.isPending} onClick={(event) => { event.preventDefault(); void handleResetImports(); }}>{resetMutation.isPending ? "Limpando..." : "Confirmar reset"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
           </>}
           {isAdmin ? <div className="flex items-center gap-3 border border-zinc-900 px-3 py-1.5 bg-zinc-50"><span className="text-xs font-mono"><strong>ADM</strong> · {user?.name || "giovani.martino"}</span><Button variant="ghost" size="sm" onClick={() => logout()} className="h-7 px-2 text-red-600 hover:bg-red-50"><LogOut className="w-3.5 h-3.5" /></Button></div> : <Dialog open={loginOpen} onOpenChange={setLoginOpen}><DialogTrigger asChild><Button variant="outline" size="sm" className="border-zinc-900 text-xs font-mono uppercase rounded-none">Entrar</Button></DialogTrigger><DialogContent className="rounded-none border-2 border-zinc-900 bg-white"><DialogHeader><DialogTitle className="font-black uppercase tracking-tight">Acesso administrativo</DialogTitle></DialogHeader><form onSubmit={handleAdminLogin} className="space-y-4"><div><label className="text-xs font-mono uppercase tracking-wider text-zinc-600">Usuário</label><Input value={adminUsername} onChange={(event) => setAdminUsername(event.target.value)} autoComplete="username" className="rounded-none border-zinc-900 font-mono mt-1" /></div><div><label className="text-xs font-mono uppercase tracking-wider text-zinc-600">Senha</label><Input value={adminPassword} onChange={(event) => setAdminPassword(event.target.value)} type="password" autoComplete="current-password" className="rounded-none border-zinc-900 font-mono mt-1" /></div><Button type="submit" disabled={localLoginMutation.isPending} className="w-full rounded-none bg-zinc-950 hover:bg-zinc-800 font-mono uppercase text-xs">{localLoginMutation.isPending ? "Validando..." : "Entrar como ADM"}</Button></form></DialogContent></Dialog>}
 

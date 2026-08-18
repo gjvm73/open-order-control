@@ -388,3 +388,8 @@
 - [x] Aceitar uma planilha válida contendo somente os cabeçalhos como carga de carteira vazia
 - [x] Marcar os pedidos ativos ausentes como entregues e atualizar os cálculos do painel
 - [x] Cobrir o cenário com testes de regressão e validar a atualização
+
+### Pendências registradas em 18/08/2026 - confirmação de upload
+- [x] Exibir um modal de confirmação após a escolha da planilha e antes do processamento
+- [x] Permitir cancelar sem iniciar a leitura ou a atualização da carteira
+- [x] Cobrir o fluxo de confirmação com testes e validar a atualização
