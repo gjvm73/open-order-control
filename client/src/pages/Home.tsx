@@ -174,6 +174,7 @@ export default function Home() {
   }), [reportShipTo, reportStartDate, reportEndDate]);
   const completeChangesReportQuery = trpc.orders.getCompleteChangesReport.useQuery(completeChangesReportInput);
   const completeChangesReport = completeChangesReportQuery.data ?? [];
+  const changedItemsInReport = completeChangesReport.length;
   const lifecycleAnalysisInput = React.useMemo(() => ({ ...completeChangesReportInput, scope: "active" as const }), [completeChangesReportInput]);
   const historicalLifecycleInput = React.useMemo(() => ({ ...completeChangesReportInput, scope: "all" as const }), [completeChangesReportInput]);
   const lifecycleAnalysisQuery = trpc.orders.getOrderLifecycleAnalysis.useQuery(lifecycleAnalysisInput);
@@ -960,7 +961,7 @@ export default function Home() {
               <p className={`text-[10px] font-mono ${lifecycleTheme.subdued}`}>Referência de vida: {formatDate(lifecycleAnalysis.referenceDate)}</p>
             </div>
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-              <div className={`border p-3 ${lifecycleTheme.neutralCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.subdued}`}>Pedidos efetuados</p><p className="text-2xl font-black mt-1">{lifecycleAnalysis.summary.openedOrders}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.subdued}`}>Abertos no intervalo</p></div>
+              <div className={`border p-3 ${lifecycleTheme.neutralCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.subdued}`}>Itens alterados</p><p className="text-2xl font-black mt-1">{changedItemsInReport}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.subdued}`}>Registros exibidos na tabela final</p></div>
               <div className={`border p-3 ${lifecycleTheme.successCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.successText}`}>Finalizados no mês</p><p className={`text-2xl font-black mt-1 ${lifecycleTheme.successText}`}>{lifecycleAnalysis.summary.closedSameMonth}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.successDetail}`}>Encerrados no mês de abertura</p></div>
               <div className={`border p-3 ${lifecycleTheme.riskCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.riskText}`}>Pedidos em aberto</p><p className={`text-2xl font-black mt-1 ${lifecycleTheme.riskText}`}>{lifecycleAnalysis.summary.openOrders}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.riskDetail}`}>Ainda sem encerramento</p></div>
               <div className={`border p-3 ${lifecycleTheme.agingCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.agingText}`}>Vida média</p><p className={`text-2xl font-black mt-1 ${lifecycleTheme.agingText}`}>{lifecycleAnalysis.summary.averageLifeDays === null ? "—" : `${lifecycleAnalysis.summary.averageLifeDays}d`}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.agingDetail}`}>Até fechamento ou referência</p></div>

@@ -363,3 +363,13 @@
 - [x] Usar o valor financeiro como critério de desempate após a quantidade de alterações
 - [x] Atualizar os textos do bloco e cobrir o ranking com testes de regressão
 - [x] Validar a atualização e salvar o ponto de verificação
+
+### Pendências registradas em 18/08/2026 - esclarecimento de contagens
+- [x] Mapear os critérios de contagem do card Pedidos efetuados e da tabela do Relatório Gerencial
+- [x] Explicar a divergência observada entre os dois componentes
+
+### Pendências registradas em 18/08/2026 - alinhamento do card de alterações
+- [x] Ajustar o card do Relatório Gerencial para contar itens ativos com alterações no período
+- [x] Atualizar o rótulo e a descrição do card para refletir o novo indicador
+- [x] Cobrir a equivalência entre o card e a tabela final com teste de regressão
+- [x] Validar a atualização e salvar o ponto de verificação

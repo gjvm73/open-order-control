@@ -257,7 +257,7 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(getLifecyclePanel()?.className).toContain("bg-zinc-950");
   });
 
-  it("exibe a quantidade de eventos e as alterações de cada item no período do Relatório Gerencial", () => {
+  it("alinha o card de itens alterados à quantidade exibida na tabela final do Relatório Gerencial", () => {
     itemDetailQuery.mockReturnValue(emptyQuery(null));
     completeChangesReportRows.current = [
       {
@@ -277,6 +277,8 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     render(<Home />);
     fireEvent.click(screen.getByRole("button", { name: "Relatório Gerencial" }));
 
+    expect(screen.getByText("Itens alterados")).toBeTruthy();
+    expect(screen.getByText("Registros exibidos na tabela final")).toBeTruthy();
     expect(screen.getByText("2 alteração(ões)")).toBeTruthy();
     expect(screen.getAllByText("2 alterações no período").length).toBe(2);
     expect(screen.getByText("Tempo médio de vida")).toBeTruthy();
