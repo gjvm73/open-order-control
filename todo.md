@@ -382,4 +382,4 @@
 - [x] Validar a correção e salvar o ponto de verificação
 
 ### Pendente posterior - peso por envelhecimento do pedido
-- [ ] Adicionar peso configurável para o tempo transcorrido desde a Data de criação do pedido
+- [x] Adicionar peso configurável para o tempo transcorrido desde a Data de criação do pedido

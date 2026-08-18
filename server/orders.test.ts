@@ -63,6 +63,7 @@ describe("Open Orders Backend & Upload Logic", () => {
       overdueWeight: 5,
       highPriorityWeight: 4,
       financialImpactWeight: 3,
+      agingWeight: 2,
     })).rejects.toMatchObject({ code: "FORBIDDEN" });
 
     const adminContext: TrpcContext = {
@@ -89,6 +90,7 @@ describe("Open Orders Backend & Upload Logic", () => {
         overdueWeight: 5,
         highPriorityWeight: 4,
         financialImpactWeight: 3,
+        agingWeight: 2,
       });
       expect(saved).toMatchObject({
         predictionChangeWeight: 7,
@@ -96,6 +98,7 @@ describe("Open Orders Backend & Upload Logic", () => {
         overdueWeight: 5,
         highPriorityWeight: 4,
         financialImpactWeight: 3,
+        agingWeight: 2,
       });
 
       const readBack = await anonymousCaller.orders.getPrioritizationSettings();
@@ -105,6 +108,7 @@ describe("Open Orders Backend & Upload Logic", () => {
         overdueWeight: 5,
         highPriorityWeight: 4,
         financialImpactWeight: 3,
+        agingWeight: 2,
       });
     } finally {
       const restored = await adminCaller.orders.resetPrioritizationSettings();
@@ -224,7 +228,7 @@ describe("Open Orders Backend & Upload Logic", () => {
         "Endereco (ship To)": "TESTE RS",
         "Customer PO": customerPo,
         "Shipment Priority": "Normal",
-        "Data Criacao da Ordem": new Date("2025-01-01T00:00:00.000Z"),
+        "Data Criacao da Ordem": new Date("2025-06-01T00:00:00.000Z"),
         "Item": itemWithoutPrediction,
         "Descricao do Item": "PEÇA SEM DATA DE PREVISÃO",
         "Quantidade": 1,
@@ -286,6 +290,7 @@ describe("Open Orders Backend & Upload Logic", () => {
         overdueWeight: 0,
         highPriorityWeight: 0,
         financialImpactWeight: 10,
+        agingWeight: 0,
       });
       const financialStats = await caller.orders.getStats({ shipTo: "TESTE RS" });
       const highValueItem = financialStats.actionQueue.find((entry) => entry.item === itemCode && entry.customerPo === customerPo);
@@ -293,6 +298,26 @@ describe("Open Orders Backend & Upload Logic", () => {
       expect(highValueItem).toMatchObject({ financialImpactScore: 10, riskScore: 10 });
       expect(lowValueItem).toMatchObject({ financialImpactScore: 1, riskScore: 1 });
       expect(financialStats.actionQueue[0]?.item).toBe(itemCode);
+    } finally {
+      await caller.orders.resetPrioritizationSettings();
+    }
+
+    try {
+      await caller.orders.updatePrioritizationSettings({
+        predictionChangeWeight: 0,
+        noSupplierWeight: 0,
+        overdueWeight: 0,
+        highPriorityWeight: 0,
+        financialImpactWeight: 0,
+        agingWeight: 10,
+      });
+      const agingStats = await caller.orders.getStats({ shipTo: "TESTE RS" });
+      const olderOrder = agingStats.actionQueue.find((entry) => entry.item === itemCode && entry.customerPo === customerPo);
+      const newerOrder = agingStats.actionQueue.find((entry) => entry.item === itemWithoutPrediction && entry.customerPo === customerPo);
+      expect(olderOrder).toMatchObject({ agingScore: 10, riskScore: 10 });
+      expect(olderOrder?.ageDays).toBeGreaterThan(newerOrder?.ageDays ?? Number.POSITIVE_INFINITY);
+      expect(newerOrder?.agingScore).toBeGreaterThan(0);
+      expect(newerOrder?.agingScore).toBeLessThan(olderOrder?.agingScore ?? 0);
     } finally {
       await caller.orders.resetPrioritizationSettings();
     }
@@ -411,6 +436,7 @@ describe("Open Orders Backend & Upload Logic", () => {
         overdueWeight: 0,
         highPriorityWeight: 0,
         financialImpactWeight: 0,
+        agingWeight: 0,
       });
       const weightedStats = await caller.orders.getStats({ shipTo: "TESTE RS" });
       const weightedItem = weightedStats.actionQueue.find((entry) => entry.item === itemCode && entry.customerPo === customerPo);
@@ -461,6 +487,7 @@ describe("Open Orders Backend & Upload Logic", () => {
         overdueWeight: 0,
         highPriorityWeight: 0,
         financialImpactWeight: 0,
+        agingWeight: 0,
       });
       const directionalStats = await caller.orders.getStats({ shipTo: "TESTE RS" });
       const directionalItem = directionalStats.actionQueue.find((entry) => entry.item === itemCode && entry.customerPo === customerPo);

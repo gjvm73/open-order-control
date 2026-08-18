@@ -26,6 +26,7 @@ export const DEFAULT_PRIORITIZATION_WEIGHTS = {
   overdueWeight: 3,
   highPriorityWeight: 2,
   financialImpactWeight: 3,
+  agingWeight: 2,
 } as const;
 
 export type PrioritizationWeights = {
@@ -34,6 +35,7 @@ export type PrioritizationWeights = {
   overdueWeight: number;
   highPriorityWeight: number;
   financialImpactWeight: number;
+  agingWeight: number;
 };
 
 export type PrioritizationSettingsResponse = PrioritizationWeights & {
@@ -88,6 +90,7 @@ export async function getPrioritizationSettings(): Promise<PrioritizationSetting
     overdueWeight: settings.overdueWeight,
     highPriorityWeight: settings.highPriorityWeight,
     financialImpactWeight: settings.financialImpactWeight,
+    agingWeight: settings.agingWeight,
     updatedAt: settings.updatedAt,
   };
 }
@@ -1087,6 +1090,13 @@ export async function getDashboardStats(shipTo?: string) {
     directionalChangesByItem.set(orderItemId, { postponements, anticipations });
   }
 
+  // O pedido mais antigo da carteira ativa recebe o peso integral; os demais
+  // recebem uma parcela proporcional à sua idade desde a Data de criação.
+  const oldestOrderAgeDays = allItems.reduce((maxAgeDays, item) => {
+    const creationDate = parseOperationalDate(item.orderCreationDate);
+    return creationDate ? Math.max(maxAgeDays, getOperationalAgeDays(creationDate, today)) : maxAgeDays;
+  }, 0);
+
   const rankItem = (item: typeof allItems[number]) => {
     const predictionDate = parseValidPredictionDate(item.currentPrediction);
     const supplierIssue = classifyPrediction(item.currentPrediction) === "noSupplier";
@@ -1096,6 +1106,14 @@ export async function getDashboardStats(shipTo?: string) {
       ? Math.min(
         prioritizationWeights.financialImpactWeight,
         Math.ceil((Math.max(0, toNumber(item.extendedPrice)) / highestItemValue) * prioritizationWeights.financialImpactWeight)
+      )
+      : 0;
+    const creationDate = parseOperationalDate(item.orderCreationDate);
+    const ageDays = creationDate ? getOperationalAgeDays(creationDate, today) : null;
+    const agingScore = ageDays !== null && oldestOrderAgeDays > 0 && prioritizationWeights.agingWeight > 0
+      ? Math.min(
+        prioritizationWeights.agingWeight,
+        Math.ceil((ageDays / oldestOrderAgeDays) * prioritizationWeights.agingWeight),
       )
       : 0;
     const directionalChanges = directionalChangesByItem.get(item.id) || { postponements: 0, anticipations: 0 };
@@ -1109,7 +1127,8 @@ export async function getDashboardStats(shipTo?: string) {
       + (supplierIssue ? prioritizationWeights.noSupplierWeight : 0)
       + (overdue ? prioritizationWeights.overdueWeight : 0)
       + (highPriority ? prioritizationWeights.highPriorityWeight : 0)
-      + financialImpactScore;
+      + financialImpactScore
+      + agingScore;
     const reasons = [];
     if (supplierIssue) reasons.push("Sem fornecedor");
     if (directionalChanges.postponements > 0) reasons.push(`${directionalChanges.postponements} adiamento(s)`);
@@ -1118,6 +1137,7 @@ export async function getDashboardStats(shipTo?: string) {
     if (overdue) reasons.push("Previsão vencida");
     if (highPriority) reasons.push("Prioridade alta");
     if (financialImpactScore > 0) reasons.push(`Impacto financeiro +${financialImpactScore} pts`);
+    if (agingScore > 0 && ageDays !== null) reasons.push(`Pedido com ${ageDays} dia(s) em aberto +${agingScore} pts`);
 
     return {
       id: item.id,
@@ -1125,6 +1145,7 @@ export async function getDashboardStats(shipTo?: string) {
       itemDescription: item.itemDescription,
       customerPo: item.customerPo,
       shipmentPriority: item.shipmentPriority,
+      orderCreationDate: item.orderCreationDate,
       currentPrediction: item.currentPrediction,
       previousPrediction: item.previousPrediction,
       predictionChangesCount: item.predictionChangesCount,
@@ -1134,6 +1155,8 @@ export async function getDashboardStats(shipTo?: string) {
       lastPredictionChangeDate: item.lastPredictionChangeDate,
       extendedPrice: toNumber(item.extendedPrice),
       financialImpactScore,
+      agingScore,
+      ageDays,
       riskScore: score,
       riskLevel: score >= 8 ? "CRÍTICO" : score >= 4 ? "ATENÇÃO" : "MONITORAR",
       reasons: reasons.length > 0 ? reasons : ["Sem alteração registrada"],

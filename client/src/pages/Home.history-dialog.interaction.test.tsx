@@ -159,6 +159,7 @@ describe("histórico acionado pelos Alertas de Variação", () => {
       overdueWeight: 3,
       highPriorityWeight: 2,
       financialImpactWeight: 3,
+      agingWeight: 2,
       updatedAt: null,
     };
     updatePrioritizationMutate.mockResolvedValue(prioritizationSettingsRows.current);
@@ -175,6 +176,7 @@ describe("histórico acionado pelos Alertas de Variação", () => {
         overdueWeight: 3,
         highPriorityWeight: 2,
         financialImpactWeight: 3,
+        agingWeight: 2,
       });
       expect(prioritizationSettingsRefetch).toHaveBeenCalledTimes(1);
     });

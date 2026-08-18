@@ -64,6 +64,13 @@
       "when": 1787051593915,
       "tag": "0008_little_psylocke",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1787063542004,
+      "tag": "0009_striped_expediter",
+      "breakpoints": true
     }
   ]
 }

@@ -25,6 +25,7 @@ type PrioritizationWeights = {
   overdueWeight: number;
   highPriorityWeight: number;
   financialImpactWeight: number;
+  agingWeight: number;
 };
 
 const DEFAULT_PRIORITIZATION_WEIGHTS: PrioritizationWeights = {
@@ -33,6 +34,7 @@ const DEFAULT_PRIORITIZATION_WEIGHTS: PrioritizationWeights = {
   overdueWeight: 3,
   highPriorityWeight: 2,
   financialImpactWeight: 3,
+  agingWeight: 2,
 };
 
 const pendingAgingChartConfig = {
@@ -262,6 +264,7 @@ export default function Home() {
       overdueWeight: Number(settings?.overdueWeight ?? DEFAULT_PRIORITIZATION_WEIGHTS.overdueWeight),
       highPriorityWeight: Number(settings?.highPriorityWeight ?? DEFAULT_PRIORITIZATION_WEIGHTS.highPriorityWeight),
       financialImpactWeight: Number(settings?.financialImpactWeight ?? DEFAULT_PRIORITIZATION_WEIGHTS.financialImpactWeight),
+      agingWeight: Number(settings?.agingWeight ?? DEFAULT_PRIORITIZATION_WEIGHTS.agingWeight),
     };
   }, [prioritizationSettingsQuery.data]);
 
@@ -1158,6 +1161,7 @@ function PrioritizationSettingsDialog({
     { key: "overdueWeight", label: "Previsão vencida", description: "Pontos quando a previsão está anterior à data atual." },
     { key: "highPriorityWeight", label: "Prioridade alta", description: "Pontos quando a prioridade de embarque é alta." },
     { key: "financialImpactWeight", label: "Impacto financeiro", description: "Pontuação máxima do item de maior valor; os demais recebem pontos proporcionais ao valor financeiro." },
+    { key: "agingWeight", label: "Envelhecimento do pedido", description: "Pontuação proporcional ao tempo em aberto desde a Data de criação. O pedido mais antigo recebe o peso integral." },
   ];
 
   return (
@@ -1189,7 +1193,7 @@ function PrioritizationSettingsDialog({
             </div>
           )}
           <div className="flex flex-col gap-3 border border-zinc-950 bg-zinc-950 p-4 text-white sm:flex-row sm:items-center sm:justify-between">
-            <div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">Simulação</p><p className="mt-1 text-sm font-bold">1 adiamento + sem fornecedor + vencido + prioridade alta + item de maior valor = {draft.predictionChangeWeight + draft.noSupplierWeight + draft.overdueWeight + draft.highPriorityWeight + draft.financialImpactWeight} pontos</p><p className="mt-1 text-[10px] font-mono text-emerald-200">Cada antecipação recebe {draft.predictionChangeWeight === 0 ? 0 : Math.max(1, Math.ceil(draft.predictionChangeWeight / 4))} ponto(s), equivalente a 25% do peso de adiamento.</p></div>
+            <div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">Simulação</p><p className="mt-1 text-sm font-bold">1 adiamento + sem fornecedor + vencido + prioridade alta + item de maior valor + pedido mais antigo = {draft.predictionChangeWeight + draft.noSupplierWeight + draft.overdueWeight + draft.highPriorityWeight + draft.financialImpactWeight + draft.agingWeight} pontos</p><p className="mt-1 text-[10px] font-mono text-emerald-200">Cada antecipação recebe {draft.predictionChangeWeight === 0 ? 0 : Math.max(1, Math.ceil(draft.predictionChangeWeight / 4))} ponto(s), equivalente a 25% do peso de adiamento.</p></div>
             <Badge className="w-fit rounded-none bg-red-600 text-white hover:bg-red-600">{totalWeight === 0 ? "CONFIGURAÇÃO INVÁLIDA" : "PESOS ATIVOS"}</Badge>
           </div>
           {isInvalid && <p className="text-xs font-mono text-red-600">Informe valores inteiros entre 0 e 100 e mantenha pelo menos um peso maior que zero.</p>}
@@ -1215,7 +1219,7 @@ function ActionScoreHelp({ weights }: { weights: PrioritizationWeights }) {
       </TooltipTrigger>
       <TooltipContent side="bottom" align="start" sideOffset={8} className="w-[360px] rounded-none border border-zinc-900 bg-zinc-950 p-4 text-zinc-50 shadow-xl">
         <p className="text-[11px] font-bold uppercase tracking-wider text-white">Composição do score</p>
-        <p className="mt-2 text-[11px] leading-relaxed text-zinc-200">Score = {weights.predictionChangeWeight} × adiamentos + {anticipationWeight} × antecipações + {weights.noSupplierWeight} sem fornecedor + {weights.overdueWeight} previsão vencida + {weights.highPriorityWeight} prioridade alta + até {weights.financialImpactWeight} por impacto financeiro.</p>
+        <p className="mt-2 text-[11px] leading-relaxed text-zinc-200">Score = {weights.predictionChangeWeight} × adiamentos + {anticipationWeight} × antecipações + {weights.noSupplierWeight} sem fornecedor + {weights.overdueWeight} previsão vencida + {weights.highPriorityWeight} prioridade alta + até {weights.financialImpactWeight} por impacto financeiro + até {weights.agingWeight} pelo envelhecimento.</p>
         <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 border-y border-zinc-700 py-3 text-[10px] text-zinc-200">
           <span>Adiamento</span><strong>+{weights.predictionChangeWeight} cada</strong>
           <span>Antecipação</span><strong>+{anticipationWeight} cada (25%)</strong>
@@ -1223,8 +1227,9 @@ function ActionScoreHelp({ weights }: { weights: PrioritizationWeights }) {
           <span>Previsão vencida</span><strong>+{weights.overdueWeight}</strong>
           <span>Prioridade alta</span><strong>+{weights.highPriorityWeight}</strong>
           <span>Impacto financeiro</span><strong>+1 a {weights.financialImpactWeight}</strong>
+          <span>Envelhecimento</span><strong>+1 a {weights.agingWeight}</strong>
         </div>
-        <p className="mt-3 text-[10px] leading-relaxed text-zinc-300">Antecipações são tratadas como favoráveis e recebem apenas 25% do peso configurado para um adiamento. O impacto financeiro é proporcional ao valor estendido: o item de maior valor na carteira filtrada recebe o peso máximo; os demais recebem uma parcela arredondada para cima. <strong className="text-red-300">Crítico:</strong> 8 ou mais · <strong className="text-amber-200">Atenção:</strong> 4 a 7 · <strong className="text-zinc-100">Monitorar:</strong> 1 a 3. A fila prioriza maior score, depois maior impacto financeiro e, por fim, mais alterações.</p>
+        <p className="mt-3 text-[10px] leading-relaxed text-zinc-300">Antecipações são tratadas como favoráveis e recebem apenas 25% do peso configurado para um adiamento. O impacto financeiro é proporcional ao valor estendido, enquanto o envelhecimento é proporcional aos dias em aberto desde a Data de criação: o item de maior valor e o pedido mais antigo da carteira filtrada recebem os respectivos pesos máximos; os demais recebem parcelas arredondadas para cima. <strong className="text-red-300">Crítico:</strong> 8 ou mais · <strong className="text-amber-200">Atenção:</strong> 4 a 7 · <strong className="text-zinc-100">Monitorar:</strong> 1 a 3. A fila prioriza maior score, depois maior impacto financeiro e, por fim, mais alterações.</p>
       </TooltipContent>
     </Tooltip>
   );

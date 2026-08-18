@@ -200,6 +200,7 @@ export const appRouter = router({
       overdueWeight: z.number().int().min(0).max(100),
       highPriorityWeight: z.number().int().min(0).max(100),
       financialImpactWeight: z.number().int().min(0).max(100),
+      agingWeight: z.number().int().min(0).max(100),
     }).refine((weights) => Object.values(weights).some((weight) => weight > 0), {
       message: "Defina pelo menos um peso maior que zero.",
     })).mutation(async ({ input }) => {

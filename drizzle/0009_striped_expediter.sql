@@ -1,0 +1,1 @@
+ALTER TABLE `prioritization_settings` ADD `agingWeight` int DEFAULT 2 NOT NULL;
