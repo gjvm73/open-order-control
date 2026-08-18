@@ -330,3 +330,9 @@
 - [x] Restringir o gráfico do Relatório Gerencial aos itens ativos e não entregues
 - [x] Adicionar à Avaliação Histórica o gráfico completo de ciclo de vida, incluindo itens entregues
 - [x] Cobrir os dois escopos com testes e validar visualmente a atualização
+
+### Pendências registradas em 18/08/2026 - refinamento dos relatórios e priorização
+- [x] Remover o bloco Histórico de cargas da guia Relatório Gerencial
+- [x] Adequar os gráficos de ciclo de vida aos modos claro e noturno
+- [x] Reduzir o peso de antecipações no score de priorização e cobrir a regra com testes
+- [x] Validar a interface, os cálculos e salvar a atualização

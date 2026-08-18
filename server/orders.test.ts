@@ -433,6 +433,46 @@ describe("Open Orders Backend & Upload Logic", () => {
 
     const alertResponse40 = await caller.orders.getAlerts({ thresholdDays: 40, shipTo: "TESTE RS" });
     expect(alertResponse40.alerts.some((alert) => alert.item === itemCode && alert.customerPo === customerPo)).toBe(false);
+
+    const wsData4 = [{
+      "Endereco (ship To)": "TESTE RS",
+      "Customer PO": customerPo,
+      "Shipment Priority": "High",
+      "Data Criacao da Ordem": "2025-01-01",
+      "Item": itemCode,
+      "Descricao do Item": "PEÇA DE TESTE",
+      "Quantidade": 10,
+      "Scheduled Reserved": 0,
+      "Unit Selling Price": 100,
+      "Extended Price": 1000,
+      "Previsão": "2025-08-01",
+      "Long Text": "Prazo antecipado",
+    }];
+    const wb4 = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb4, XLSX.utils.json_to_sheet(wsData4), "OpenOrders");
+    const base644 = XLSX.write(wb4, { type: "buffer", bookType: "xlsx" }).toString("base64");
+    const res4 = await caller.orders.uploadExcel({ fileName: "Relatorio_Semana_4.xlsx", fileBase64: base644 });
+    expect(res4.changedRowsCount).toBe(1);
+
+    try {
+      await caller.orders.updatePrioritizationSettings({
+        predictionChangeWeight: 8,
+        noSupplierWeight: 0,
+        overdueWeight: 0,
+        highPriorityWeight: 0,
+        financialImpactWeight: 0,
+      });
+      const directionalStats = await caller.orders.getStats({ shipTo: "TESTE RS" });
+      const directionalItem = directionalStats.actionQueue.find((entry) => entry.item === itemCode && entry.customerPo === customerPo);
+      expect(directionalItem).toMatchObject({
+        postponementsCount: 2,
+        anticipationsCount: 1,
+        predictionChangeScore: 18,
+        riskScore: 18,
+      });
+    } finally {
+      await caller.orders.resetPrioritizationSettings();
+    }
   });
 
   it("separa fornecedor, obsolescência e prazo em categorias mutuamente exclusivas", async () => {

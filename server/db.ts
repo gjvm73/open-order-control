@@ -954,6 +954,37 @@ export async function getDashboardStats(shipTo?: string) {
   const totalOrderValue = allItems.reduce((sum, item) => sum + toNumber(item.extendedPrice), 0);
   const valueAtRisk = changedItems.reduce((sum, item) => sum + toNumber(item.extendedPrice), 0);
   const highestItemValue = Math.max(...allItems.map((item) => Math.max(0, toNumber(item.extendedPrice))), 0);
+  const directionalHistory = allItems.length === 0
+    ? []
+    : await db.select({
+      orderItemId: predictionHistory.orderItemId,
+      prediction: predictionHistory.prediction,
+      uploadId: predictionHistory.uploadId,
+      historyId: predictionHistory.id,
+      recordedAt: predictionHistory.recordedAt,
+    }).from(predictionHistory)
+      .where(inArray(predictionHistory.orderItemId, allItems.map((item) => item.id)))
+      .orderBy(asc(predictionHistory.orderItemId), asc(predictionHistory.uploadId), asc(predictionHistory.id), asc(predictionHistory.recordedAt));
+  const directionalChangesByItem = new Map<number, { postponements: number; anticipations: number }>();
+  const historyByItem = new Map<number, Array<{ prediction: string; uploadId: number }>>();
+  for (const record of directionalHistory) {
+    const series = historyByItem.get(record.orderItemId) || [];
+    series.push({ prediction: record.prediction, uploadId: record.uploadId });
+    historyByItem.set(record.orderItemId, series);
+  }
+  for (const [orderItemId, series] of Array.from(historyByItem.entries())) {
+    let postponements = 0;
+    let anticipations = 0;
+    for (let index = 1; index < series.length; index += 1) {
+      const previous = parseValidPredictionDate(series[index - 1].prediction);
+      const current = parseValidPredictionDate(series[index].prediction);
+      if (!previous || !current) continue;
+      const differenceDays = Math.round((current.getTime() - previous.getTime()) / (1000 * 60 * 60 * 24));
+      if (differenceDays > 0) postponements += 1;
+      if (differenceDays < 0) anticipations += 1;
+    }
+    directionalChangesByItem.set(orderItemId, { postponements, anticipations });
+  }
 
   const rankItem = (item: typeof allItems[number]) => {
     const predictionDate = parseValidPredictionDate(item.currentPrediction);
@@ -966,14 +997,23 @@ export async function getDashboardStats(shipTo?: string) {
         Math.ceil((Math.max(0, toNumber(item.extendedPrice)) / highestItemValue) * prioritizationWeights.financialImpactWeight)
       )
       : 0;
-    const score = item.predictionChangesCount * prioritizationWeights.predictionChangeWeight
+    const directionalChanges = directionalChangesByItem.get(item.id) || { postponements: 0, anticipations: 0 };
+    const unclassifiedChanges = Math.max(0, item.predictionChangesCount - directionalChanges.postponements - directionalChanges.anticipations);
+    const anticipationWeight = prioritizationWeights.predictionChangeWeight === 0
+      ? 0
+      : Math.max(1, Math.ceil(prioritizationWeights.predictionChangeWeight / 4));
+    const predictionChangeScore = (directionalChanges.postponements + unclassifiedChanges) * prioritizationWeights.predictionChangeWeight
+      + directionalChanges.anticipations * anticipationWeight;
+    const score = predictionChangeScore
       + (supplierIssue ? prioritizationWeights.noSupplierWeight : 0)
       + (overdue ? prioritizationWeights.overdueWeight : 0)
       + (highPriority ? prioritizationWeights.highPriorityWeight : 0)
       + financialImpactScore;
     const reasons = [];
     if (supplierIssue) reasons.push("Sem fornecedor");
-    if (item.predictionChangesCount > 0) reasons.push(`${item.predictionChangesCount} alterações`);
+    if (directionalChanges.postponements > 0) reasons.push(`${directionalChanges.postponements} adiamento(s)`);
+    if (directionalChanges.anticipations > 0) reasons.push(`${directionalChanges.anticipations} antecipação(ões) com peso reduzido`);
+    if (unclassifiedChanges > 0) reasons.push(`${unclassifiedChanges} alteração(ões) sem direção classificável`);
     if (overdue) reasons.push("Previsão vencida");
     if (highPriority) reasons.push("Prioridade alta");
     if (financialImpactScore > 0) reasons.push(`Impacto financeiro +${financialImpactScore} pts`);
@@ -987,6 +1027,9 @@ export async function getDashboardStats(shipTo?: string) {
       currentPrediction: item.currentPrediction,
       previousPrediction: item.previousPrediction,
       predictionChangesCount: item.predictionChangesCount,
+      postponementsCount: directionalChanges.postponements,
+      anticipationsCount: directionalChanges.anticipations,
+      predictionChangeScore,
       lastPredictionChangeDate: item.lastPredictionChangeDate,
       extendedPrice: toNumber(item.extendedPrice),
       financialImpactScore,

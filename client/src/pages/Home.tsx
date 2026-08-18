@@ -39,11 +39,13 @@ const pendingAgingChartConfig = {
   items: { label: "Pendências", color: "#18181b" },
 } satisfies ChartConfig;
 
-const lifecycleChartConfig = {
-  abertos: { label: "Pedidos efetuados", color: "#18181b" },
-  finalizados: { label: "Finalizados no mês", color: "#059669" },
-  pendentes: { label: "Abertos pendentes", color: "#dc2626" },
-} satisfies ChartConfig;
+function createLifecycleChartConfig(isDarkMode: boolean) {
+  return {
+    abertos: { label: "Pedidos efetuados", color: isDarkMode ? "#e4e4e7" : "#18181b" },
+    finalizados: { label: "Finalizados no mês", color: isDarkMode ? "#34d399" : "#059669" },
+    pendentes: { label: "Abertos pendentes", color: isDarkMode ? "#fb7185" : "#dc2626" },
+  } satisfies ChartConfig;
+}
 
 const historicalChartConfig = {
   itens: { label: "Itens registrados", color: "#18181b" },
@@ -103,6 +105,25 @@ export default function Home() {
   const [reportShipTo, setReportShipTo] = useState("");
   const [reportStartDate, setReportStartDate] = useState("");
   const [reportEndDate, setReportEndDate] = useState("");
+  const lifecycleChartConfig = React.useMemo(() => createLifecycleChartConfig(isDarkMode), [isDarkMode]);
+  const lifecycleTheme = React.useMemo(() => ({
+    panel: isDarkMode ? "border-zinc-700 bg-zinc-950 text-zinc-50" : "border-zinc-200 bg-white text-zinc-950",
+    divider: isDarkMode ? "border-zinc-700" : "border-zinc-200",
+    subdued: isDarkMode ? "text-zinc-400" : "text-zinc-500",
+    neutralCard: isDarkMode ? "border-zinc-700 bg-zinc-900" : "border-zinc-200 bg-zinc-50",
+    successCard: isDarkMode ? "border-emerald-800 bg-emerald-950/40" : "border-emerald-200 bg-emerald-50",
+    successText: isDarkMode ? "text-emerald-300" : "text-emerald-700",
+    successDetail: isDarkMode ? "text-emerald-200" : "text-emerald-800",
+    riskCard: isDarkMode ? "border-red-900 bg-red-950/40" : "border-red-200 bg-red-50",
+    riskText: isDarkMode ? "text-red-300" : "text-red-700",
+    riskDetail: isDarkMode ? "text-red-200" : "text-red-800",
+    agingCard: isDarkMode ? "border-amber-800 bg-amber-950/40" : "border-amber-200 bg-amber-50",
+    agingText: isDarkMode ? "text-amber-300" : "text-amber-700",
+    agingDetail: isDarkMode ? "text-amber-200" : "text-amber-800",
+    gridStroke: isDarkMode ? "#3f3f46" : "#d4d4d8",
+    axisClass: isDarkMode ? "fill-zinc-300" : "fill-zinc-600",
+    tooltipCursor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(24,24,27,0.06)",
+  }), [isDarkMode]);
 
   const deliveredInput = React.useMemo(() => ({
     search: deliveredSearch,
@@ -180,11 +201,6 @@ export default function Home() {
     }, null);
     return latestUpload ? new Date(latestUpload.uploadDate) : new Date();
   }, [reportEndDate, reportUploads]);
-  const reportUploadSummary = React.useMemo(() => reportUploads.reduce((summary, upload) => ({
-    totalRows: summary.totalRows + Number(upload.totalRows ?? 0),
-    acceptedRows: summary.acceptedRows + Number(upload.acceptedRows || upload.totalRows || 0),
-    changedRows: summary.changedRows + Number(upload.changedRowsCount ?? 0),
-  }), { totalRows: 0, acceptedRows: 0, changedRows: 0 }), [reportUploads]);
   const pendingAging = React.useMemo(
     () => getPendingAgingSummary(completeChangesReport, reportReferenceDate),
     [completeChangesReport, reportReferenceDate],
@@ -924,29 +940,22 @@ export default function Home() {
         {activeTab === "report" && <section id="relatorio-gerencial" className="space-y-4 scroll-mt-6">
           <div className="border-b border-zinc-900 pb-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">Relatório gerencial</h2><h3 className="text-xl font-bold tracking-tight">Alterações por filial e período</h3><p className="text-xs font-mono text-zinc-500 mt-1">Audite cada mudança de previsão com datas, variação, origem e informações completas do item.</p></div><Button type="button" variant="outline" onClick={handleExportCompleteChangesReport} className="rounded-none border-zinc-900 text-xs font-mono uppercase h-10 whitespace-nowrap"><Download className="w-4 h-4 mr-2" />Exportar relatório</Button></div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 border border-zinc-900 bg-zinc-50 p-4"><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Filial solicitante</label><select value={reportShipTo} onChange={(event) => setReportShipTo(event.target.value)} className="h-10 w-full rounded-none border border-zinc-900 bg-white px-3 text-xs font-mono"><option value="">Todas as filiais</option>{shipToOptions.map((shipTo) => <option key={`report-${shipTo}`} value={shipTo}>{shipTo}</option>)}</select></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Data inicial da alteração</label><Input type="date" value={reportStartDate} onChange={(event) => setReportStartDate(event.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Data final da alteração</label><Input type="date" value={reportEndDate} onChange={(event) => setReportEndDate(event.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div><div className="flex items-end"><Button type="button" variant="outline" onClick={() => { setReportShipTo(""); setReportStartDate(""); setReportEndDate(""); }} className="w-full rounded-none border-zinc-900 text-xs font-mono uppercase h-10">Limpar filtros</Button></div></div>
-          <div className="border border-zinc-900 bg-zinc-950 text-white p-4">
-            <div className="flex flex-col gap-3 border-b border-zinc-700 pb-3 mb-4 md:flex-row md:items-end md:justify-between">
-              <div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">Ciclo de vida dos pedidos</p><h4 className="text-lg font-bold tracking-tight">Abertura, finalização e pedidos em aberto por mês</h4><p className="text-[10px] font-mono text-zinc-400 mt-1">A Data de criação representa a entrada do pedido no sistema. O fechamento é identificado quando o item deixa de constar em uma carga posterior.</p></div>
-              <p className="text-[10px] font-mono text-zinc-400">Referência de vida: {formatDate(lifecycleAnalysis.referenceDate)}</p>
+          <div className={`border p-4 ${lifecycleTheme.panel}`}>
+            <div className={`flex flex-col gap-3 border-b pb-3 mb-4 md:flex-row md:items-end md:justify-between ${lifecycleTheme.divider}`}>
+              <div><p className={`text-[10px] font-mono uppercase tracking-widest ${lifecycleTheme.subdued}`}>Ciclo de vida dos pedidos</p><h4 className="text-lg font-bold tracking-tight">Abertura, finalização e pedidos em aberto por mês</h4><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.subdued}`}>A Data de criação representa a entrada do pedido no sistema. O fechamento é identificado quando o item deixa de constar em uma carga posterior.</p></div>
+              <p className={`text-[10px] font-mono ${lifecycleTheme.subdued}`}>Referência de vida: {formatDate(lifecycleAnalysis.referenceDate)}</p>
             </div>
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-              <div className="border border-zinc-700 p-3"><p className="text-[10px] font-mono uppercase text-zinc-400">Pedidos efetuados</p><p className="text-2xl font-black mt-1">{lifecycleAnalysis.summary.openedOrders}</p><p className="text-[10px] font-mono text-zinc-400 mt-1">Abertos no intervalo</p></div>
-              <div className="border border-emerald-700 bg-emerald-950/30 p-3"><p className="text-[10px] font-mono uppercase text-emerald-300">Finalizados no mês</p><p className="text-2xl font-black mt-1 text-emerald-300">{lifecycleAnalysis.summary.closedSameMonth}</p><p className="text-[10px] font-mono text-emerald-200 mt-1">Encerrados no mês de abertura</p></div>
-              <div className="border border-red-800 bg-red-950/30 p-3"><p className="text-[10px] font-mono uppercase text-red-300">Pedidos em aberto</p><p className="text-2xl font-black mt-1 text-red-300">{lifecycleAnalysis.summary.openOrders}</p><p className="text-[10px] font-mono text-red-200 mt-1">Ainda sem encerramento</p></div>
-              <div className="border border-amber-700 bg-amber-950/30 p-3"><p className="text-[10px] font-mono uppercase text-amber-300">Vida média</p><p className="text-2xl font-black mt-1 text-amber-300">{lifecycleAnalysis.summary.averageLifeDays === null ? "—" : `${lifecycleAnalysis.summary.averageLifeDays}d`}</p><p className="text-[10px] font-mono text-amber-200 mt-1">Até fechamento ou referência</p></div>
+              <div className={`border p-3 ${lifecycleTheme.neutralCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.subdued}`}>Pedidos efetuados</p><p className="text-2xl font-black mt-1">{lifecycleAnalysis.summary.openedOrders}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.subdued}`}>Abertos no intervalo</p></div>
+              <div className={`border p-3 ${lifecycleTheme.successCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.successText}`}>Finalizados no mês</p><p className={`text-2xl font-black mt-1 ${lifecycleTheme.successText}`}>{lifecycleAnalysis.summary.closedSameMonth}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.successDetail}`}>Encerrados no mês de abertura</p></div>
+              <div className={`border p-3 ${lifecycleTheme.riskCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.riskText}`}>Pedidos em aberto</p><p className={`text-2xl font-black mt-1 ${lifecycleTheme.riskText}`}>{lifecycleAnalysis.summary.openOrders}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.riskDetail}`}>Ainda sem encerramento</p></div>
+              <div className={`border p-3 ${lifecycleTheme.agingCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.agingText}`}>Vida média</p><p className={`text-2xl font-black mt-1 ${lifecycleTheme.agingText}`}>{lifecycleAnalysis.summary.averageLifeDays === null ? "—" : `${lifecycleAnalysis.summary.averageLifeDays}d`}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.agingDetail}`}>Até fechamento ou referência</p></div>
             </div>
-            <div className="mt-5 border-t border-zinc-700 pt-4">
-              <div className="flex items-baseline justify-between gap-3 mb-3"><div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">Evolução mensal</p><h5 className="text-sm font-bold">Pedidos por mês de entrada</h5></div><span className="text-[10px] font-mono text-zinc-400">Quantidade de pedidos</span></div>
-              {lifecycleChartData.length === 0 ? <p className="h-[220px] flex items-center justify-center text-xs font-mono text-zinc-400">Nenhum pedido com Data de criação válida para o intervalo selecionado.</p> : <ChartContainer aria-label="Gráfico mensal de abertura e finalização de pedidos" config={lifecycleChartConfig} className="h-[220px] w-full aspect-auto"><BarChart data={lifecycleChartData} margin={{ top: 20, right: 12, left: -12, bottom: 0 }}><CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#3f3f46" /><XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={10} className="fill-zinc-300 font-mono text-[10px]" /><YAxis allowDecimals={false} tickLine={false} axisLine={false} width={30} className="fill-zinc-300 font-mono text-[10px]" /><ChartTooltip cursor={{ fill: "rgba(255,255,255,0.08)" }} content={<ChartTooltipContent />} /><Bar dataKey="abertos" fill="var(--color-abertos)" radius={[2, 2, 0, 0]} maxBarSize={42} /><Bar dataKey="finalizados" fill="var(--color-finalizados)" radius={[2, 2, 0, 0]} maxBarSize={42} /><Bar dataKey="pendentes" fill="var(--color-pendentes)" radius={[2, 2, 0, 0]} maxBarSize={42} /></BarChart></ChartContainer>}
+            <div className={`mt-5 border-t pt-4 ${lifecycleTheme.divider}`}>
+              <div className="flex items-baseline justify-between gap-3 mb-3"><div><p className={`text-[10px] font-mono uppercase tracking-widest ${lifecycleTheme.subdued}`}>Evolução mensal</p><h5 className="text-sm font-bold">Pedidos por mês de entrada</h5></div><span className={`text-[10px] font-mono ${lifecycleTheme.subdued}`}>Quantidade de pedidos</span></div>
+              {lifecycleChartData.length === 0 ? <p className={`h-[220px] flex items-center justify-center text-xs font-mono ${lifecycleTheme.subdued}`}>Nenhum pedido com Data de criação válida para o intervalo selecionado.</p> : <ChartContainer aria-label="Gráfico mensal de abertura e finalização de pedidos" config={lifecycleChartConfig} className="h-[220px] w-full aspect-auto"><BarChart data={lifecycleChartData} margin={{ top: 20, right: 12, left: -12, bottom: 0 }}><CartesianGrid vertical={false} strokeDasharray="3 3" stroke={lifecycleTheme.gridStroke} /><XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={10} className={`${lifecycleTheme.axisClass} font-mono text-[10px]`} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} width={30} className={`${lifecycleTheme.axisClass} font-mono text-[10px]`} /><ChartTooltip cursor={{ fill: lifecycleTheme.tooltipCursor }} content={<ChartTooltipContent />} /><Bar dataKey="abertos" fill="var(--color-abertos)" radius={[2, 2, 0, 0]} maxBarSize={42} /><Bar dataKey="finalizados" fill="var(--color-finalizados)" radius={[2, 2, 0, 0]} maxBarSize={42} /><Bar dataKey="pendentes" fill="var(--color-pendentes)" radius={[2, 2, 0, 0]} maxBarSize={42} /></BarChart></ChartContainer>}
             </div>
-            {lifecycleAnalysis.summary.withoutCreationDate > 0 && <p className="mt-3 text-[10px] font-mono text-zinc-400">{lifecycleAnalysis.summary.withoutCreationDate} pedido(s) não entrou(ram) na análise por não possuir(em) Data de criação válida.</p>}
-          </div>
-          <div className="border border-zinc-900 bg-white p-4">
-            <div className="flex flex-col gap-3 border-b border-zinc-200 pb-3 mb-3 md:flex-row md:items-end md:justify-between">
-              <div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Histórico de cargas</p><h4 className="text-base font-bold tracking-tight">Cargas consideradas no período</h4><p className="text-[10px] font-mono text-zinc-500 mt-1">O recorte usa as datas de upload; sem datas selecionadas, todas as cargas são apresentadas.</p></div>
-              <div className="flex flex-wrap gap-2 text-[10px] font-mono"><Badge className="rounded-none bg-zinc-950 text-white">{reportUploads.length} carga(s)</Badge><Badge variant="outline" className="rounded-none border-zinc-900">{reportUploadSummary.acceptedRows} linha(s) aceita(s)</Badge><Badge variant="outline" className="rounded-none border-zinc-900">{reportUploadSummary.changedRows} alteração(ões) reportadas</Badge></div>
-            </div>
-            {reportUploads.length === 0 ? <p className="py-3 text-center text-xs font-mono text-zinc-500">Nenhuma carga encontrada para o período selecionado.</p> : <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">{reportUploads.map((upload) => <div key={upload.id} className="border border-zinc-200 p-3"><p className="font-mono text-[10px] text-zinc-500">{formatDate(upload.uploadDate)}</p><p className="font-bold text-sm truncate mt-1" title={upload.fileName}>{upload.fileName}</p><div className="grid grid-cols-3 gap-2 mt-3 text-[10px] font-mono"><div><p className="text-zinc-500">Linhas</p><p className="font-bold text-zinc-900 mt-1">{upload.totalRows}</p></div><div><p className="text-zinc-500">Aceitas</p><p className="font-bold text-emerald-700 mt-1">{upload.acceptedRows || upload.totalRows}</p></div><div><p className="text-zinc-500">Alterações</p><p className="font-bold text-red-600 mt-1">{upload.changedRowsCount}</p></div></div></div>)}</div>}
+            {lifecycleAnalysis.summary.withoutCreationDate > 0 && <p className={`mt-3 text-[10px] font-mono ${lifecycleTheme.subdued}`}>{lifecycleAnalysis.summary.withoutCreationDate} pedido(s) não entrou(ram) na análise por não possuir(em) Data de criação válida.</p>}
           </div>
           <div className="border border-zinc-900 bg-white p-4">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-2 border-b border-zinc-200 pb-3 mb-3">
@@ -1050,22 +1059,22 @@ export default function Home() {
             <div className="border border-red-200 bg-red-50 p-4"><p className="text-[10px] font-mono uppercase text-red-700">Alterações</p><p className="text-3xl font-black mt-1 text-red-700">{historicalAssessment.summary.changeEvents}</p><p className="text-[10px] font-mono text-red-700 mt-1">Mudanças de previsão</p></div>
             <div className="border border-amber-200 bg-amber-50 p-4"><p className="text-[10px] font-mono uppercase text-amber-800">Prazo planejado médio</p><p className="text-3xl font-black mt-1 text-amber-800">{historicalAssessment.summary.averagePlannedLeadDays === null ? "—" : `${historicalAssessment.summary.averagePlannedLeadDays}d`}</p><p className="text-[10px] font-mono text-amber-800 mt-1">Criação até previsão</p></div>
           </div>
-          <div className="border border-zinc-900 bg-zinc-950 text-white p-4">
-            <div className="flex flex-col gap-3 border-b border-zinc-700 pb-3 mb-4 md:flex-row md:items-end md:justify-between">
-              <div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">Ciclo de vida completo</p><h4 className="text-lg font-bold tracking-tight">Abertura, finalização e pedidos em aberto por mês</h4><p className="text-[10px] font-mono text-zinc-400 mt-1">Inclui todos os itens que passaram pelo sistema, tanto os ativos quanto os já entregues.</p></div>
-              <p className="text-[10px] font-mono text-zinc-400">Referência de vida: {formatDate(historicalLifecycle.referenceDate)}</p>
+          <div className={`border p-4 ${lifecycleTheme.panel}`}>
+            <div className={`flex flex-col gap-3 border-b pb-3 mb-4 md:flex-row md:items-end md:justify-between ${lifecycleTheme.divider}`}>
+              <div><p className={`text-[10px] font-mono uppercase tracking-widest ${lifecycleTheme.subdued}`}>Ciclo de vida completo</p><h4 className="text-lg font-bold tracking-tight">Abertura, finalização e pedidos em aberto por mês</h4><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.subdued}`}>Inclui todos os itens que passaram pelo sistema, tanto os ativos quanto os já entregues.</p></div>
+              <p className={`text-[10px] font-mono ${lifecycleTheme.subdued}`}>Referência de vida: {formatDate(historicalLifecycle.referenceDate)}</p>
             </div>
             <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-              <div className="border border-zinc-700 p-3"><p className="text-[10px] font-mono uppercase text-zinc-400">Pedidos efetuados</p><p className="text-2xl font-black mt-1">{historicalLifecycle.summary.openedOrders}</p><p className="text-[10px] font-mono text-zinc-400 mt-1">Abertos no intervalo</p></div>
-              <div className="border border-emerald-700 bg-emerald-950/30 p-3"><p className="text-[10px] font-mono uppercase text-emerald-300">Finalizados no mês</p><p className="text-2xl font-black mt-1 text-emerald-300">{historicalLifecycle.summary.closedSameMonth}</p><p className="text-[10px] font-mono text-emerald-200 mt-1">Encerrados no mês de abertura</p></div>
-              <div className="border border-red-800 bg-red-950/30 p-3"><p className="text-[10px] font-mono uppercase text-red-300">Pedidos em aberto</p><p className="text-2xl font-black mt-1 text-red-300">{historicalLifecycle.summary.openOrders}</p><p className="text-[10px] font-mono text-red-200 mt-1">Ainda sem encerramento</p></div>
-              <div className="border border-amber-700 bg-amber-950/30 p-3"><p className="text-[10px] font-mono uppercase text-amber-300">Vida média</p><p className="text-2xl font-black mt-1 text-amber-300">{historicalLifecycle.summary.averageLifeDays === null ? "—" : `${historicalLifecycle.summary.averageLifeDays}d`}</p><p className="text-[10px] font-mono text-amber-200 mt-1">Até fechamento ou referência</p></div>
+              <div className={`border p-3 ${lifecycleTheme.neutralCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.subdued}`}>Pedidos efetuados</p><p className="text-2xl font-black mt-1">{historicalLifecycle.summary.openedOrders}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.subdued}`}>Abertos no intervalo</p></div>
+              <div className={`border p-3 ${lifecycleTheme.successCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.successText}`}>Finalizados no mês</p><p className={`text-2xl font-black mt-1 ${lifecycleTheme.successText}`}>{historicalLifecycle.summary.closedSameMonth}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.successDetail}`}>Encerrados no mês de abertura</p></div>
+              <div className={`border p-3 ${lifecycleTheme.riskCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.riskText}`}>Pedidos em aberto</p><p className={`text-2xl font-black mt-1 ${lifecycleTheme.riskText}`}>{historicalLifecycle.summary.openOrders}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.riskDetail}`}>Ainda sem encerramento</p></div>
+              <div className={`border p-3 ${lifecycleTheme.agingCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.agingText}`}>Vida média</p><p className={`text-2xl font-black mt-1 ${lifecycleTheme.agingText}`}>{historicalLifecycle.summary.averageLifeDays === null ? "—" : `${historicalLifecycle.summary.averageLifeDays}d`}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.agingDetail}`}>Até fechamento ou referência</p></div>
             </div>
-            <div className="mt-5 border-t border-zinc-700 pt-4">
-              <div className="flex items-baseline justify-between gap-3 mb-3"><div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">Evolução mensal</p><h5 className="text-sm font-bold">Pedidos por mês de entrada</h5></div><span className="text-[10px] font-mono text-zinc-400">Quantidade de pedidos</span></div>
-              {historicalLifecycleQuery.isLoading ? <p className="h-[220px] flex items-center justify-center text-xs font-mono text-zinc-400">Carregando ciclo de vida histórico...</p> : historicalLifecycleChartData.length === 0 ? <p className="h-[220px] flex items-center justify-center text-xs font-mono text-zinc-400">Nenhum pedido com Data de criação válida para o intervalo selecionado.</p> : <ChartContainer aria-label="Gráfico mensal completo de abertura e finalização de pedidos" config={lifecycleChartConfig} className="h-[220px] w-full aspect-auto"><BarChart data={historicalLifecycleChartData} margin={{ top: 20, right: 12, left: -12, bottom: 0 }}><CartesianGrid vertical={false} strokeDasharray="3 3" stroke="#3f3f46" /><XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={10} className="fill-zinc-300 font-mono text-[10px]" /><YAxis allowDecimals={false} tickLine={false} axisLine={false} width={30} className="fill-zinc-300 font-mono text-[10px]" /><ChartTooltip cursor={{ fill: "rgba(255,255,255,0.08)" }} content={<ChartTooltipContent />} /><Bar dataKey="abertos" fill="var(--color-abertos)" radius={[2, 2, 0, 0]} maxBarSize={42} /><Bar dataKey="finalizados" fill="var(--color-finalizados)" radius={[2, 2, 0, 0]} maxBarSize={42} /><Bar dataKey="pendentes" fill="var(--color-pendentes)" radius={[2, 2, 0, 0]} maxBarSize={42} /></BarChart></ChartContainer>}
+            <div className={`mt-5 border-t pt-4 ${lifecycleTheme.divider}`}>
+              <div className="flex items-baseline justify-between gap-3 mb-3"><div><p className={`text-[10px] font-mono uppercase tracking-widest ${lifecycleTheme.subdued}`}>Evolução mensal</p><h5 className="text-sm font-bold">Pedidos por mês de entrada</h5></div><span className={`text-[10px] font-mono ${lifecycleTheme.subdued}`}>Quantidade de pedidos</span></div>
+              {historicalLifecycleQuery.isLoading ? <p className={`h-[220px] flex items-center justify-center text-xs font-mono ${lifecycleTheme.subdued}`}>Carregando ciclo de vida histórico...</p> : historicalLifecycleChartData.length === 0 ? <p className={`h-[220px] flex items-center justify-center text-xs font-mono ${lifecycleTheme.subdued}`}>Nenhum pedido com Data de criação válida para o intervalo selecionado.</p> : <ChartContainer aria-label="Gráfico mensal completo de abertura e finalização de pedidos" config={lifecycleChartConfig} className="h-[220px] w-full aspect-auto"><BarChart data={historicalLifecycleChartData} margin={{ top: 20, right: 12, left: -12, bottom: 0 }}><CartesianGrid vertical={false} strokeDasharray="3 3" stroke={lifecycleTheme.gridStroke} /><XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={10} className={`${lifecycleTheme.axisClass} font-mono text-[10px]`} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} width={30} className={`${lifecycleTheme.axisClass} font-mono text-[10px]`} /><ChartTooltip cursor={{ fill: lifecycleTheme.tooltipCursor }} content={<ChartTooltipContent />} /><Bar dataKey="abertos" fill="var(--color-abertos)" radius={[2, 2, 0, 0]} maxBarSize={42} /><Bar dataKey="finalizados" fill="var(--color-finalizados)" radius={[2, 2, 0, 0]} maxBarSize={42} /><Bar dataKey="pendentes" fill="var(--color-pendentes)" radius={[2, 2, 0, 0]} maxBarSize={42} /></BarChart></ChartContainer>}
             </div>
-            {historicalLifecycle.summary.withoutCreationDate > 0 && <p className="mt-3 text-[10px] font-mono text-zinc-400">{historicalLifecycle.summary.withoutCreationDate} pedido(s) não entrou(ram) na análise por não possuir(em) Data de criação válida.</p>}
+            {historicalLifecycle.summary.withoutCreationDate > 0 && <p className={`mt-3 text-[10px] font-mono ${lifecycleTheme.subdued}`}>{historicalLifecycle.summary.withoutCreationDate} pedido(s) não entrou(ram) na análise por não possuir(em) Data de criação válida.</p>}
           </div>
           <div className="border border-zinc-900 bg-white p-4">
             <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-2 border-b border-zinc-200 pb-3 mb-3"><div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Evolução das cargas</p><h4 className="text-base font-bold tracking-tight">Itens e alterações por upload</h4></div><span className="text-[10px] font-mono text-zinc-500">Datas de realização das cargas</span></div>
@@ -1124,7 +1133,7 @@ function PrioritizationSettingsDialog({
   const totalWeight = Object.values(draft).reduce((sum, value) => sum + value, 0);
   const isInvalid = totalWeight === 0 || Object.values(draft).some((value) => value > 100);
   const fields: Array<{ key: keyof PrioritizationWeights; label: string; description: string; multiplier?: boolean }> = [
-    { key: "predictionChangeWeight", label: "Alteração de previsão", description: "Pontos por cada alteração acumulada de previsão.", multiplier: true },
+    { key: "predictionChangeWeight", label: "Alteração de previsão", description: "Pontos por adiamento acumulado. Antecipações recebem somente 25% deste peso, arredondado para cima.", multiplier: true },
     { key: "noSupplierWeight", label: "Sem fornecedor", description: "Pontos quando a previsão informa ausência de fornecedor." },
     { key: "overdueWeight", label: "Previsão vencida", description: "Pontos quando a previsão está anterior à data atual." },
     { key: "highPriorityWeight", label: "Prioridade alta", description: "Pontos quando a prioridade de embarque é alta." },
@@ -1160,7 +1169,7 @@ function PrioritizationSettingsDialog({
             </div>
           )}
           <div className="flex flex-col gap-3 border border-zinc-950 bg-zinc-950 p-4 text-white sm:flex-row sm:items-center sm:justify-between">
-            <div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">Simulação</p><p className="mt-1 text-sm font-bold">1 alteração + sem fornecedor + vencido + prioridade alta + item de maior valor = {draft.predictionChangeWeight + draft.noSupplierWeight + draft.overdueWeight + draft.highPriorityWeight + draft.financialImpactWeight} pontos</p></div>
+            <div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-400">Simulação</p><p className="mt-1 text-sm font-bold">1 adiamento + sem fornecedor + vencido + prioridade alta + item de maior valor = {draft.predictionChangeWeight + draft.noSupplierWeight + draft.overdueWeight + draft.highPriorityWeight + draft.financialImpactWeight} pontos</p><p className="mt-1 text-[10px] font-mono text-emerald-200">Cada antecipação recebe {draft.predictionChangeWeight === 0 ? 0 : Math.max(1, Math.ceil(draft.predictionChangeWeight / 4))} ponto(s), equivalente a 25% do peso de adiamento.</p></div>
             <Badge className="w-fit rounded-none bg-red-600 text-white hover:bg-red-600">{totalWeight === 0 ? "CONFIGURAÇÃO INVÁLIDA" : "PESOS ATIVOS"}</Badge>
           </div>
           {isInvalid && <p className="text-xs font-mono text-red-600">Informe valores inteiros entre 0 e 100 e mantenha pelo menos um peso maior que zero.</p>}
@@ -1175,6 +1184,7 @@ function PrioritizationSettingsDialog({
 }
 
 function ActionScoreHelp({ weights }: { weights: PrioritizationWeights }) {
+  const anticipationWeight = weights.predictionChangeWeight === 0 ? 0 : Math.max(1, Math.ceil(weights.predictionChangeWeight / 4));
   return (
     <Tooltip>
       <TooltipTrigger asChild>
@@ -1185,15 +1195,16 @@ function ActionScoreHelp({ weights }: { weights: PrioritizationWeights }) {
       </TooltipTrigger>
       <TooltipContent side="bottom" align="start" sideOffset={8} className="w-[360px] rounded-none border border-zinc-900 bg-zinc-950 p-4 text-zinc-50 shadow-xl">
         <p className="text-[11px] font-bold uppercase tracking-wider text-white">Composição do score</p>
-        <p className="mt-2 text-[11px] leading-relaxed text-zinc-200">Score = {weights.predictionChangeWeight} × alterações + {weights.noSupplierWeight} sem fornecedor + {weights.overdueWeight} previsão vencida + {weights.highPriorityWeight} prioridade alta + até {weights.financialImpactWeight} por impacto financeiro.</p>
+        <p className="mt-2 text-[11px] leading-relaxed text-zinc-200">Score = {weights.predictionChangeWeight} × adiamentos + {anticipationWeight} × antecipações + {weights.noSupplierWeight} sem fornecedor + {weights.overdueWeight} previsão vencida + {weights.highPriorityWeight} prioridade alta + até {weights.financialImpactWeight} por impacto financeiro.</p>
         <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 border-y border-zinc-700 py-3 text-[10px] text-zinc-200">
-          <span>Alteração de previsão</span><strong>+{weights.predictionChangeWeight} cada</strong>
+          <span>Adiamento</span><strong>+{weights.predictionChangeWeight} cada</strong>
+          <span>Antecipação</span><strong>+{anticipationWeight} cada (25%)</strong>
           <span>Sem fornecedor</span><strong>+{weights.noSupplierWeight}</strong>
           <span>Previsão vencida</span><strong>+{weights.overdueWeight}</strong>
           <span>Prioridade alta</span><strong>+{weights.highPriorityWeight}</strong>
           <span>Impacto financeiro</span><strong>+1 a {weights.financialImpactWeight}</strong>
         </div>
-        <p className="mt-3 text-[10px] leading-relaxed text-zinc-300">O impacto financeiro é proporcional ao valor estendido: o item de maior valor na carteira filtrada recebe o peso máximo; os demais recebem uma parcela arredondada para cima. <strong className="text-red-300">Crítico:</strong> 8 ou mais · <strong className="text-amber-200">Atenção:</strong> 4 a 7 · <strong className="text-zinc-100">Monitorar:</strong> 1 a 3. A fila prioriza maior score, depois maior impacto financeiro e, por fim, mais alterações.</p>
+        <p className="mt-3 text-[10px] leading-relaxed text-zinc-300">Antecipações são tratadas como favoráveis e recebem apenas 25% do peso configurado para um adiamento. O impacto financeiro é proporcional ao valor estendido: o item de maior valor na carteira filtrada recebe o peso máximo; os demais recebem uma parcela arredondada para cima. <strong className="text-red-300">Crítico:</strong> 8 ou mais · <strong className="text-amber-200">Atenção:</strong> 4 a 7 · <strong className="text-zinc-100">Monitorar:</strong> 1 a 3. A fila prioriza maior score, depois maior impacto financeiro e, por fim, mais alterações.</p>
       </TooltipContent>
     </Tooltip>
   );

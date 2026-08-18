@@ -162,7 +162,7 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(screen.getByLabelText("Gráfico mensal completo de abertura e finalização de pedidos")).toBeTruthy();
   });
 
-  it("mostra todas as cargas pertinentes e usa a última carga como referência temporal sem filtro final", () => {
+  it("remove o histórico de cargas visível e mantém a última carga como referência temporal do envelhecimento", () => {
     itemDetailQuery.mockReturnValue(emptyQuery(null));
     uploadsRows.current = [
       { id: 1, fileName: "carga-abril.xlsx", uploadDate: "2026-04-15T10:00:00.000Z", totalRows: 49, acceptedRows: 49, changedRowsCount: 2 },
@@ -172,11 +172,23 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     render(<Home />);
     fireEvent.click(screen.getByRole("button", { name: "Relatório Gerencial" }));
 
-    expect(screen.getByText("Cargas consideradas no período")).toBeTruthy();
-    expect(screen.getByText("2 carga(s)")).toBeTruthy();
-    expect(screen.getByText("carga-abril.xlsx")).toBeTruthy();
-    expect(screen.getByText("carga-maio.xlsx")).toBeTruthy();
+    expect(screen.queryByText("Cargas consideradas no período")).toBeNull();
+    expect(screen.queryByText("carga-abril.xlsx")).toBeNull();
+    expect(screen.queryByText("carga-maio.xlsx")).toBeNull();
     expect(screen.getByText(/Referência: 20\/05\/2026/)).toBeTruthy();
+  });
+
+  it("adapta o painel de ciclo de vida ao modo claro e ao modo noturno", () => {
+    itemDetailQuery.mockReturnValue(emptyQuery(null));
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Relatório Gerencial" }));
+
+    const getLifecyclePanel = () => screen.getByText("Ciclo de vida dos pedidos").closest("div.border");
+    expect(getLifecyclePanel()?.className).toContain("bg-white");
+
+    fireEvent.click(screen.getByRole("button", { name: "Ativar modo noturno" }));
+    expect(getLifecyclePanel()?.className).toContain("bg-zinc-950");
   });
 
   it("exibe a quantidade de eventos e as alterações de cada item no período do Relatório Gerencial", () => {
