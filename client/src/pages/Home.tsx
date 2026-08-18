@@ -249,7 +249,16 @@ export default function Home() {
     ]);
   }, [utils]);
   const isAdmin = user?.role === "admin";
-  const prioritizationWeights = prioritizationSettingsQuery.data ?? DEFAULT_PRIORITIZATION_WEIGHTS;
+  const prioritizationWeights = React.useMemo<PrioritizationWeights>(() => {
+    const settings = prioritizationSettingsQuery.data;
+    return {
+      predictionChangeWeight: Number(settings?.predictionChangeWeight ?? DEFAULT_PRIORITIZATION_WEIGHTS.predictionChangeWeight),
+      noSupplierWeight: Number(settings?.noSupplierWeight ?? DEFAULT_PRIORITIZATION_WEIGHTS.noSupplierWeight),
+      overdueWeight: Number(settings?.overdueWeight ?? DEFAULT_PRIORITIZATION_WEIGHTS.overdueWeight),
+      highPriorityWeight: Number(settings?.highPriorityWeight ?? DEFAULT_PRIORITIZATION_WEIGHTS.highPriorityWeight),
+      financialImpactWeight: Number(settings?.financialImpactWeight ?? DEFAULT_PRIORITIZATION_WEIGHTS.financialImpactWeight),
+    };
+  }, [prioritizationSettingsQuery.data]);
 
   React.useEffect(() => {
     if (isDarkMode) {
@@ -421,8 +430,8 @@ export default function Home() {
     try {
       await updatePrioritizationMutation.mutateAsync(weights);
       await Promise.all([
-        utils.orders.getPrioritizationSettings.invalidate(),
-        utils.orders.getStats.invalidate(),
+        prioritizationSettingsQuery.refetch(),
+        statsQuery.refetch(),
       ]);
       toast.success("Pesos de priorização atualizados e aplicados à Fila de Ação.");
       setPrioritizationOpen(false);

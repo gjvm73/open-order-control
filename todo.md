@@ -352,3 +352,8 @@
 - [x] Exibir a Data de entrega na tabela de Itens Entregues
 - [x] Formatar a data no padrão brasileiro e cobrir a coluna com teste
 - [x] Validar a atualização e salvar o ponto de verificação
+
+### Pendências registradas em 18/08/2026 - salvamento de pesos
+- [x] Diagnosticar por que o botão Salvar pesos não persiste as configurações
+- [x] Corrigir o fluxo de gravação e atualização dos pesos de priorização
+- [x] Cobrir o salvamento com teste de regressão e validar a correção

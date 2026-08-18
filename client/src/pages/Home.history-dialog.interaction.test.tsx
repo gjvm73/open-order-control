@@ -18,6 +18,9 @@ const deliveredItemRows = vi.hoisted(() => ({ current: [] as any[] }));
 const lifecycleQueryInputs = vi.hoisted(() => ({ current: [] as Array<{ scope?: "active" | "all" }> }));
 const resetImportsMutate = vi.hoisted(() => vi.fn().mockResolvedValue({ deletedUploads: 1, deletedItems: 4, deletedHistory: 2 }));
 const uploadExcelMutate = vi.hoisted(() => vi.fn());
+const prioritizationSettingsRows = vi.hoisted(() => ({ current: null as any }));
+const prioritizationSettingsRefetch = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const updatePrioritizationMutate = vi.hoisted(() => vi.fn());
 const authState = vi.hoisted(() => ({ user: null as { role: string; name: string } | null, isAuthenticated: false, logout: vi.fn() }));
 const emptyQuery = <T,>(data: T) => ({ data, isLoading: false, refetch: vi.fn() });
 const branchSummary = [
@@ -46,8 +49,8 @@ vi.mock("@/lib/trpc", () => ({
       getHistoricalAssessment: { useQuery: () => ({ ...emptyQuery({ summary: { uploads: 0, itemsRecorded: 0, branches: 0, changeEvents: 0, deliveredItems: 0, averagePlannedLeadDays: null, averageDeliveryLeadDays: null }, uploads: [], branches: [] }), refetch: historicalAssessmentRefetch }) },
       getItemDetail: { useQuery: itemDetailQuery },
       resetImports: { useMutation: () => ({ mutateAsync: resetImportsMutate, isPending: false }) },
-      getPrioritizationSettings: { useQuery: () => emptyQuery(null) },
-      updatePrioritizationSettings: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) },
+      getPrioritizationSettings: { useQuery: () => ({ ...emptyQuery(prioritizationSettingsRows.current), refetch: prioritizationSettingsRefetch }) },
+      updatePrioritizationSettings: { useMutation: () => ({ mutateAsync: updatePrioritizationMutate, isPending: false }) },
       resetPrioritizationSettings: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) },
     },
     auth: { localLogin: { useMutation: () => ({ mutateAsync: vi.fn(), isPending: false }) } },
@@ -72,8 +75,11 @@ beforeEach(() => {
   uploadsRows.current = [];
   deliveredItemRows.current = [];
   lifecycleQueryInputs.current = [];
+  prioritizationSettingsRows.current = null;
   lifecycleAnalysisRefetch.mockClear();
   historicalAssessmentRefetch.mockClear();
+  prioritizationSettingsRefetch.mockClear();
+  updatePrioritizationMutate.mockReset();
   vi.clearAllMocks();
 });
 
@@ -141,6 +147,37 @@ describe("histórico acionado pelos Alertas de Variação", () => {
 
     expect(screen.getByRole("columnheader", { name: "Data de entrega" })).toBeTruthy();
     expect(screen.getByText("18/08/2026")).toBeTruthy();
+  });
+
+  it("salva os pesos configurados e atualiza a consulta imediatamente", async () => {
+    itemDetailQuery.mockReturnValue(emptyQuery(null));
+    authState.user = { role: "admin", name: "Giovani" };
+    authState.isAuthenticated = true;
+    prioritizationSettingsRows.current = {
+      predictionChangeWeight: 4,
+      noSupplierWeight: 5,
+      overdueWeight: 3,
+      highPriorityWeight: 2,
+      financialImpactWeight: 3,
+      updatedAt: null,
+    };
+    updatePrioritizationMutate.mockResolvedValue(prioritizationSettingsRows.current);
+
+    render(<Home />);
+    fireEvent.click(screen.getByRole("button", { name: "Configurar pesos da Fila de Ação" }));
+    fireEvent.change(screen.getByLabelText("Alteração de previsão"), { target: { value: "9" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar pesos" }));
+
+    await waitFor(() => {
+      expect(updatePrioritizationMutate).toHaveBeenCalledWith({
+        predictionChangeWeight: 9,
+        noSupplierWeight: 5,
+        overdueWeight: 3,
+        highPriorityWeight: 2,
+        financialImpactWeight: 3,
+      });
+      expect(prioritizationSettingsRefetch).toHaveBeenCalledTimes(1);
+    });
   });
 
   it("exibe o Relatório Gerencial em uma guia exclusiva pelo menu superior", () => {
