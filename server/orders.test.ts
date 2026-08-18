@@ -1116,6 +1116,10 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(delivered[0].item).toBe("ITEM-B");
     expect(delivered[0].status).toBe("delivered");
     expect(delivered[0].deliveredAt).toBeDefined();
+    const uploads = await caller.orders.listUploads();
+    const absenceUpload = uploads.find((upload) => upload.fileName === "upload_week3.xlsx");
+    expect(absenceUpload).toBeDefined();
+    expect(new Date(delivered[0].deliveredAt!).getTime()).toBe(new Date(absenceUpload!.uploadDate).getTime());
 
     const report = await caller.orders.getCompleteChangesReport({});
     expect(report).not.toEqual(expect.arrayContaining([expect.objectContaining({ item: "ITEM-B" })]));
@@ -1164,7 +1168,13 @@ describe("Open Orders Backend & Upload Logic", () => {
     const historical = await caller.orders.getHistoricalAssessment({ startDate: "2025-01-01", endDate: today, shipTo: "PORTO ALEGRE" });
     expect(historical.summary.uploads).toBe(2);
     expect(historical.summary.branches).toBe(1);
+    expect(historical.summary.deliveredItems).toBe(1);
+    expect(historical.summary.averageDeliveryLeadDays).not.toBeNull();
     expect(historical.uploads).toHaveLength(2);
+    expect(historical.uploads.find((upload) => upload.fileName === "lifecycle-week-2.xlsx")).toEqual(expect.objectContaining({
+      deliveredItems: 1,
+      averageDeliveryLeadDays: expect.any(Number),
+    }));
     expect(historical.branches).toEqual(expect.arrayContaining([
       expect.objectContaining({ branch: "PORTO ALEGRE" }),
     ]));

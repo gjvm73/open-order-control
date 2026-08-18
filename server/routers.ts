@@ -473,11 +473,13 @@ export const appRouter = router({
           rejectionReasons,
         };
         const result = await database.transaction(async (tx) => {
+          const uploadTimestamp = new Date();
           const [uploadResult] = await tx.insert(db.uploads).values({
             fileName: input.fileName,
             ...uploadDiagnostics,
             uploadedBy: ctx.user?.id ?? null,
             changedRowsCount: 0,
+            uploadDate: uploadTimestamp,
           });
           const uploadId = Number(uploadResult.insertId);
           const duplicateBaseKeys = Array.from(new Set(
@@ -589,6 +591,9 @@ export const appRouter = router({
                 predictionChangesCount: sql`\`predictionChangesCount\` + (NOT (\`currentPrediction\` <=> VALUES(\`currentPrediction\`)))`,
                 lastPredictionChangeDate: sql`IF(NOT (\`currentPrediction\` <=> VALUES(\`currentPrediction\`)), NOW(), \`lastPredictionChangeDate\`)`,
                 lastUploadId: sql`VALUES(\`lastUploadId\`)`,
+                status: "active",
+                deliveredAt: null,
+                deliveredUploadId: null,
                 updatedAt: sql`NOW()`,
               },
             });
@@ -618,7 +623,8 @@ export const appRouter = router({
             const deliveredIds = deliveredItemsList.map((item) => item.id);
             await tx.update(db.orderItems).set({
               status: "delivered",
-              deliveredAt: new Date(),
+              deliveredAt: uploadTimestamp,
+              deliveredUploadId: uploadId,
               updatedAt: sql`NOW()`,
             }).where(inArray(db.orderItems.id, deliveredIds));
           }

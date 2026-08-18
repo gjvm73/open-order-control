@@ -341,3 +341,9 @@
 - [x] Invalidar e recarregar as consultas do Relatório Gerencial e da Avaliação Histórica após o reset
 - [x] Cobrir a atualização automática dos módulos analíticos com teste de regressão
 - [x] Validar a correção e salvar a atualização
+
+### Pendências registradas em 18/08/2026 - entrega por ausência em carga
+- [x] Usar a Data de criação como abertura do pedido nos cálculos históricos
+- [x] Registrar e utilizar a data da carga em que o item deixa de aparecer como data de entrega
+- [x] Atualizar os gráficos, métricas e detalhamentos da Avaliação Histórica com a nova regra
+- [x] Cobrir a regra de negócio com testes e validar a atualização

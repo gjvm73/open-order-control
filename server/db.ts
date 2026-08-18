@@ -576,7 +576,7 @@ export async function getOrderLifecycleAnalysis(filters: LifecycleFilters = {}) 
  */
 export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
   const db = await getDb();
-  if (!db) return { summary: { uploads: 0, itemsRecorded: 0, branches: 0, changeEvents: 0, averagePlannedLeadDays: null }, uploads: [], branches: [] };
+  if (!db) return { summary: { uploads: 0, itemsRecorded: 0, branches: 0, changeEvents: 0, deliveredItems: 0, averagePlannedLeadDays: null, averageDeliveryLeadDays: null }, uploads: [], branches: [] };
 
   const normalizedShipTo = filters.shipTo ? normalizeShipTo(filters.shipTo) : undefined;
   const startDate = parseReportBoundary(filters.startDate, false);
@@ -588,7 +588,7 @@ export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
   });
   const selectedUploadIds = new Set(uploadsInRange.map((upload) => upload.id));
   if (selectedUploadIds.size === 0) {
-    return { summary: { uploads: 0, itemsRecorded: 0, branches: 0, changeEvents: 0, averagePlannedLeadDays: null }, uploads: [], branches: [] };
+    return { summary: { uploads: 0, itemsRecorded: 0, branches: 0, changeEvents: 0, deliveredItems: 0, averagePlannedLeadDays: null, averageDeliveryLeadDays: null }, uploads: [], branches: [] };
   }
 
   const historyRows = await db.select({
@@ -602,9 +602,11 @@ export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
     .innerJoin(orderItems, eq(predictionHistory.orderItemId, orderItems.id))
     .orderBy(asc(predictionHistory.orderItemId), asc(predictionHistory.uploadId), asc(predictionHistory.id));
 
+  const createUploadMetric = () => ({ itemIds: new Set<number>(), branchNames: new Set<string>(), changes: 0, deliveredItems: 0, plannedLeadDays: [] as number[], deliveryLeadDays: [] as number[] });
+  const createBranchMetric = (uploadId: number, uploadDate: Date, branch: string) => ({ uploadId, uploadDate, branch, itemIds: new Set<number>(), changes: 0, deliveredItems: 0, plannedLeadDays: [] as number[], deliveryLeadDays: [] as number[] });
   const previousPredictionByItem = new Map<number, string>();
-  const uploadMetrics = new Map<number, { itemIds: Set<number>; branchNames: Set<string>; changes: number; plannedLeadDays: number[] }>();
-  const branchMetrics = new Map<string, { uploadId: number; uploadDate: Date; branch: string; itemIds: Set<number>; changes: number; plannedLeadDays: number[] }>();
+  const uploadMetrics = new Map<number, ReturnType<typeof createUploadMetric>>();
+  const branchMetrics = new Map<string, ReturnType<typeof createBranchMetric>>();
 
   for (const record of historyRows) {
     const previousPrediction = previousPredictionByItem.get(record.orderItemId);
@@ -615,11 +617,11 @@ export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
     if (normalizedShipTo && branch !== normalizedShipTo) continue;
     const upload = uploadsInRange.find((entry) => entry.id === record.uploadId);
     if (!upload) continue;
-    const metric = uploadMetrics.get(record.uploadId) ?? { itemIds: new Set<number>(), branchNames: new Set<string>(), changes: 0, plannedLeadDays: [] };
+    const metric = uploadMetrics.get(record.uploadId) ?? createUploadMetric();
     metric.itemIds.add(record.orderItemId);
     metric.branchNames.add(branch);
     const branchKey = `${record.uploadId}:${branch}`;
-    const branchMetric = branchMetrics.get(branchKey) ?? { uploadId: record.uploadId, uploadDate: parseOperationalDate(upload.uploadDate) ?? new Date(), branch, itemIds: new Set<number>(), changes: 0, plannedLeadDays: [] };
+    const branchMetric = branchMetrics.get(branchKey) ?? createBranchMetric(record.uploadId, parseOperationalDate(upload.uploadDate) ?? new Date(), branch);
     branchMetric.itemIds.add(record.orderItemId);
 
     if (previousPrediction !== undefined && previousPrediction !== record.prediction) {
@@ -638,8 +640,51 @@ export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
     branchMetrics.set(branchKey, branchMetric);
   }
 
+  const deliveredRows = await db.select({
+    id: orderItems.id,
+    shipTo: orderItems.shipTo,
+    orderCreationDate: orderItems.orderCreationDate,
+    status: orderItems.status,
+    deliveredAt: orderItems.deliveredAt,
+    deliveredUploadId: orderItems.deliveredUploadId,
+  }).from(orderItems);
+
+  for (const item of deliveredRows) {
+    if (item.status !== "delivered") continue;
+    const deliveredAt = parseOperationalDate(item.deliveredAt);
+    const createdAt = parseOperationalDate(item.orderCreationDate);
+    if (!deliveredAt || !createdAt) continue;
+    const deliveryUpload = item.deliveredUploadId
+      ? allUploads.find((upload) => upload.id === item.deliveredUploadId) ?? null
+      : allUploads.reduce<typeof allUploads[number] | null>((latest, upload) => {
+        const uploadDate = parseOperationalDate(upload.uploadDate);
+        if (!uploadDate || uploadDate > deliveredAt) return latest;
+        if (!latest) return upload;
+        const latestDate = parseOperationalDate(latest.uploadDate);
+        return !latestDate || uploadDate > latestDate ? upload : latest;
+      }, null);
+    if (!deliveryUpload || !selectedUploadIds.has(deliveryUpload.id)) continue;
+
+    const branch = normalizeShipTo(item.shipTo) || "Sem filial informada";
+    if (normalizedShipTo && branch !== normalizedShipTo) continue;
+    const deliveryUploadDate = parseOperationalDate(deliveryUpload.uploadDate);
+    if (!deliveryUploadDate) continue;
+    const deliveryLeadDays = getOperationalAgeDays(createdAt, deliveryUploadDate);
+    const metric = uploadMetrics.get(deliveryUpload.id) ?? createUploadMetric();
+    metric.deliveredItems += 1;
+    metric.branchNames.add(branch);
+    metric.deliveryLeadDays.push(deliveryLeadDays);
+    uploadMetrics.set(deliveryUpload.id, metric);
+
+    const branchKey = `${deliveryUpload.id}:${branch}`;
+    const branchMetric = branchMetrics.get(branchKey) ?? createBranchMetric(deliveryUpload.id, deliveryUploadDate, branch);
+    branchMetric.deliveredItems += 1;
+    branchMetric.deliveryLeadDays.push(deliveryLeadDays);
+    branchMetrics.set(branchKey, branchMetric);
+  }
+
   const uploadRows = uploadsInRange.map((upload) => {
-    const metric = uploadMetrics.get(upload.id) ?? { itemIds: new Set<number>(), branchNames: new Set<string>(), changes: 0, plannedLeadDays: [] };
+    const metric = uploadMetrics.get(upload.id) ?? createUploadMetric();
     return {
       uploadId: upload.id,
       uploadDate: upload.uploadDate,
@@ -649,7 +694,9 @@ export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
       itemsRecorded: metric.itemIds.size,
       branches: metric.branchNames.size,
       changeEvents: metric.changes,
+      deliveredItems: metric.deliveredItems,
       averagePlannedLeadDays: metric.plannedLeadDays.length ? Math.round(metric.plannedLeadDays.reduce((sum, value) => sum + value, 0) / metric.plannedLeadDays.length) : null,
+      averageDeliveryLeadDays: metric.deliveryLeadDays.length ? Math.round(metric.deliveryLeadDays.reduce((sum, value) => sum + value, 0) / metric.deliveryLeadDays.length) : null,
     };
   }).filter((row) => !normalizedShipTo || row.itemsRecorded > 0);
 
@@ -660,12 +707,18 @@ export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
       branch: metric.branch,
       itemsRecorded: metric.itemIds.size,
       changeEvents: metric.changes,
+      deliveredItems: metric.deliveredItems,
       averagePlannedLeadDays: metric.plannedLeadDays.length ? Math.round(metric.plannedLeadDays.reduce((sum, value) => sum + value, 0) / metric.plannedLeadDays.length) : null,
+      averageDeliveryLeadDays: metric.deliveryLeadDays.length ? Math.round(metric.deliveryLeadDays.reduce((sum, value) => sum + value, 0) / metric.deliveryLeadDays.length) : null,
     }))
     .sort((left, right) => left.uploadDate.getTime() - right.uploadDate.getTime() || left.branch.localeCompare(right.branch, "pt-BR"));
   const allLeadDays = uploadRows.flatMap((row) => {
     const metric = uploadMetrics.get(row.uploadId);
     return metric?.plannedLeadDays ?? [];
+  });
+  const allDeliveryLeadDays = uploadRows.flatMap((row) => {
+    const metric = uploadMetrics.get(row.uploadId);
+    return metric?.deliveryLeadDays ?? [];
   });
 
   return {
@@ -674,7 +727,9 @@ export async function getHistoricalAssessment(filters: LifecycleFilters = {}) {
       itemsRecorded: uploadRows.reduce((sum, row) => sum + row.itemsRecorded, 0),
       branches: new Set(branchRows.map((row) => row.branch)).size,
       changeEvents: uploadRows.reduce((sum, row) => sum + row.changeEvents, 0),
+      deliveredItems: uploadRows.reduce((sum, row) => sum + row.deliveredItems, 0),
       averagePlannedLeadDays: allLeadDays.length ? Math.round(allLeadDays.reduce((sum, value) => sum + value, 0) / allLeadDays.length) : null,
+      averageDeliveryLeadDays: allDeliveryLeadDays.length ? Math.round(allDeliveryLeadDays.reduce((sum, value) => sum + value, 0) / allDeliveryLeadDays.length) : null,
     },
     uploads: uploadRows,
     branches: branchRows,

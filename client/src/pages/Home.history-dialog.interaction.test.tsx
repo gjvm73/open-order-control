@@ -42,7 +42,7 @@ vi.mock("@/lib/trpc", () => ({
         const isCompleteHistory = input.scope === "all";
         return { ...emptyQuery({ referenceDate: new Date("2026-05-20T00:00:00.000Z"), summary: { openedOrders: isCompleteHistory ? 2 : 1, closedSameMonth: 0, openOrders: 1, averageLifeDays: 35, withoutCreationDate: 0 }, monthly: [{ label: "mai. de 2026", openedOrders: isCompleteHistory ? 2 : 1, closedSameMonth: 0, openOrders: 1 }] }), refetch: lifecycleAnalysisRefetch };
       } },
-      getHistoricalAssessment: { useQuery: () => ({ ...emptyQuery({ summary: { uploads: 0, itemsRecorded: 0, branches: 0, changeEvents: 0, averagePlannedLeadDays: null }, uploads: [], branches: [] }), refetch: historicalAssessmentRefetch }) },
+      getHistoricalAssessment: { useQuery: () => ({ ...emptyQuery({ summary: { uploads: 0, itemsRecorded: 0, branches: 0, changeEvents: 0, deliveredItems: 0, averagePlannedLeadDays: null, averageDeliveryLeadDays: null }, uploads: [], branches: [] }), refetch: historicalAssessmentRefetch }) },
       getItemDetail: { useQuery: itemDetailQuery },
       resetImports: { useMutation: () => ({ mutateAsync: resetImportsMutate, isPending: false }) },
       getPrioritizationSettings: { useQuery: () => emptyQuery(null) },
@@ -164,6 +164,8 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(screen.getByText("Ciclo de vida completo")).toBeTruthy();
     expect(screen.getByText(/Inclui todos os itens que passaram pelo sistema/)).toBeTruthy();
     expect(screen.getByLabelText("Gráfico mensal completo de abertura e finalização de pedidos")).toBeTruthy();
+    expect(screen.getByText(/A Data de criação representa a abertura do pedido/)).toBeTruthy();
+    expect(screen.getByText("Tempo efetivo médio")).toBeTruthy();
   });
 
   it("remove o histórico de cargas visível e mantém a última carga como referência temporal do envelhecimento", () => {
