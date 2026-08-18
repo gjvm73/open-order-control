@@ -336,3 +336,8 @@
 - [x] Adequar os gráficos de ciclo de vida aos modos claro e noturno
 - [x] Reduzir o peso de antecipações no score de priorização e cobrir a regra com testes
 - [x] Validar a interface, os cálculos e salvar a atualização
+
+### Pendências registradas em 18/08/2026 - atualização após reset
+- [x] Invalidar e recarregar as consultas do Relatório Gerencial e da Avaliação Histórica após o reset
+- [x] Cobrir a atualização automática dos módulos analíticos com teste de regressão
+- [x] Validar a correção e salvar a atualização

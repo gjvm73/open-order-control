@@ -8,6 +8,8 @@ const invalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const statsQuery = vi.hoisted(() => vi.fn());
 const deliveredItemsRefetch = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const completeChangesReportRefetch = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const lifecycleAnalysisRefetch = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const historicalAssessmentRefetch = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const deliveredItemsInvalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const completeChangesReportInvalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const completeChangesReportRows = vi.hoisted(() => ({ current: [] as any[] }));
@@ -38,9 +40,9 @@ vi.mock("@/lib/trpc", () => ({
       getOrderLifecycleAnalysis: { useQuery: (input: { scope?: "active" | "all" }) => {
         lifecycleQueryInputs.current.push(input);
         const isCompleteHistory = input.scope === "all";
-        return emptyQuery({ referenceDate: new Date("2026-05-20T00:00:00.000Z"), summary: { openedOrders: isCompleteHistory ? 2 : 1, closedSameMonth: 0, openOrders: 1, averageLifeDays: 35, withoutCreationDate: 0 }, monthly: [{ label: "mai. de 2026", openedOrders: isCompleteHistory ? 2 : 1, closedSameMonth: 0, openOrders: 1 }] });
+        return { ...emptyQuery({ referenceDate: new Date("2026-05-20T00:00:00.000Z"), summary: { openedOrders: isCompleteHistory ? 2 : 1, closedSameMonth: 0, openOrders: 1, averageLifeDays: 35, withoutCreationDate: 0 }, monthly: [{ label: "mai. de 2026", openedOrders: isCompleteHistory ? 2 : 1, closedSameMonth: 0, openOrders: 1 }] }), refetch: lifecycleAnalysisRefetch };
       } },
-      getHistoricalAssessment: { useQuery: () => emptyQuery({ summary: { uploads: 0, itemsRecorded: 0, branches: 0, changeEvents: 0, averagePlannedLeadDays: null }, uploads: [], branches: [] }) },
+      getHistoricalAssessment: { useQuery: () => ({ ...emptyQuery({ summary: { uploads: 0, itemsRecorded: 0, branches: 0, changeEvents: 0, averagePlannedLeadDays: null }, uploads: [], branches: [] }), refetch: historicalAssessmentRefetch }) },
       getItemDetail: { useQuery: itemDetailQuery },
       resetImports: { useMutation: () => ({ mutateAsync: resetImportsMutate, isPending: false }) },
       getPrioritizationSettings: { useQuery: () => emptyQuery(null) },
@@ -68,6 +70,8 @@ beforeEach(() => {
   completeChangesReportRows.current = [];
   uploadsRows.current = [];
   lifecycleQueryInputs.current = [];
+  lifecycleAnalysisRefetch.mockClear();
+  historicalAssessmentRefetch.mockClear();
   vi.clearAllMocks();
 });
 
@@ -216,7 +220,7 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(screen.getByText("Tempo médio de vida")).toBeTruthy();
   });
 
-  it("recarrega Itens Entregues e Relatório Gerencial após reset das importações", async () => {
+  it("recarrega Itens Entregues, Relatório Gerencial e Avaliação Histórica após reset das importações", async () => {
     authState.user = { role: "admin", name: "Giovani Martino" };
     itemDetailQuery.mockReturnValue(emptyQuery(null));
 
@@ -227,6 +231,8 @@ describe("histórico acionado pelos Alertas de Variação", () => {
 
     await waitFor(() => expect(deliveredItemsRefetch).toHaveBeenCalledTimes(1));
     expect(completeChangesReportRefetch).toHaveBeenCalledTimes(1);
+    expect(lifecycleAnalysisRefetch).toHaveBeenCalledTimes(2);
+    expect(historicalAssessmentRefetch).toHaveBeenCalledTimes(1);
   });
 
   it("invalida Itens Entregues e Relatório Gerencial após upload de planilha", async () => {

@@ -406,6 +406,9 @@ export default function Home() {
         alertsTrendQuery.refetch(),
         deliveredItemsQuery.refetch(),
         completeChangesReportQuery.refetch(),
+        lifecycleAnalysisQuery.refetch(),
+        historicalLifecycleQuery.refetch(),
+        historicalAssessmentQuery.refetch(),
       ]);
     } catch (err: any) {
       toast.error(err.message || "Não foi possível resetar as importações.");
