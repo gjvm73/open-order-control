@@ -1190,6 +1190,58 @@ describe("Open Orders Backend & Upload Logic", () => {
     expect(report).not.toEqual(expect.arrayContaining([expect.objectContaining({ item: "ITEM-B" })]));
   });
 
+  it("processes a header-only upload as an empty portfolio and closes all active orders", async () => {
+    await db.resetImportedData();
+    const caller = appRouter.createCaller({
+      user: { id: 1, openId: "empty-upload-admin", name: "Empty Upload Admin", email: "empty-upload@test.com", loginMethod: "oauth", role: "admin", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() },
+      req: {} as any,
+      res: {} as any,
+    });
+
+    const initialWorkbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(initialWorkbook, XLSX.utils.aoa_to_sheet([
+      ["Filial", "Item", "Customer PO", "Previsão"],
+      ["PORTO ALEGRE", "ITEM-A", "PO-1", "2025-06"],
+      ["COLOMBO", "ITEM-B", "PO-2", "2025-07"],
+    ]), "Orders");
+    await caller.orders.uploadExcel({
+      fileName: "portfolio-inicial.xlsx",
+      fileBase64: XLSX.write(initialWorkbook, { type: "buffer", bookType: "xlsx" }).toString("base64"),
+    });
+
+    const emptyWorkbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(emptyWorkbook, XLSX.utils.aoa_to_sheet([
+      ["Filial", "Item", "Customer PO", "Previsão"],
+    ]), "Orders");
+    const result = await caller.orders.uploadExcel({
+      fileName: "portfolio-vazio.xlsx",
+      fileBase64: XLSX.write(emptyWorkbook, { type: "buffer", bookType: "xlsx" }).toString("base64"),
+    });
+
+    expect(result).toEqual(expect.objectContaining({
+      totalRows: 0,
+      acceptedRows: 0,
+      rejectedRows: 0,
+      changedRowsCount: 0,
+      deliveredItemsCount: 2,
+    }));
+    expect(await caller.orders.listItems()).toHaveLength(0);
+    expect(await caller.orders.listDeliveredItems()).toEqual(expect.arrayContaining([
+      expect.objectContaining({ item: "ITEM-A", status: "delivered" }),
+      expect.objectContaining({ item: "ITEM-B", status: "delivered" }),
+    ]));
+
+    const stats = await caller.orders.getStats({});
+    expect(stats).toEqual(expect.objectContaining({
+      totalItems: 0,
+      changedLastUpload: 0,
+      overdueItems: 0,
+      noSupplier: 0,
+      noDeadlineItems: 0,
+      withDeadlineItems: 0,
+    }));
+  });
+
   it("summarizes opened orders, lifecycle bands and upload history for the selected period", async () => {
     await db.resetImportedData();
     const caller = appRouter.createCaller({

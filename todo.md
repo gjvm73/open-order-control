@@ -383,3 +383,8 @@
 
 ### Pendente posterior - peso por envelhecimento do pedido
 - [x] Adicionar peso configurável para o tempo transcorrido desde a Data de criação do pedido
+
+### Pendências registradas em 18/08/2026 - carga sem pedidos
+- [x] Aceitar uma planilha válida contendo somente os cabeçalhos como carga de carteira vazia
+- [x] Marcar os pedidos ativos ausentes como entregues e atualizar os cálculos do painel
+- [x] Cobrir o cenário com testes de regressão e validar a atualização

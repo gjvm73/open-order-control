@@ -102,7 +102,7 @@ function extractBestWorksheetRows(workbook: XLSX.WorkBook): { rows: any[]; score
       const score = scoreExcelHeaderRow(headerRow);
       if (score < 8) continue;
       const candidateRows = XLSX.utils.sheet_to_json(sheet, { range: headerRowIndex, defval: null });
-      if (candidateRows.length > 0 && score > best.score) {
+      if (score > best.score) {
         best = { rows: candidateRows, score, sheetName, headerRowIndex };
       }
     }
@@ -347,7 +347,7 @@ export const appRouter = router({
         const buffer = Buffer.from(input.fileBase64, 'base64');
         const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
         const extracted = extractBestWorksheetRows(workbook);
-        if (extracted.score < 8 || extracted.rows.length === 0) {
+        if (extracted.score < 8) {
           throw new Error("Não foi possível localizar uma tabela válida. A planilha precisa conter um cabeçalho com Item e Previsão de entrega.");
         }
         const rows: any[] = extracted.rows;
@@ -453,7 +453,7 @@ export const appRouter = router({
             preparedRows.push({ ...row, comparisonKey });
           });
         }
-        if (preparedRows.length === 0) {
+        if (preparedRows.length === 0 && rows.length > 0) {
           throw new Error("Nenhuma linha válida foi reconhecida. Verifique se a planilha contém as colunas de Item e Previsão de entrega no cabeçalho.");
         }
         const duplicateRows = Array.from(rowsByBaseKey.values()).reduce(
@@ -649,7 +649,12 @@ export const appRouter = router({
             await tx.insert(db.predictionHistory).values(historyRows.slice(start, start + importBatchSize));
           }
           await tx.update(db.uploads).set({ changedRowsCount: changedCount }).where(sql`id = ${uploadId}`);
-          return { uploadId, changedCount, ...uploadDiagnostics };
+          return {
+            uploadId,
+            changedCount,
+            deliveredItemsCount: deliveredItemsList.length,
+            ...uploadDiagnostics,
+          };
         });
 
         return {
@@ -662,6 +667,7 @@ export const appRouter = router({
           duplicateRows: result.duplicateRows,
           rejectionReasons: result.rejectionReasons ? JSON.parse(result.rejectionReasons) : [],
           changedRowsCount: result.changedCount,
+          deliveredItemsCount: result.deliveredItemsCount,
         };
       } catch (error: any) {
         console.error("Erro no upload do Excel:", error);

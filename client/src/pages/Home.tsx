@@ -480,8 +480,11 @@ export default function Home() {
         const rejectionSummary = result.rejectionReasons?.length
           ? ` Motivos: ${result.rejectionReasons.map((entry: { reason: string; count: number }) => `${entry.reason} (${entry.count})`).join(", ")}.`
           : "";
+        const emptyPortfolioSummary = result.acceptedRows === 0
+          ? ` Carga sem pedidos processada; ${result.deliveredItemsCount} pedido(s) ativo(s) foram concluídos por ausência.`
+          : "";
         toast.success(
-          `Upload concluído: ${result.acceptedRows} de ${result.totalRows} linhas aceitas; ${result.duplicateRows} duplicidade(s) preservada(s); ${result.rejectedRows} rejeitada(s); ${result.changedRowsCount} alteração(ões).${rejectionSummary}`,
+          `Upload concluído: ${result.acceptedRows} de ${result.totalRows} linhas aceitas; ${result.duplicateRows} duplicidade(s) preservada(s); ${result.rejectedRows} rejeitada(s); ${result.changedRowsCount} alteração(ões).${emptyPortfolioSummary}${rejectionSummary}`,
         );
         setUploadStatus("refreshing");
         setIsUploading(false);
