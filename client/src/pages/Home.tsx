@@ -699,8 +699,10 @@ export default function Home() {
               </div>
 
               <div className="border border-zinc-900 p-6 bg-zinc-950 text-white">
-                <p className="text-xs font-mono uppercase tracking-wider text-zinc-400">03 / Síntese executiva</p>
-                <h3 className="text-xl font-bold mt-1">Foco da próxima reunião</h3>
+                <div className="flex items-start justify-between gap-4">
+                  <div><p className="text-xs font-mono uppercase tracking-wider text-zinc-400">03 / Síntese executiva</p><h3 className="text-xl font-bold mt-1">Foco da próxima reunião</h3></div>
+                  <ExecutiveSummaryHelp />
+                </div>
                 <div className="mt-8 border-t border-zinc-700 pt-5"><p className="text-4xl font-black tracking-tight">{managementOverview.delivery.lateCount}</p><p className="mt-1 text-xs font-mono text-zinc-300">entrega(s) após a última previsão válida</p></div>
                 <div className="mt-5 space-y-3 text-xs font-mono"><DecisionLine label="Atraso médio" value={managementOverview.delivery.averageLateDays === null ? "—" : `${managementOverview.delivery.averageLateDays} dias`} note="somente entregas após a previsão" positive={managementOverview.delivery.lateCount === 0} /><DecisionLine label="Sem fornecedor" value={String(managementOverview.portfolio.noSupplierItems)} note="pendências ativas" positive={managementOverview.portfolio.noSupplierItems === 0} /><DecisionLine label="Sem prazo" value={String(managementOverview.portfolio.noDeadlineItems)} note="pendências ativas" positive={managementOverview.portfolio.noDeadlineItems === 0} /></div>
                 <p className="mt-6 border-t border-zinc-700 pt-4 text-xs leading-5 text-zinc-300">{managementFocus}</p>
@@ -1055,6 +1057,30 @@ function ActionScoreHelp({ weights }: { weights: PrioritizationWeights }) {
           <span>Envelhecimento</span><strong>+1 a {weights.agingWeight}</strong>
         </div>
         <p className="mt-3 text-[10px] leading-relaxed text-zinc-300">Antecipações são tratadas como favoráveis e recebem apenas 25% do peso configurado para um adiamento. O impacto financeiro é proporcional ao valor estendido, enquanto o envelhecimento é proporcional aos dias em aberto desde a Data de criação: o item de maior valor e o pedido mais antigo da carteira filtrada recebem os respectivos pesos máximos; os demais recebem parcelas arredondadas para cima. <strong className="text-red-300">Crítico:</strong> 8 ou mais · <strong className="text-amber-200">Atenção:</strong> 4 a 7 · <strong className="text-zinc-100">Monitorar:</strong> 1 a 3. A fila prioriza maior score, depois maior impacto financeiro e, por fim, mais alterações.</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function ExecutiveSummaryHelp() {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button type="button" className="inline-flex shrink-0 items-center gap-2 border border-zinc-500 px-2.5 py-2 text-[10px] font-mono font-bold uppercase tracking-wide text-zinc-100 transition-colors hover:border-white hover:bg-white hover:text-zinc-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950" aria-label="Entenda os indicadores da Síntese Executiva">
+          <CircleHelp className="h-4 w-4" aria-hidden="true" />
+          <span className="hidden sm:inline">Como interpretar?</span>
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="left" align="start" sideOffset={10} className="w-[360px] rounded-none border border-zinc-900 bg-zinc-950 p-4 text-zinc-50 shadow-xl">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-white">Como interpretar este quadro</p>
+        <p className="mt-2 text-[11px] leading-relaxed text-zinc-200">A síntese transforma o desempenho recente em uma pauta objetiva para a próxima reunião, combinando atrasos já realizados com pendências abertas que reduzem a previsibilidade da carteira.</p>
+        <div className="mt-3 grid grid-cols-[118px_1fr] gap-x-3 gap-y-2 border-y border-zinc-700 py-3 text-[10px] leading-relaxed text-zinc-200">
+          <strong className="text-white">Entregas em atraso</strong><span>Itens entregues após a última previsão válida; é o número em destaque.</span>
+          <strong className="text-white">Atraso médio</strong><span>Média de dias de atraso, considerando somente as entregas após a previsão.</span>
+          <strong className="text-white">Sem fornecedor</strong><span>Pendências ativas cuja previsão informa ausência de fornecedor.</span>
+          <strong className="text-white">Sem prazo</strong><span>Pendências ativas sem uma data válida de previsão.</span>
+        </div>
+        <p className="mt-3 text-[10px] leading-relaxed text-zinc-300">O texto final sugere a prioridade da reunião a partir desses quatro sinais. Alterações de previsão e envelhecimento são analisados em outros blocos da Visão Gerencial.</p>
       </TooltipContent>
     </Tooltip>
   );

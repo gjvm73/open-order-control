@@ -132,6 +132,11 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(screen.getByText(/data do último upload − Data de criação do pedido/i)).toBeTruthy();
     expect(screen.getByText(/Alterações de previsão não influenciam/)).toBeTruthy();
     expect(screen.getByText(/Comparativo por filial/)).toBeTruthy();
+    const executiveHelp = screen.getByRole("button", { name: "Entenda os indicadores da Síntese Executiva" });
+    expect(executiveHelp).toBeTruthy();
+    fireEvent.focus(executiveHelp);
+    expect(screen.getAllByText("Como interpretar este quadro").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Entregas em atraso/).length).toBeGreaterThan(0);
     expect(screen.getAllByText("PORTO ALEGRE").length).toBeGreaterThan(0);
   });
 

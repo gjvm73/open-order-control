@@ -439,3 +439,8 @@
 - [x] Calcular o envelhecimento pela data do último upload menos a Data de abertura do pedido
 - [x] Atualizar a fórmula informada na Visão Gerencial e a cobertura de regressão
 - [x] Validar a correção e salvar o ponto de verificação
+
+### Pendências registradas em 19/08/2026 - balão da Síntese Executiva
+- [x] Adicionar balão explicativo com os conceitos das métricas de foco da próxima reunião
+- [x] Cobrir a exibição do balão e validar a interface
+- [x] Atualizar o rastreador e salvar o ponto de verificação
