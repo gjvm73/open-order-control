@@ -7,15 +7,8 @@ const itemDetailQuery = vi.hoisted(() => vi.fn());
 const invalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const statsQuery = vi.hoisted(() => vi.fn());
 const deliveredItemsRefetch = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
-const completeChangesReportRefetch = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
-const lifecycleAnalysisRefetch = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
-const historicalAssessmentRefetch = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const deliveredItemsInvalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
-const completeChangesReportInvalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
-const completeChangesReportRows = vi.hoisted(() => ({ current: [] as any[] }));
-const uploadsRows = vi.hoisted(() => ({ current: [] as any[] }));
 const deliveredItemRows = vi.hoisted(() => ({ current: [] as any[] }));
-const lifecycleQueryInputs = vi.hoisted(() => ({ current: [] as Array<{ scope?: "active" | "all" }> }));
 const resetImportsMutate = vi.hoisted(() => vi.fn().mockResolvedValue({ deletedUploads: 1, deletedItems: 4, deletedHistory: 2 }));
 const uploadExcelMutate = vi.hoisted(() => vi.fn());
 const prioritizationSettingsRows = vi.hoisted(() => ({ current: null as any }));
@@ -35,18 +28,10 @@ vi.mock("@/lib/trpc", () => ({
       listDeliveredItems: { useQuery: () => ({ ...emptyQuery(deliveredItemRows.current), refetch: deliveredItemsRefetch }) },
       getStats: { useQuery: () => emptyQuery(statsQuery()) },
       listItems: { useQuery: () => emptyQuery([]) },
-      listUploads: { useQuery: () => emptyQuery(uploadsRows.current) },
       listShipTo: { useQuery: () => emptyQuery([]) },
       getBranchSummary: { useQuery: () => emptyQuery(branchSummary) },
       getAlerts: { useQuery: () => emptyQuery({ alerts: [{ id: 42, severity: "CRÍTICO", direction: "ADIAMENTO", item: "ITEM-42", itemDescription: "Item de teste", shipTo: "PORTO ALEGRE", customerPo: "PO-42", previousPrediction: "2025-05-01", currentPrediction: "2025-05-20", differenceDays: 19 }], summary: { totalAlerts: 1, criticalCount: 1, attentionCount: 0, criticalRatio: 100, attentionRatio: 0 } }) },
       getAlertsTrend: { useQuery: () => emptyQuery([]) },
-      getCompleteChangesReport: { useQuery: () => ({ ...emptyQuery(completeChangesReportRows.current), refetch: completeChangesReportRefetch }) },
-      getOrderLifecycleAnalysis: { useQuery: (input: { scope?: "active" | "all" }) => {
-        lifecycleQueryInputs.current.push(input);
-        const isCompleteHistory = input.scope === "all";
-        return { ...emptyQuery({ referenceDate: new Date("2026-05-20T00:00:00.000Z"), summary: { openedOrders: isCompleteHistory ? 2 : 1, closedSameMonth: 0, openOrders: 1, averageLifeDays: 35, withoutCreationDate: 0 }, monthly: [{ label: "mai. de 2026", openedOrders: isCompleteHistory ? 2 : 1, closedSameMonth: 0, openOrders: 1 }] }), refetch: lifecycleAnalysisRefetch };
-      } },
-      getHistoricalAssessment: { useQuery: () => ({ ...emptyQuery({ summary: { uploads: 0, itemsRecorded: 0, branches: 0, changeEvents: 0, deliveredItems: 0, averagePlannedLeadDays: null, averageDeliveryLeadDays: null }, uploads: [], branches: [] }), refetch: historicalAssessmentRefetch }) },
       getItemDetail: { useQuery: itemDetailQuery },
       resetImports: { useMutation: () => ({ mutateAsync: resetImportsMutate, isPending: false }) },
       getPrioritizationSettings: { useQuery: () => ({ ...emptyQuery(prioritizationSettingsRows.current), refetch: prioritizationSettingsRefetch }) },
@@ -57,7 +42,7 @@ vi.mock("@/lib/trpc", () => ({
     useUtils: () => ({
       client: { orders: { uploadExcel: { mutate: uploadExcelMutate } } },
       auth: { me: { invalidate } },
-      orders: { listPredictionHistory: { fetch: vi.fn().mockResolvedValue([]) }, getStats: { invalidate }, listItems: { invalidate }, listUploads: { invalidate }, listShipTo: { invalidate }, getBranchSummary: { invalidate }, getAlerts: { invalidate }, getAlertsTrend: { invalidate }, listDeliveredItems: { invalidate: deliveredItemsInvalidate }, getCompleteChangesReport: { invalidate: completeChangesReportInvalidate }, getPrioritizationSettings: { invalidate } },
+      orders: { listPredictionHistory: { fetch: vi.fn().mockResolvedValue([]) }, getStats: { invalidate }, listItems: { invalidate }, listUploads: { invalidate }, listShipTo: { invalidate }, getBranchSummary: { invalidate }, getAlerts: { invalidate }, getAlertsTrend: { invalidate }, listDeliveredItems: { invalidate: deliveredItemsInvalidate }, getPrioritizationSettings: { invalidate } },
     }),
   },
 }));
@@ -71,13 +56,8 @@ beforeEach(() => {
   statsQuery.mockReturnValue(defaultStats);
   authState.user = null;
   authState.isAuthenticated = false;
-  completeChangesReportRows.current = [];
-  uploadsRows.current = [];
   deliveredItemRows.current = [];
-  lifecycleQueryInputs.current = [];
   prioritizationSettingsRows.current = null;
-  lifecycleAnalysisRefetch.mockClear();
-  historicalAssessmentRefetch.mockClear();
   prioritizationSettingsRefetch.mockClear();
   updatePrioritizationMutate.mockReset();
   vi.clearAllMocks();
@@ -188,106 +168,7 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     });
   });
 
-  it("exibe o Relatório Gerencial em uma guia exclusiva pelo menu superior", () => {
-    itemDetailQuery.mockReturnValue(emptyQuery(null));
-
-    render(<Home />);
-    expect(screen.getByText("Onde a gestão deve concentrar atenção")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Relatório Gerencial" }));
-
-    expect(screen.getByText("Alterações por filial e período")).toBeTruthy();
-    expect(screen.getByText("Envelhecimento das pendências")).toBeTruthy();
-    expect(screen.queryByText("Onde a gestão deve concentrar atenção")).toBeNull();
-    expect(screen.queryByText("Itens, previsões e respectivas alterações")).toBeNull();
-
-    const reportTable = screen.getByRole("table", { name: "Itens alterados do relatório gerencial" });
-    expect(reportTable.className).toContain("table-fixed");
-    expect(reportTable.className).not.toContain("min-w");
-    expect(reportTable.parentElement?.className).not.toContain("overflow-x-auto");
-    expect(screen.queryByRole("columnheader", { name: "Prioridade" })).toBeNull();
-    expect(screen.queryByRole("columnheader", { name: "Status atual" })).toBeNull();
-  });
-
-  it("exibe o gráfico de colunas logo abaixo do envelhecimento das pendências", () => {
-    itemDetailQuery.mockReturnValue(emptyQuery(null));
-
-    render(<Home />);
-    fireEvent.click(screen.getByRole("button", { name: "Relatório Gerencial" }));
-
-    expect(screen.getByText("Dias pendentes por item ativo")).toBeTruthy();
-    expect(screen.getByLabelText("Gráfico de colunas da distribuição de dias pendentes")).toBeTruthy();
-  });
-
-  it("aplica escopo ativo ao Relatório Gerencial e exibe o ciclo completo na Avaliação Histórica", () => {
-    itemDetailQuery.mockReturnValue(emptyQuery(null));
-
-    render(<Home />);
-    expect(lifecycleQueryInputs.current).toEqual(expect.arrayContaining([
-      expect.objectContaining({ scope: "active" }),
-      expect.objectContaining({ scope: "all" }),
-    ]));
-
-    fireEvent.click(screen.getByRole("button", { name: "Avaliação Histórica" }));
-
-    expect(screen.getByText("Ciclo de vida completo")).toBeTruthy();
-    expect(screen.getByText(/Inclui todos os itens que passaram pelo sistema/)).toBeTruthy();
-    expect(screen.getByLabelText("Gráfico mensal completo de abertura e finalização de pedidos")).toBeTruthy();
-    expect(screen.getByText(/A Data de criação representa a abertura do pedido/)).toBeTruthy();
-    expect(screen.getByText("Tempo efetivo médio")).toBeTruthy();
-  });
-
-  it("remove o histórico de cargas visível e mantém a última carga como referência temporal do envelhecimento", () => {
-    itemDetailQuery.mockReturnValue(emptyQuery(null));
-    uploadsRows.current = [
-      { id: 1, fileName: "carga-abril.xlsx", uploadDate: "2026-04-15T10:00:00.000Z", totalRows: 49, acceptedRows: 49, changedRowsCount: 2 },
-      { id: 2, fileName: "carga-maio.xlsx", uploadDate: "2026-05-20T10:00:00.000Z", totalRows: 51, acceptedRows: 50, changedRowsCount: 4 },
-    ];
-
-    render(<Home />);
-    fireEvent.click(screen.getByRole("button", { name: "Relatório Gerencial" }));
-
-    expect(screen.queryByText("Cargas consideradas no período")).toBeNull();
-    expect(screen.queryByText("carga-abril.xlsx")).toBeNull();
-    expect(screen.queryByText("carga-maio.xlsx")).toBeNull();
-    expect(screen.getByText(/Referência: 20\/05\/2026/)).toBeTruthy();
-  });
-
-  it("adapta o painel de ciclo de vida ao modo claro e ao modo noturno", () => {
-    itemDetailQuery.mockReturnValue(emptyQuery(null));
-
-    render(<Home />);
-    fireEvent.click(screen.getByRole("button", { name: "Relatório Gerencial" }));
-
-    const getLifecyclePanel = () => screen.getByText("Ciclo de vida dos pedidos").closest("div.border");
-    expect(getLifecyclePanel()?.className).toContain("bg-white");
-
-    fireEvent.click(screen.getByRole("button", { name: "Ativar modo noturno" }));
-    expect(getLifecyclePanel()?.className).toContain("bg-zinc-950");
-  });
-
-  it("alinha o card de itens alterados à quantidade exibida na tabela final do Relatório Gerencial", () => {
-    itemDetailQuery.mockReturnValue(emptyQuery(null));
-    completeChangesReportRows.current = [
-      {
-        historyId: 10, orderItemId: 88, item: "ITEM-88", itemDescription: "Item em acompanhamento", shipTo: "PORTO ALEGRE", customerPo: "PO-88",
-        previousPrediction: "2026-07-10", currentPredictionAtChange: "2026-07-30", currentPrediction: "2026-08-12", differenceDays: 20,
-        direction: "ADIAMENTO", quantity: "2", extendedPrice: "1500", status: "active", orderCreationDate: "2026-06-01",
-        predictionChangesCount: 2, changesInPeriod: 2, lastPredictionChangeDate: "2026-08-17T12:00:00.000Z", fileName: "semana-3.xlsx", changedAt: "2026-08-17T12:00:00.000Z",
-      },
-    ];
-
-    render(<Home />);
-    fireEvent.click(screen.getByRole("button", { name: "Relatório Gerencial" }));
-
-    expect(screen.getByText("Itens alterados")).toBeTruthy();
-    expect(screen.getByText("Pedidos únicos exibidos na tabela final")).toBeTruthy();
-    expect(screen.getByText("1 item(ns) alterado(s)")).toBeTruthy();
-    expect(screen.getByText("2 alteração(ões) histórica(s)")).toBeTruthy();
-    expect(screen.getAllByText("2 alterações no período").length).toBe(1);
-    expect(screen.getByText("Tempo médio de vida")).toBeTruthy();
-  });
-
-  it("recarrega Itens Entregues, Relatório Gerencial e Avaliação Histórica após reset das importações", async () => {
+  it("recarrega os itens entregues após reset das importações", async () => {
     authState.user = { role: "admin", name: "Giovani Martino" };
     itemDetailQuery.mockReturnValue(emptyQuery(null));
 
@@ -297,9 +178,6 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirmar reset" }));
 
     await waitFor(() => expect(deliveredItemsRefetch).toHaveBeenCalledTimes(1));
-    expect(completeChangesReportRefetch).toHaveBeenCalledTimes(1);
-    expect(lifecycleAnalysisRefetch).toHaveBeenCalledTimes(2);
-    expect(historicalAssessmentRefetch).toHaveBeenCalledTimes(1);
   });
 
   it("exige confirmação antes de processar uma planilha selecionada", () => {
@@ -319,7 +197,7 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(uploadExcelMutate).not.toHaveBeenCalled();
   });
 
-  it("invalida Itens Entregues e Relatório Gerencial somente após confirmar o upload", async () => {
+  it("invalida os itens entregues somente após confirmar o upload", async () => {
     authState.user = { role: "admin", name: "Giovani Martino" };
     itemDetailQuery.mockReturnValue(emptyQuery(null));
     uploadExcelMutate.mockResolvedValue({ acceptedRows: 1, totalRows: 1, duplicateRows: 0, rejectedRows: 0, changedRowsCount: 0, rejectionReasons: [] });
@@ -342,7 +220,6 @@ describe("histórico acionado pelos Alertas de Variação", () => {
       fireEvent.click(screen.getByRole("button", { name: "Confirmar upload" }));
 
       await waitFor(() => expect(deliveredItemsInvalidate).toHaveBeenCalledTimes(1));
-      expect(completeChangesReportInvalidate).toHaveBeenCalledTimes(1);
     } finally {
       vi.unstubAllGlobals();
     }

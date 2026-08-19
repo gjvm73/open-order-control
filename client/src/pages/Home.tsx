@@ -3,7 +3,6 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import * as XLSX from "xlsx";
 import { buildOperationalExportFileName, buildOperationalExportRows, filterOperationalItemsWithChanges, formatBrazilianPredictionDate, generateProfessionalOperationalWorkbook } from "@/lib/orderExport";
-import { getPendingAgingSummary } from "@/lib/pendingAging";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -36,24 +35,6 @@ const DEFAULT_PRIORITIZATION_WEIGHTS: PrioritizationWeights = {
   financialImpactWeight: 3,
   agingWeight: 2,
 };
-
-const pendingAgingChartConfig = {
-  items: { label: "Pendências", color: "#18181b" },
-} satisfies ChartConfig;
-
-function createLifecycleChartConfig(isDarkMode: boolean) {
-  return {
-    abertos: { label: "Pedidos efetuados", color: isDarkMode ? "#e4e4e7" : "#18181b" },
-    finalizados: { label: "Finalizados no mês", color: isDarkMode ? "#34d399" : "#059669" },
-    pendentes: { label: "Abertos pendentes", color: isDarkMode ? "#fb7185" : "#dc2626" },
-  } satisfies ChartConfig;
-}
-
-const historicalChartConfig = {
-  itens: { label: "Novos pedidos", color: "#18181b" },
-  alteracoes: { label: "Alterações de previsão", color: "#dc2626" },
-  entregues: { label: "Itens entregues por ausência", color: "#059669" },
-} satisfies ChartConfig;
 
 function formatDate(value: unknown) {
   if (!value) return "—";
@@ -110,7 +91,7 @@ export default function Home() {
   const [adminPassword, setAdminPassword] = useState("");
   const [alertThresholdDays, setAlertThresholdDays] = useState(7);
   const [alertThresholdDraft, setAlertThresholdDraft] = useState("7");
-  const [activeTab, setActiveTab] = useState<"active" | "delivered" | "report" | "historical">("active");
+  const [activeTab, setActiveTab] = useState<"active" | "delivered">("active");
   const [deliveredSearch, setDeliveredSearch] = useState("");
   const [deliveredShipTo, setDeliveredShipTo] = useState("");
   const [deliveredItemFilter, setDeliveredItemFilter] = useState("");
@@ -118,28 +99,6 @@ export default function Home() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [pdfMode, setPdfMode] = useState<"executive" | "detailed" | null>(null);
   const [prioritizationOpen, setPrioritizationOpen] = useState(false);
-  const [reportShipTo, setReportShipTo] = useState("");
-  const [reportStartDate, setReportStartDate] = useState("");
-  const [reportEndDate, setReportEndDate] = useState("");
-  const lifecycleChartConfig = React.useMemo(() => createLifecycleChartConfig(isDarkMode), [isDarkMode]);
-  const lifecycleTheme = React.useMemo(() => ({
-    panel: isDarkMode ? "border-zinc-700 bg-zinc-950 text-zinc-50" : "border-zinc-200 bg-white text-zinc-950",
-    divider: isDarkMode ? "border-zinc-700" : "border-zinc-200",
-    subdued: isDarkMode ? "text-zinc-400" : "text-zinc-500",
-    neutralCard: isDarkMode ? "border-zinc-700 bg-zinc-900" : "border-zinc-200 bg-zinc-50",
-    successCard: isDarkMode ? "border-emerald-800 bg-emerald-950/40" : "border-emerald-200 bg-emerald-50",
-    successText: isDarkMode ? "text-emerald-300" : "text-emerald-700",
-    successDetail: isDarkMode ? "text-emerald-200" : "text-emerald-800",
-    riskCard: isDarkMode ? "border-red-900 bg-red-950/40" : "border-red-200 bg-red-50",
-    riskText: isDarkMode ? "text-red-300" : "text-red-700",
-    riskDetail: isDarkMode ? "text-red-200" : "text-red-800",
-    agingCard: isDarkMode ? "border-amber-800 bg-amber-950/40" : "border-amber-200 bg-amber-50",
-    agingText: isDarkMode ? "text-amber-300" : "text-amber-700",
-    agingDetail: isDarkMode ? "text-amber-200" : "text-amber-800",
-    gridStroke: isDarkMode ? "#3f3f46" : "#d4d4d8",
-    axisClass: isDarkMode ? "fill-zinc-300" : "fill-zinc-600",
-    tooltipCursor: isDarkMode ? "rgba(255,255,255,0.08)" : "rgba(24,24,27,0.06)",
-  }), [isDarkMode]);
 
   const deliveredInput = React.useMemo(() => ({
     search: deliveredSearch,
@@ -176,7 +135,6 @@ export default function Home() {
   const itemsInput = React.useMemo(() => ({ search, item: filterItem, customerPo: filterPo, prediction: filterPrediction, shipTo: selectedShipTo || undefined }), [search, filterItem, filterPo, filterPrediction, selectedShipTo]);
   const statsQuery = trpc.orders.getStats.useQuery(statsInput);
   const itemsQuery = trpc.orders.listItems.useQuery(itemsInput);
-  const uploadsQuery = trpc.orders.listUploads.useQuery();
   const shipToQuery = trpc.orders.listShipTo.useQuery();
   const branchSummaryQuery = trpc.orders.getBranchSummary.useQuery();
   const alertsInput = React.useMemo(() => ({ thresholdDays: alertThresholdDays, shipTo: selectedShipTo || undefined }), [alertThresholdDays, selectedShipTo]);
@@ -188,83 +146,7 @@ export default function Home() {
   const prioritizationSettingsQuery = trpc.orders.getPrioritizationSettings.useQuery();
   const updatePrioritizationMutation = trpc.orders.updatePrioritizationSettings.useMutation();
   const resetPrioritizationMutation = trpc.orders.resetPrioritizationSettings.useMutation();
-  const completeChangesReportInput = React.useMemo(() => ({
-    shipTo: reportShipTo.trim() || undefined,
-    startDate: reportStartDate || undefined,
-    endDate: reportEndDate || undefined,
-  }), [reportShipTo, reportStartDate, reportEndDate]);
-  const completeChangesReportQuery = trpc.orders.getCompleteChangesReport.useQuery(completeChangesReportInput);
-  const completeChangesReport = completeChangesReportQuery.data ?? [];
-  const changedItemsInReport = completeChangesReport.length;
-  const changeEventsInReport = React.useMemo(
-    () => completeChangesReport.reduce((total, row) => total + row.changesInPeriod, 0),
-    [completeChangesReport],
-  );
-  const lifecycleAnalysisInput = React.useMemo(() => ({ ...completeChangesReportInput, scope: "active" as const }), [completeChangesReportInput]);
-  const historicalLifecycleInput = React.useMemo(() => ({ ...completeChangesReportInput, scope: "all" as const }), [completeChangesReportInput]);
-  const lifecycleAnalysisQuery = trpc.orders.getOrderLifecycleAnalysis.useQuery(lifecycleAnalysisInput);
-  const lifecycleAnalysis = lifecycleAnalysisQuery.data ?? { referenceDate: new Date(), summary: { openedOrders: 0, closedSameMonth: 0, openOrders: 0, averageLifeDays: null, withoutCreationDate: 0 }, monthly: [] };
-  const historicalLifecycleQuery = trpc.orders.getOrderLifecycleAnalysis.useQuery(historicalLifecycleInput);
-  const historicalLifecycle = historicalLifecycleQuery.data ?? { referenceDate: new Date(), summary: { openedOrders: 0, closedSameMonth: 0, openOrders: 0, averageLifeDays: null, withoutCreationDate: 0 }, monthly: [] };
-  const historicalAssessmentQuery = trpc.orders.getHistoricalAssessment.useQuery(completeChangesReportInput);
-  const historicalAssessment = historicalAssessmentQuery.data ?? { summary: { uploads: 0, itemsRecorded: 0, branches: 0, changeEvents: 0, deliveredItems: 0, averagePlannedLeadDays: null, averageDeliveryLeadDays: null }, uploads: [], branches: [] };
-  const reportUploads = React.useMemo(() => {
-    const startTimestamp = reportStartDate ? Date.parse(`${reportStartDate}T00:00:00.000Z`) : null;
-    const endTimestamp = reportEndDate ? Date.parse(`${reportEndDate}T23:59:59.999Z`) : null;
-
-    return (uploadsQuery.data ?? []).filter((upload) => {
-      const uploadTimestamp = new Date(upload.uploadDate).getTime();
-      if (!Number.isFinite(uploadTimestamp)) return false;
-      if (startTimestamp !== null && uploadTimestamp < startTimestamp) return false;
-      if (endTimestamp !== null && uploadTimestamp > endTimestamp) return false;
-      return true;
-    });
-  }, [uploadsQuery.data, reportStartDate, reportEndDate]);
-  const reportReferenceDate = React.useMemo(() => {
-    if (reportEndDate) return new Date(`${reportEndDate}T00:00:00.000Z`);
-    const latestUpload = reportUploads.reduce<typeof reportUploads[number] | null>((latest, upload) => {
-      if (!latest) return upload;
-      return new Date(upload.uploadDate).getTime() > new Date(latest.uploadDate).getTime() ? upload : latest;
-    }, null);
-    return latestUpload ? new Date(latestUpload.uploadDate) : new Date();
-  }, [reportEndDate, reportUploads]);
-  const pendingAging = React.useMemo(
-    () => getPendingAgingSummary(completeChangesReport, reportReferenceDate),
-    [completeChangesReport, reportReferenceDate],
-  );
-  const changeEventsByItem = React.useMemo(() => {
-    const eventCounts = new Map<number, number>();
-    completeChangesReport.forEach((row) => {
-      eventCounts.set(row.orderItemId, row.changesInPeriod);
-    });
-    return eventCounts;
-  }, [completeChangesReport]);
-  const pendingAgingChartData = React.useMemo(() => [
-    { range: "Até 30", items: pendingAging.upTo30, fill: "#047857" },
-    { range: "31–60", items: pendingAging.from31To60, fill: "#b45309" },
-    { range: "61–90", items: pendingAging.from61To90, fill: "#c2410c" },
-    { range: "> 90", items: pendingAging.above90, fill: "#dc2626" },
-  ], [pendingAging]);
-  const lifecycleChartData = React.useMemo(() => lifecycleAnalysis.monthly.map((month) => ({
-    month: month.label,
-    abertos: month.openedOrders,
-    finalizados: month.closedSameMonth,
-    pendentes: month.openOrders,
-  })), [lifecycleAnalysis.monthly]);
-  const historicalLifecycleChartData = React.useMemo(() => historicalLifecycle.monthly.map((month) => ({
-    month: month.label,
-    abertos: month.openedOrders,
-    finalizados: month.closedSameMonth,
-    pendentes: month.openOrders,
-  })), [historicalLifecycle.monthly]);
-  const historicalChartData = React.useMemo(() => historicalAssessment.uploads.map((upload) => ({
-    carga: formatDate(upload.uploadDate),
-    itens: upload.itemsRecorded,
-    alteracoes: upload.changeEvents,
-    entregues: upload.deliveredItems,
-  })), [historicalAssessment.uploads]);
   const utils = trpc.useUtils();
-  const handleOpenCompleteChangesReport = () => setActiveTab("report");
   const clearShipToFilter = React.useCallback(() => {
     setFilterShipTo("");
     void Promise.all([
@@ -377,44 +259,6 @@ export default function Home() {
     }
   };
 
-  const handleExportCompleteChangesReport = () => {
-    if (completeChangesReport.length === 0) {
-      toast.info("Nenhuma alteração de previsão foi encontrada para os filtros do Relatório Completo.");
-      return;
-    }
-
-    const rows = completeChangesReport.map((row) => ({
-      "Data da alteração": formatDate(row.changedAt),
-      "Hora do registro": formatDateTime(row.changedAt),
-      "Filial solicitante": row.shipTo,
-      "Item": row.item,
-      "Descrição do item": row.itemDescription || "",
-      "Customer PO": row.customerPo || "",
-      "Previsão anterior": formatPrediction(row.previousPrediction),
-      "Previsão alterada": formatPrediction(row.currentPredictionAtChange),
-      "Variação (dias)": row.differenceDays ?? "Sem comparação entre datas",
-      "Direção": row.direction,
-      "Prioridade de embarque": row.shipmentPriority || "",
-      "Data de criação": formatPrediction(row.orderCreationDate),
-      "Quantidade": row.quantity ?? "",
-      "Reserva programada": row.scheduledReserved ?? "",
-      "Preço unitário": Number(row.unitSellingPrice || 0),
-      "Valor total": Number(row.extendedPrice || 0),
-      "Previsão atual do item": formatPrediction(row.currentPrediction),
-      "Alterações acumuladas": row.predictionChangesCount,
-      "Última alteração do item": formatDate(row.lastPredictionChangeDate),
-      "Status atual": row.status,
-      "Arquivo de origem": row.fileName,
-    }));
-    const worksheet = XLSX.utils.json_to_sheet(rows);
-    worksheet["!cols"] = Array.from({ length: 21 }, (_, index) => ({ wch: [15, 19, 24, 18, 42, 18, 18, 18, 20, 18, 22, 16, 12, 18, 16, 18, 20, 20, 19, 14, 30][index] }));
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Alterações completas");
-    const period = reportStartDate || reportEndDate ? `${reportStartDate || "inicio"}_a_${reportEndDate || "hoje"}` : "todo-periodo";
-    XLSX.writeFile(workbook, `relatorio-completo-alteracoes_${period}.xlsx`);
-    toast.success(`${completeChangesReport.length} alteração(ões) exportada(s) para Excel.`);
-  };
-
   const handleAdminLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     try {
@@ -437,16 +281,11 @@ export default function Home() {
       await Promise.all([
         statsQuery.refetch(),
         itemsQuery.refetch(),
-        uploadsQuery.refetch(),
         shipToQuery.refetch(),
         branchSummaryQuery.refetch(),
         alertsQuery.refetch(),
         alertsTrendQuery.refetch(),
         deliveredItemsQuery.refetch(),
-        completeChangesReportQuery.refetch(),
-        lifecycleAnalysisQuery.refetch(),
-        historicalLifecycleQuery.refetch(),
-        historicalAssessmentQuery.refetch(),
       ]);
     } catch (err: any) {
       toast.error(err.message || "Não foi possível resetar as importações.");
@@ -510,7 +349,6 @@ export default function Home() {
           utils.orders.getAlerts.invalidate(alertsInput),
           utils.orders.getAlertsTrend.invalidate(alertsInput),
           utils.orders.listDeliveredItems.invalidate(deliveredInput),
-          utils.orders.getCompleteChangesReport.invalidate(completeChangesReportInput),
         ]).finally(() => setUploadStatus("idle"));
       } catch (err: any) {
         toast.error(err.message || "Erro ao processar o upload do arquivo.");
@@ -557,7 +395,6 @@ export default function Home() {
     previousPrediction: formatPrediction(item.previousPrediction),
     currentPrediction: formatPrediction(item.currentPrediction),
   }));
-  const uploadsList = uploadsQuery.data || [];
   const shipToOptions = shipToQuery.data || [];
   const branchSummary = branchSummaryQuery.data || [];
   const alertsData = alertsQuery.data || { alerts: [], summary: { totalAlerts: 0, criticalCount: 0, attentionCount: 0, criticalRatio: 0, attentionRatio: 0 } };
@@ -653,8 +490,6 @@ export default function Home() {
           <nav aria-label="Navegação principal do controle de pedidos" className="flex max-w-full items-center gap-4 overflow-x-auto whitespace-nowrap text-xs font-mono uppercase tracking-wider md:gap-6">
             <button type="button" onClick={() => setActiveTab("active")} aria-current={activeTab === "active" ? "page" : undefined} className={`shrink-0 pb-1 border-b-2 transition-all ${activeTab === "active" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Dashboard Ativo</button>
             <button type="button" onClick={() => setActiveTab("delivered")} aria-current={activeTab === "delivered" ? "page" : undefined} className={`shrink-0 pb-1 border-b-2 transition-all ${activeTab === "delivered" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Itens Entregues ({deliveredItems.length})</button>
-            <button type="button" onClick={handleOpenCompleteChangesReport} aria-current={activeTab === "report" ? "page" : undefined} className={`shrink-0 pb-1 border-b-2 transition-all ${activeTab === "report" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Relatório Gerencial</button>
-            <button type="button" onClick={() => setActiveTab("historical")} aria-current={activeTab === "historical" ? "page" : undefined} className={`shrink-0 pb-1 border-b-2 transition-all ${activeTab === "historical" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Avaliação Histórica</button>
           </nav>
           <span className="hidden shrink-0 text-[10px] font-mono text-zinc-400 xl:block">Regra: Desaparecidos no upload mais recente são considerados entregues</span>
         </div>
@@ -1006,161 +841,11 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3 p-4 border border-zinc-900 bg-zinc-50"><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Filial solicitante / Ship To</label><select value={selectedShipTo} onChange={(e) => { const value = e.target.value.trim(); if (value) setFilterShipTo(value); else clearShipToFilter(); }} className="h-10 w-full rounded-none border border-zinc-900 bg-white px-3 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-red-600"><option value="">Todas as filiais</option>{shipToOptions.map((shipTo) => <option key={shipTo} value={shipTo}>{shipTo}</option>)}</select><div className="flex items-center justify-between gap-2 mt-2 min-h-5">{selectedShipTo ? <span className="text-[10px] font-mono text-zinc-500 truncate" title={selectedShipTo}>Filtro ativo: {selectedShipTo}</span> : <span className="text-[10px] font-mono text-zinc-400">Nenhuma filial selecionada</span>}{selectedShipTo && <button type="button" onClick={clearShipToFilter} className="text-[10px] font-mono uppercase text-red-600 hover:underline shrink-0">Limpar</button>}</div></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Item</label><Input placeholder="Ex.: 0102-1543" value={filterItem} onChange={(e) => setFilterItem(e.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Customer PO</label><Input placeholder="Ex.: 133923E" value={filterPo} onChange={(e) => setFilterPo(e.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Previsão atual</label><Input placeholder="Ex.: 2025-06" value={filterPrediction} onChange={(e) => setFilterPrediction(e.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div></div>
           <div className="border border-zinc-900 bg-white overflow-x-auto"><table className="w-full text-left border-collapse min-w-[1420px]"><thead><tr className="border-b border-zinc-900 bg-zinc-50 text-xs font-mono uppercase tracking-wider"><th className="p-4 border-r border-zinc-900">Filial solicitante</th><th className="p-4 border-r border-zinc-900">Item / descrição</th><th className="p-4 border-r border-zinc-900">Customer PO</th><th className="p-4 border-r border-zinc-900">Previsão anterior</th><th className="p-4 border-r border-zinc-900">Previsão atual</th><th className="p-4 border-r border-zinc-900">Último upload</th><th className="p-4 border-r border-zinc-900">Resumo de alterações</th><th className="p-4 border-r border-zinc-900">Última alteração</th><th className="p-4 border-r border-zinc-900 text-center">Total alterações</th><th className="p-4 text-center">Detalhes</th></tr></thead><tbody className="divide-y divide-zinc-200 text-sm font-mono">{items.length === 0 ? <tr><td colSpan={10} className="p-12 text-center text-zinc-500">Nenhum item encontrado.</td></tr> : items.map((row) => <tr key={row.id} className="hover:bg-zinc-50 align-top"><td className="p-4 border-r border-zinc-200"><p className="font-bold text-xs truncate max-w-[220px]" title={row.shipTo || "Sem filial informada"}>{row.shipTo || "Sem filial informada"}</p></td><td className="p-4 border-r border-zinc-200"><p className="font-bold">{row.item}</p><p className="text-xs text-zinc-500 mt-1 max-w-[240px]">{row.itemDescription || "Sem descrição"}</p></td><td className="p-4 border-r border-zinc-200">{row.customerPo || "—"}</td><td className="p-4 border-r border-zinc-200 text-zinc-500">{row.previousPrediction || "Primeiro registro"}</td><td className="p-4 border-r border-zinc-200"><span className="font-bold text-red-600">{row.currentPrediction || "Sem previsão"}</span></td><td className="p-4 border-r border-zinc-200"><p>{formatDate(row.lastUploadDate)}</p><p className="text-[10px] text-zinc-500 mt-1 truncate max-w-[180px]" title={row.lastUploadFileName || "Sem arquivo"}>{row.lastUploadFileName || "Sem arquivo"}</p></td><td className="p-4 border-r border-zinc-200"><p className={`font-bold ${row.predictionChangesCount > 0 ? "text-red-600" : "text-zinc-500"}`}>{row.predictionChangesCount > 0 ? `${row.predictionChangesCount} alteração(ões) acumulada(s)` : "Sem alteração registrada"}</p><p className="text-[10px] text-zinc-500 mt-1">Anterior: {row.previousPrediction || "Primeiro registro"}</p></td><td className="p-4 border-r border-zinc-200"><p>{row.predictionChangesCount > 0 ? formatDate(row.lastPredictionChangeDate) : "Sem alteração"}</p><p className="text-[10px] text-zinc-500 mt-1">Registro: {formatDate(row.updatedAt)}</p></td><td className="p-4 border-r border-zinc-200 text-center"><span className={`inline-block px-3 py-1 text-xs font-bold border ${row.predictionChangesCount > 0 ? "bg-red-100 text-red-700 border-red-200" : "bg-zinc-100 text-zinc-700 border-zinc-200"}`}>{row.predictionChangesCount}x</span></td><td className="p-4 text-center"><Button variant="outline" size="sm" className="rounded-none border-zinc-900 text-xs font-mono h-8 hover:bg-zinc-950 hover:text-white" onClick={() => setSelectedItemId(row.id)}><History className="w-3.5 h-3.5 mr-1" /> Ver histórico</Button></td></tr>)}</tbody></table></div>
         </section>
-            </>}
 
-        {activeTab === "report" && <section id="relatorio-gerencial" className="space-y-4 scroll-mt-6">
-          <div className="border-b border-zinc-900 pb-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4"><div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">Relatório gerencial</h2><h3 className="text-xl font-bold tracking-tight">Alterações por filial e período</h3><p className="text-xs font-mono text-zinc-500 mt-1">Audite cada mudança de previsão com datas, variação, origem e informações completas do item.</p></div><Button type="button" variant="outline" onClick={handleExportCompleteChangesReport} className="rounded-none border-zinc-900 text-xs font-mono uppercase h-10 whitespace-nowrap"><Download className="w-4 h-4 mr-2" />Exportar relatório</Button></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 border border-zinc-900 bg-zinc-50 p-4"><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Filial solicitante</label><select value={reportShipTo} onChange={(event) => setReportShipTo(event.target.value)} className="h-10 w-full rounded-none border border-zinc-900 bg-white px-3 text-xs font-mono"><option value="">Todas as filiais</option>{shipToOptions.map((shipTo) => <option key={`report-${shipTo}`} value={shipTo}>{shipTo}</option>)}</select></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Data inicial da alteração</label><Input type="date" value={reportStartDate} onChange={(event) => setReportStartDate(event.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div><div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Data final da alteração</label><Input type="date" value={reportEndDate} onChange={(event) => setReportEndDate(event.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div><div className="flex items-end"><Button type="button" variant="outline" onClick={() => { setReportShipTo(""); setReportStartDate(""); setReportEndDate(""); }} className="w-full rounded-none border-zinc-900 text-xs font-mono uppercase h-10">Limpar filtros</Button></div></div>
-          <div className={`border p-4 ${lifecycleTheme.panel}`}>
-            <div className={`flex flex-col gap-3 border-b pb-3 mb-4 md:flex-row md:items-end md:justify-between ${lifecycleTheme.divider}`}>
-              <div><p className={`text-[10px] font-mono uppercase tracking-widest ${lifecycleTheme.subdued}`}>Ciclo de vida dos pedidos</p><h4 className="text-lg font-bold tracking-tight">Abertura, finalização e pedidos em aberto por mês</h4><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.subdued}`}>A Data de criação representa a entrada do pedido no sistema. O fechamento é identificado quando o item deixa de constar em uma carga posterior.</p></div>
-              <p className={`text-[10px] font-mono ${lifecycleTheme.subdued}`}>Referência de vida: {formatDate(lifecycleAnalysis.referenceDate)}</p>
-            </div>
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-              <div className={`border p-3 ${lifecycleTheme.neutralCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.subdued}`}>Itens alterados</p><p className="text-2xl font-black mt-1">{changedItemsInReport}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.subdued}`}>Pedidos únicos exibidos na tabela final</p></div>
-              <div className={`border p-3 ${lifecycleTheme.successCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.successText}`}>Finalizados no mês</p><p className={`text-2xl font-black mt-1 ${lifecycleTheme.successText}`}>{lifecycleAnalysis.summary.closedSameMonth}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.successDetail}`}>Encerrados no mês de abertura</p></div>
-              <div className={`border p-3 ${lifecycleTheme.riskCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.riskText}`}>Pedidos em aberto</p><p className={`text-2xl font-black mt-1 ${lifecycleTheme.riskText}`}>{lifecycleAnalysis.summary.openOrders}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.riskDetail}`}>Ainda sem encerramento</p></div>
-              <div className={`border p-3 ${lifecycleTheme.agingCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.agingText}`}>Vida média</p><p className={`text-2xl font-black mt-1 ${lifecycleTheme.agingText}`}>{lifecycleAnalysis.summary.averageLifeDays === null ? "—" : `${lifecycleAnalysis.summary.averageLifeDays}d`}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.agingDetail}`}>Até fechamento ou referência</p></div>
-            </div>
-            <div className={`mt-5 border-t pt-4 ${lifecycleTheme.divider}`}>
-              <div className="flex items-baseline justify-between gap-3 mb-3"><div><p className={`text-[10px] font-mono uppercase tracking-widest ${lifecycleTheme.subdued}`}>Evolução mensal</p><h5 className="text-sm font-bold">Pedidos por mês de entrada</h5></div><span className={`text-[10px] font-mono ${lifecycleTheme.subdued}`}>Quantidade de pedidos</span></div>
-              {lifecycleChartData.length === 0 ? <p className={`h-[220px] flex items-center justify-center text-xs font-mono ${lifecycleTheme.subdued}`}>Nenhum pedido com Data de criação válida para o intervalo selecionado.</p> : <ChartContainer aria-label="Gráfico mensal de abertura e finalização de pedidos" config={lifecycleChartConfig} className="h-[220px] w-full aspect-auto"><BarChart data={lifecycleChartData} margin={{ top: 20, right: 12, left: -12, bottom: 0 }}><CartesianGrid vertical={false} strokeDasharray="3 3" stroke={lifecycleTheme.gridStroke} /><XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={10} className={`${lifecycleTheme.axisClass} font-mono text-[10px]`} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} width={30} className={`${lifecycleTheme.axisClass} font-mono text-[10px]`} /><ChartTooltip cursor={{ fill: lifecycleTheme.tooltipCursor }} content={<ChartTooltipContent />} /><Bar dataKey="abertos" fill="var(--color-abertos)" radius={[2, 2, 0, 0]} maxBarSize={42} /><Bar dataKey="finalizados" fill="var(--color-finalizados)" radius={[2, 2, 0, 0]} maxBarSize={42} /><Bar dataKey="pendentes" fill="var(--color-pendentes)" radius={[2, 2, 0, 0]} maxBarSize={42} /></BarChart></ChartContainer>}
-            </div>
-            {lifecycleAnalysis.summary.withoutCreationDate > 0 && <p className={`mt-3 text-[10px] font-mono ${lifecycleTheme.subdued}`}>{lifecycleAnalysis.summary.withoutCreationDate} pedido(s) não entrou(ram) na análise por não possuir(em) Data de criação válida.</p>}
-          </div>
-          <div className="border border-zinc-900 bg-white p-4">
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-2 border-b border-zinc-200 pb-3 mb-3">
-              <div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Envelhecimento das pendências</p><h4 className="text-base font-bold tracking-tight">Pendências ativas com alteração no período</h4></div>
-              <div className="border border-zinc-900 bg-white px-3 py-2 text-right"><p className="text-[9px] font-mono uppercase tracking-wider text-zinc-500">Tempo médio de vida</p><p className="text-lg leading-none font-black text-zinc-950 mt-1">{pendingAging.averageAgeInDays === null ? "—" : `${pendingAging.averageAgeInDays} dias`}</p><p className="text-[9px] font-mono text-zinc-500 mt-1">Referência: {formatDate(reportReferenceDate)} · {pendingAging.itemsWithCreationDate} item(ns) com data válida</p></div>
-            </div>
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-              <div className="border border-emerald-200 bg-emerald-50 p-3"><p className="text-[10px] font-mono uppercase text-emerald-800">Até 30 dias</p><p className="text-2xl font-black text-emerald-700 mt-1">{pendingAging.upTo30}</p><p className="text-[10px] font-mono text-emerald-800 mt-1">Pendências recentes</p></div>
-              <div className="border border-amber-200 bg-amber-50 p-3"><p className="text-[10px] font-mono uppercase text-amber-800">31–60 dias</p><p className="text-2xl font-black text-amber-700 mt-1">{pendingAging.from31To60}</p><p className="text-[10px] font-mono text-amber-800 mt-1">Acompanhamento</p></div>
-              <div className="border border-orange-200 bg-orange-50 p-3"><p className="text-[10px] font-mono uppercase text-orange-800">61–90 dias</p><p className="text-2xl font-black text-orange-700 mt-1">{pendingAging.from61To90}</p><p className="text-[10px] font-mono text-orange-800 mt-1">Atenção reforçada</p></div>
-              <div className="border border-red-300 bg-red-50 p-3"><p className="text-[10px] font-mono uppercase text-red-800">Acima de 90 dias</p><p className="text-2xl font-black text-red-700 mt-1">{pendingAging.above90}</p><p className="text-[10px] font-mono text-red-800 mt-1">Pendências críticas</p></div>
-            </div>
-            <div className="mt-5 border-t border-zinc-200 pt-4">
-              <div className="flex items-baseline justify-between gap-3 mb-3"><div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Distribuição por faixa</p><h5 className="text-sm font-bold">Dias pendentes por item ativo</h5></div><span className="text-[10px] font-mono text-zinc-500">Quantidade de itens</span></div>
-              <ChartContainer aria-label="Gráfico de colunas da distribuição de dias pendentes" config={pendingAgingChartConfig} className="h-[220px] w-full aspect-auto">
-                <BarChart data={pendingAgingChartData} margin={{ top: 20, right: 12, left: -12, bottom: 0 }}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="range" tickLine={false} axisLine={false} tickMargin={10} className="font-mono text-[10px]" />
-                  <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={30} className="font-mono text-[10px]" />
-                  <ChartTooltip cursor={{ fill: "rgba(24, 24, 27, 0.06)" }} content={<ChartTooltipContent hideLabel />} />
-                  <Bar dataKey="items" radius={[2, 2, 0, 0]} maxBarSize={68}>
-                    <LabelList dataKey="items" position="top" className="fill-zinc-700 font-mono text-[10px]" />
-                    {pendingAgingChartData.map((entry) => <Cell key={entry.range} fill={entry.fill} />)}
-                  </Bar>
-                </BarChart>
-              </ChartContainer>
-            </div>
-            {pendingAging.withoutCreationDate > 0 && <p className="text-[10px] font-mono text-zinc-500 mt-3">{pendingAging.withoutCreationDate} item(ns) não entrou(ram) nas faixas por não possuir(em) Data de criação válida.</p>}
-          </div>
-          <div className="flex flex-wrap items-center gap-3"><Badge className="rounded-none bg-zinc-950 text-white font-mono">{completeChangesReport.length} item(ns) alterado(s)</Badge><Badge variant="outline" className="rounded-none border-red-600 text-red-700 font-mono">{changeEventsInReport} alteração(ões) histórica(s)</Badge>{reportShipTo && <Badge className="rounded-none bg-red-600 text-white font-mono">Filial: {reportShipTo}</Badge>}{(reportStartDate || reportEndDate) && <span className="text-[10px] font-mono text-zinc-500">Período: {formatDate(reportStartDate)} até {formatDate(reportEndDate)}</span>}</div>
-          <div className="border border-zinc-900 bg-white">
-            <table aria-label="Itens alterados do relatório gerencial" className="w-full table-fixed text-left border-collapse">
-              <colgroup>
-                <col className="w-[9%]" />
-                <col className="w-[10%]" />
-                <col className="w-[16%]" />
-                <col className="w-[9%]" />
-                <col className="w-[9%]" />
-                <col className="w-[9%]" />
-                <col className="w-[9%]" />
-                <col className="w-[10%]" />
-                <col className="w-[7%]" />
-                <col className="w-[7%]" />
-                <col className="w-[11%]" />
-              </colgroup>
-              <thead>
-                <tr className="border-b border-zinc-900 bg-zinc-950 text-white text-[10px] font-mono uppercase tracking-wider">
-                  <th className="p-2">Última alteração</th>
-                  <th className="p-2">Filial</th>
-                  <th className="p-2">Item / descrição</th>
-                  <th className="p-2">PO</th>
-                  <th className="p-2">De</th>
-                  <th className="p-2">Para</th>
-                  <th className="p-2 text-right">Variação</th>
-                  <th className="p-2">Direção</th>
-                  <th className="p-2 text-right">Quantidade</th>
-                  <th className="p-2 text-right">Valor total</th>
-                  <th className="p-2 text-center">Histórico</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-200 text-xs font-mono">
-                {completeChangesReportQuery.isLoading ? (
-                  <tr><td colSpan={11} className="p-10 text-center text-zinc-500">Carregando alterações...</td></tr>
-                ) : completeChangesReport.length === 0 ? (
-                  <tr><td colSpan={11} className="p-10 text-center text-zinc-500">Nenhuma alteração de previsão encontrada para os filtros selecionados.</td></tr>
-                ) : completeChangesReport.map((row) => (
-                  <tr key={row.historyId} className="hover:bg-red-50 align-top">
-                    <td className="p-2 whitespace-nowrap"><p className="font-bold">{formatDate(row.changedAt)}</p><p className="text-[10px] text-zinc-500">{formatDateTime(row.changedAt).split(", ")[1] || ""}</p></td>
-                    <td className="p-2 truncate" title={row.shipTo}>{row.shipTo}</td>
-                    <td className="p-2"><p className="font-bold truncate">{row.item}</p><p className="text-[10px] text-zinc-500 truncate" title={row.itemDescription || ""}>{row.itemDescription || "Sem descrição"}</p><p className="text-[9px] font-bold text-red-700 mt-1">{row.changesInPeriod ?? changeEventsByItem.get(row.orderItemId) ?? 0} {(row.changesInPeriod ?? changeEventsByItem.get(row.orderItemId) ?? 0) === 1 ? "alteração no período" : "alterações no período"}</p></td>
-                    <td className="p-2 truncate" title={row.customerPo || ""}>{row.customerPo || "—"}</td>
-                    <td className="p-2 truncate text-zinc-600" title={formatPrediction(row.previousPrediction)}>{formatPrediction(row.previousPrediction)}</td>
-                    <td className="p-2 truncate font-bold text-red-700" title={formatPrediction(row.currentPredictionAtChange)}>{formatPrediction(row.currentPredictionAtChange)}</td>
-                    <td className={`p-2 text-right font-bold whitespace-nowrap ${row.differenceDays !== null && row.differenceDays > 0 ? "text-red-700" : "text-zinc-700"}`}>{row.differenceDays === null ? "—" : `${row.differenceDays > 0 ? "+" : ""}${row.differenceDays}d`}</td>
-                    <td className="p-2"><Badge className={`rounded-none text-[9px] ${row.direction === "ADIAMENTO" ? "bg-red-600 text-white" : row.direction === "ANTECIPAÇÃO" ? "bg-emerald-600 text-white" : "bg-zinc-200 text-zinc-800"}`}>{row.direction}</Badge></td>
-                    <td className="p-2 text-right truncate">{row.quantity ?? "—"}</td>
-                    <td className="p-2 text-right whitespace-nowrap">{formatCurrency(row.extendedPrice)}</td>
-                    <td className="p-2 text-center"><Button variant="outline" size="sm" onClick={() => setSelectedItemId(row.orderItemId)} className="rounded-none border-zinc-900 text-[9px] font-mono h-7 px-2">Histórico</Button></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>}
-
-        {activeTab === "historical" && <section id="avaliacao-historica" className="space-y-4 scroll-mt-6">
-          <div className="border-b border-zinc-900 pb-2 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-            <div><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">Avaliação histórica</h2><h3 className="text-xl font-bold tracking-tight">Comportamento temporal das cargas</h3><p className="text-xs font-mono text-zinc-500 mt-1">A Data de criação representa a abertura do pedido. A ausência na carga seguinte registra a entrega na data desse upload.</p></div>
-            <Badge className="rounded-none bg-zinc-950 text-white font-mono">{historicalAssessment.summary.uploads} carga(s) no período</Badge>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 border border-zinc-900 bg-zinc-50 p-4">
-            <div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Filial solicitante</label><select value={reportShipTo} onChange={(event) => setReportShipTo(event.target.value)} className="h-10 w-full rounded-none border border-zinc-900 bg-white px-3 text-xs font-mono"><option value="">Todas as filiais</option>{shipToOptions.map((shipTo) => <option key={`historical-${shipTo}`} value={shipTo}>{shipTo}</option>)}</select></div>
-            <div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Data inicial da carga</label><Input type="date" value={reportStartDate} onChange={(event) => setReportStartDate(event.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div>
-            <div><label className="text-xs font-mono uppercase text-zinc-500 block mb-1">Data final da carga</label><Input type="date" value={reportEndDate} onChange={(event) => setReportEndDate(event.target.value)} className="rounded-none border-zinc-900 font-mono text-xs bg-white" /></div>
-            <div className="flex items-end"><Button type="button" variant="outline" onClick={() => { setReportShipTo(""); setReportStartDate(""); setReportEndDate(""); }} className="w-full rounded-none border-zinc-900 text-xs font-mono uppercase h-10">Limpar filtros</Button></div>
-          </div>
-          <div className="grid grid-cols-2 xl:grid-cols-6 gap-3">
-            <div className="border border-zinc-900 bg-zinc-950 text-white p-4"><p className="text-[10px] font-mono uppercase text-zinc-400">Cargas</p><p className="text-3xl font-black mt-1">{historicalAssessment.summary.uploads}</p><p className="text-[10px] font-mono text-zinc-400 mt-1">Uploads realizados</p></div>
-            <div className="border border-zinc-200 bg-white p-4"><p className="text-[10px] font-mono uppercase text-zinc-500">Filiais</p><p className="text-3xl font-black mt-1">{historicalAssessment.summary.branches}</p><p className="text-[10px] font-mono text-zinc-500 mt-1">Com registros no período</p></div>
-            <div className="border border-zinc-200 bg-white p-4"><p className="text-[10px] font-mono uppercase text-zinc-500">Pedidos únicos</p><p className="text-3xl font-black mt-1">{historicalAssessment.summary.itemsRecorded}</p><p className="text-[10px] font-mono text-zinc-500 mt-1">Contados na primeira carga</p></div>
-            <div className="border border-red-200 bg-red-50 p-4"><p className="text-[10px] font-mono uppercase text-red-700">Alterações</p><p className="text-3xl font-black mt-1 text-red-700">{historicalAssessment.summary.changeEvents}</p><p className="text-[10px] font-mono text-red-700 mt-1">Mudanças de previsão</p></div>
-            <div className="border border-emerald-200 bg-emerald-50 p-4"><p className="text-[10px] font-mono uppercase text-emerald-800">Entregues</p><p className="text-3xl font-black mt-1 text-emerald-800">{historicalAssessment.summary.deliveredItems}</p><p className="text-[10px] font-mono text-emerald-800 mt-1">Ausentes na carga seguinte</p></div>
-            <div className="border border-amber-200 bg-amber-50 p-4"><p className="text-[10px] font-mono uppercase text-amber-800">Tempo efetivo médio</p><p className="text-3xl font-black mt-1 text-amber-800">{historicalAssessment.summary.averageDeliveryLeadDays === null ? "—" : `${historicalAssessment.summary.averageDeliveryLeadDays}d`}</p><p className="text-[10px] font-mono text-amber-800 mt-1">Criação até entrega identificada</p></div>
-          </div>
-          <div className={`border p-4 ${lifecycleTheme.panel}`}>
-            <div className={`flex flex-col gap-3 border-b pb-3 mb-4 md:flex-row md:items-end md:justify-between ${lifecycleTheme.divider}`}>
-              <div><p className={`text-[10px] font-mono uppercase tracking-widest ${lifecycleTheme.subdued}`}>Ciclo de vida completo</p><h4 className="text-lg font-bold tracking-tight">Abertura, finalização e pedidos em aberto por mês</h4><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.subdued}`}>Inclui todos os itens que passaram pelo sistema, tanto os ativos quanto os já entregues.</p></div>
-              <p className={`text-[10px] font-mono ${lifecycleTheme.subdued}`}>Referência de vida: {formatDate(historicalLifecycle.referenceDate)}</p>
-            </div>
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-              <div className={`border p-3 ${lifecycleTheme.neutralCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.subdued}`}>Pedidos efetuados</p><p className="text-2xl font-black mt-1">{historicalLifecycle.summary.openedOrders}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.subdued}`}>Abertos no intervalo</p></div>
-              <div className={`border p-3 ${lifecycleTheme.successCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.successText}`}>Finalizados no mês</p><p className={`text-2xl font-black mt-1 ${lifecycleTheme.successText}`}>{historicalLifecycle.summary.closedSameMonth}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.successDetail}`}>Encerrados no mês de abertura</p></div>
-              <div className={`border p-3 ${lifecycleTheme.riskCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.riskText}`}>Pedidos em aberto</p><p className={`text-2xl font-black mt-1 ${lifecycleTheme.riskText}`}>{historicalLifecycle.summary.openOrders}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.riskDetail}`}>Ainda sem encerramento</p></div>
-              <div className={`border p-3 ${lifecycleTheme.agingCard}`}><p className={`text-[10px] font-mono uppercase ${lifecycleTheme.agingText}`}>Vida média</p><p className={`text-2xl font-black mt-1 ${lifecycleTheme.agingText}`}>{historicalLifecycle.summary.averageLifeDays === null ? "—" : `${historicalLifecycle.summary.averageLifeDays}d`}</p><p className={`text-[10px] font-mono mt-1 ${lifecycleTheme.agingDetail}`}>Até fechamento ou referência</p></div>
-            </div>
-            <div className={`mt-5 border-t pt-4 ${lifecycleTheme.divider}`}>
-              <div className="flex items-baseline justify-between gap-3 mb-3"><div><p className={`text-[10px] font-mono uppercase tracking-widest ${lifecycleTheme.subdued}`}>Evolução mensal</p><h5 className="text-sm font-bold">Pedidos por mês de entrada</h5></div><span className={`text-[10px] font-mono ${lifecycleTheme.subdued}`}>Quantidade de pedidos</span></div>
-              {historicalLifecycleQuery.isLoading ? <p className={`h-[220px] flex items-center justify-center text-xs font-mono ${lifecycleTheme.subdued}`}>Carregando ciclo de vida histórico...</p> : historicalLifecycleChartData.length === 0 ? <p className={`h-[220px] flex items-center justify-center text-xs font-mono ${lifecycleTheme.subdued}`}>Nenhum pedido com Data de criação válida para o intervalo selecionado.</p> : <ChartContainer aria-label="Gráfico mensal completo de abertura e finalização de pedidos" config={lifecycleChartConfig} className="h-[220px] w-full aspect-auto"><BarChart data={historicalLifecycleChartData} margin={{ top: 20, right: 12, left: -12, bottom: 0 }}><CartesianGrid vertical={false} strokeDasharray="3 3" stroke={lifecycleTheme.gridStroke} /><XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={10} className={`${lifecycleTheme.axisClass} font-mono text-[10px]`} /><YAxis allowDecimals={false} tickLine={false} axisLine={false} width={30} className={`${lifecycleTheme.axisClass} font-mono text-[10px]`} /><ChartTooltip cursor={{ fill: lifecycleTheme.tooltipCursor }} content={<ChartTooltipContent />} /><Bar dataKey="abertos" fill="var(--color-abertos)" radius={[2, 2, 0, 0]} maxBarSize={42} /><Bar dataKey="finalizados" fill="var(--color-finalizados)" radius={[2, 2, 0, 0]} maxBarSize={42} /><Bar dataKey="pendentes" fill="var(--color-pendentes)" radius={[2, 2, 0, 0]} maxBarSize={42} /></BarChart></ChartContainer>}
-            </div>
-            {historicalLifecycle.summary.withoutCreationDate > 0 && <p className={`mt-3 text-[10px] font-mono ${lifecycleTheme.subdued}`}>{historicalLifecycle.summary.withoutCreationDate} pedido(s) não entrou(ram) na análise por não possuir(em) Data de criação válida.</p>}
-          </div>
-            <div className="border border-zinc-900 bg-white p-4">
-              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-2 border-b border-zinc-200 pb-3 mb-3"><div><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Evolução das cargas</p><h4 className="text-base font-bold tracking-tight">Novos pedidos, entregas e alterações por upload</h4></div><span className="text-[10px] font-mono text-zinc-500">Pedidos entram apenas na primeira carga; entregas são ausências identificadas</span></div>
-            {historicalAssessmentQuery.isLoading ? <p className="h-[240px] flex items-center justify-center text-xs font-mono text-zinc-500">Carregando avaliação histórica...</p> : historicalChartData.length === 0 ? <p className="h-[240px] flex items-center justify-center text-xs font-mono text-zinc-500">Nenhuma carga encontrada para os filtros selecionados.</p> : <ChartContainer aria-label="Gráfico temporal de itens, entregas e alterações por carga" config={historicalChartConfig} className="h-[240px] w-full aspect-auto"><BarChart data={historicalChartData} margin={{ top: 20, right: 12, left: -12, bottom: 0 }}><CartesianGrid vertical={false} strokeDasharray="3 3" /><XAxis dataKey="carga" tickLine={false} axisLine={false} tickMargin={10} className="font-mono text-[10px]" /><YAxis allowDecimals={false} tickLine={false} axisLine={false} width={30} className="font-mono text-[10px]" /><ChartTooltip cursor={{ fill: "rgba(24, 24, 27, 0.06)" }} content={<ChartTooltipContent />} /><Bar dataKey="itens" fill="var(--color-itens)" radius={[2, 2, 0, 0]} maxBarSize={44} /><Bar dataKey="entregues" fill="var(--color-entregues)" radius={[2, 2, 0, 0]} maxBarSize={44} /><Bar dataKey="alteracoes" fill="var(--color-alteracoes)" radius={[2, 2, 0, 0]} maxBarSize={44} /></BarChart></ChartContainer>}
-          </div>
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            <div className="border border-zinc-900 bg-white p-4"><div className="border-b border-zinc-200 pb-3 mb-3"><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Cargas detalhadas</p><h4 className="text-base font-bold tracking-tight">Rastreabilidade por arquivo</h4></div><div className="space-y-2">{historicalAssessment.uploads.length === 0 ? <p className="py-4 text-center text-xs font-mono text-zinc-500">Nenhuma carga no período.</p> : historicalAssessment.uploads.map((upload) => <div key={upload.uploadId} className="border border-zinc-200 p-3"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="font-mono text-[10px] text-zinc-500">{formatDate(upload.uploadDate)}</p><p className="font-bold text-xs truncate mt-1" title={upload.fileName}>{upload.fileName}</p></div><Badge variant="outline" className="rounded-none border-zinc-900 font-mono text-[10px] shrink-0">{upload.itemsRecorded} itens</Badge></div><div className="grid grid-cols-4 gap-2 mt-3 text-[10px] font-mono"><div><p className="text-zinc-500">Filiais</p><p className="font-bold mt-1">{upload.branches}</p></div><div><p className="text-zinc-500">Alterações</p><p className="font-bold text-red-600 mt-1">{upload.changeEvents}</p></div><div><p className="text-zinc-500">Entregues</p><p className="font-bold text-emerald-700 mt-1">{upload.deliveredItems}</p></div><div><p className="text-zinc-500">Tempo efetivo</p><p className="font-bold text-amber-700 mt-1">{upload.averageDeliveryLeadDays === null ? "—" : `${upload.averageDeliveryLeadDays}d`}</p></div></div></div>)}</div></div>
-            <div className="border border-zinc-900 bg-white p-4"><div className="border-b border-zinc-200 pb-3 mb-3"><p className="text-[10px] font-mono uppercase tracking-widest text-zinc-500">Comportamento por filial</p><h4 className="text-base font-bold tracking-tight">Itens, entregas e alterações</h4><p className="mt-1 text-[10px] font-mono text-zinc-500">Uma linha por filial, consolidada para todas as cargas do período selecionado.</p></div><div className="space-y-2">{historicalAssessment.branches.length === 0 ? <p className="py-4 text-center text-xs font-mono text-zinc-500">Nenhuma filial no período.</p> : historicalAssessment.branches.map((branch) => <div key={branch.branch} className="border border-zinc-200 p-3"><div className="flex items-start justify-between gap-3"><p className="font-bold text-sm">{branch.branch}</p><Badge variant="outline" className="rounded-none border-zinc-900 font-mono text-[10px]">{branch.itemsRecorded} itens</Badge></div><div className="grid grid-cols-3 gap-2 mt-3 text-[10px] font-mono"><div><p className="text-zinc-500">Alterações</p><p className="font-bold text-red-600 mt-1">{branch.changeEvents}</p></div><div><p className="text-zinc-500">Entregues</p><p className="font-bold text-emerald-700 mt-1">{branch.deliveredItems}</p></div><div><p className="text-zinc-500">Tempo efetivo</p><p className="font-bold text-amber-700 mt-1">{branch.averageDeliveryLeadDays === null ? "—" : `${branch.averageDeliveryLeadDays}d`}</p></div></div></div>)}</div></div>
-          </div>
-        </section>}
-
-        {activeTab === "active" && <section className="space-y-4"><div className="border-b border-zinc-900 pb-2"><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">08 / Mapa de alterações</h2><h3 className="text-xl font-bold tracking-tight">Itens que tiveram a previsão modificada</h3></div><div className="border border-zinc-900 overflow-x-auto"><table className="w-full text-left border-collapse min-w-[900px]"><thead><tr className="border-b border-zinc-900 bg-zinc-950 text-white text-xs font-mono uppercase tracking-wider"><th className="p-4">Item / nome</th><th className="p-4">Customer PO</th><th className="p-4">De</th><th className="p-4">Para</th><th className="p-4">Data</th><th className="p-4 text-center">Ocorrências</th><th className="p-4">Ação</th></tr></thead><tbody className="divide-y divide-zinc-200 text-sm font-mono">{changedItems.length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-zinc-500">Nenhuma alteração para os filtros atuais.</td></tr> : changedItems.map((row) => <tr key={`change-${row.id}`} className="hover:bg-red-50"><td className="p-4"><p className="font-bold">{row.item}</p><p className="text-xs text-zinc-500 mt-1 max-w-[280px]">{row.itemDescription || "Sem descrição"}</p></td><td className="p-4">{row.customerPo || "—"}</td><td className="p-4 text-zinc-500">{row.previousPrediction || "—"}</td><td className="p-4 text-red-600 font-bold">{row.currentPrediction || "—"}</td><td className="p-4">{formatDate(row.lastPredictionChangeDate)}</td><td className="p-4 text-center"><span className="px-2 py-1 bg-red-100 text-red-700 font-bold">{row.predictionChangesCount}x</span></td><td className="p-4"><Button variant="outline" size="sm" className="rounded-none border-zinc-900 text-xs font-mono" onClick={() => setSelectedItemId(row.id)}>Linha do tempo</Button></td></tr>)}</tbody></table></div></section>}
-          </>
-        )}
+        <section className="space-y-4"><div className="border-b border-zinc-900 pb-2"><h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">08 / Mapa de alterações</h2><h3 className="text-xl font-bold tracking-tight">Itens que tiveram a previsão modificada</h3></div><div className="border border-zinc-900 overflow-x-auto"><table className="w-full text-left border-collapse min-w-[900px]"><thead><tr className="border-b border-zinc-900 bg-zinc-950 text-white text-xs font-mono uppercase tracking-wider"><th className="p-4">Item / nome</th><th className="p-4">Customer PO</th><th className="p-4">De</th><th className="p-4">Para</th><th className="p-4">Data</th><th className="p-4 text-center">Ocorrências</th><th className="p-4">Ação</th></tr></thead><tbody className="divide-y divide-zinc-200 text-sm font-mono">{changedItems.length === 0 ? <tr><td colSpan={7} className="p-8 text-center text-zinc-500">Nenhuma alteração para os filtros atuais.</td></tr> : changedItems.map((row) => <tr key={`change-${row.id}`} className="hover:bg-red-50"><td className="p-4"><p className="font-bold">{row.item}</p><p className="text-xs text-zinc-500 mt-1 max-w-[280px]">{row.itemDescription || "Sem descrição"}</p></td><td className="p-4">{row.customerPo || "—"}</td><td className="p-4 text-zinc-500">{row.previousPrediction || "—"}</td><td className="p-4 text-red-600 font-bold">{row.currentPrediction || "—"}</td><td className="p-4">{formatDate(row.lastPredictionChangeDate)}</td><td className="p-4 text-center"><span className="px-2 py-1 bg-red-100 text-red-700 font-bold">{row.predictionChangesCount}x</span></td><td className="p-4"><Button variant="outline" size="sm" className="rounded-none border-zinc-900 text-xs font-mono" onClick={() => setSelectedItemId(row.id)}>Linha do tempo</Button></td></tr>)}</tbody></table></div></section>
+              </>}
+            </>
+          )}
         </div>
       </main>
       <footer className="border-t-2 border-zinc-950 mt-20 py-8 px-6 text-center text-xs font-mono uppercase tracking-widest text-zinc-500 bg-zinc-50">Open Order Control • 2026 • Giovani Martino</footer>
