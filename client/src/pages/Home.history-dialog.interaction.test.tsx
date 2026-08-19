@@ -8,6 +8,8 @@ const invalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const statsQuery = vi.hoisted(() => vi.fn());
 const deliveredItemsRefetch = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const deliveredItemsInvalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const managementOverviewRefetch = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const managementOverviewInvalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
 const deliveredItemRows = vi.hoisted(() => ({ current: [] as any[] }));
 const resetImportsMutate = vi.hoisted(() => vi.fn().mockResolvedValue({ deletedUploads: 1, deletedItems: 4, deletedHistory: 2 }));
 const uploadExcelMutate = vi.hoisted(() => vi.fn());
@@ -21,11 +23,20 @@ const branchSummary = [
   { shipTo: "COLOMBO", totalItems: 2, changedItems: 1, overdueItems: 1, noSupplier: 0, highPriorityItems: 0, valueAtRisk: 7000, changeRate: 50, shareOfItems: 40 },
 ];
 const defaultStats = { totalItems: 4, changedLastUpload: 0, noSupplier: 1, obsoleteItems: 1, noDeadlineItems: 1, withDeadlineItems: 1, mostChanged: [], totalOrderValue: 0, valueAtRisk: 0, changedItems: 0, stableItems: 4, highPriorityItems: 0, overdueItems: 0, stabilityRate: 100, riskRate: 0, latestChangeRate: 0, latestStabilityRate: 100, trend: [], actionQueue: [], latestUpload: null };
+const managementOverview = {
+  portfolio: { activeItems: 3, activeValue: 9000, overdueItems: 1, noSupplierItems: 0, noDeadlineItems: 1, changedItems: 2 },
+  delivery: { totalDelivered: 4, deliveredValue: 12000, lifecycleMeasuredItems: 4, averageOpenDays: 38.5, within30Days: 2, from31To60Days: 1, from61To90Days: 1, over90Days: 0, withoutLifecycleDate: 0, deliveryWithPrediction: 4, onTimeCount: 3, lateCount: 1, onTimeRate: 75, averageLateDays: 7 },
+  pendingAging: [{ key: "upTo30", label: "Até 30 dias", items: 1 }, { key: "from31To60", label: "31–60 dias", items: 1 }, { key: "from61To90", label: "61–90 dias", items: 0 }, { key: "over90", label: "Acima de 90 dias", items: 1 }, { key: "withoutCreationDate", label: "Sem data de criação", items: 0 }],
+  branchPerformance: [{ shipTo: "PORTO ALEGRE", activeItems: 3, deliveredItems: 4, overdueItems: 1, averageOpenDays: 38.5, onTimeRate: 75, activeValue: 9000, deliveredValue: 12000 }],
+  deliveryTrend: [{ month: "ago. 26", deliveredItems: 4, averageOpenDays: 38.5 }],
+  latestUpload: null,
+};
 
 vi.mock("@/lib/trpc", () => ({
   trpc: {
     orders: {
       listDeliveredItems: { useQuery: () => ({ ...emptyQuery(deliveredItemRows.current), refetch: deliveredItemsRefetch }) },
+      getManagementOverview: { useQuery: () => ({ ...emptyQuery(managementOverview), refetch: managementOverviewRefetch }) },
       getStats: { useQuery: () => emptyQuery(statsQuery()) },
       listItems: { useQuery: () => emptyQuery([]) },
       listShipTo: { useQuery: () => emptyQuery([]) },
@@ -42,7 +53,7 @@ vi.mock("@/lib/trpc", () => ({
     useUtils: () => ({
       client: { orders: { uploadExcel: { mutate: uploadExcelMutate } } },
       auth: { me: { invalidate } },
-      orders: { listPredictionHistory: { fetch: vi.fn().mockResolvedValue([]) }, getStats: { invalidate }, listItems: { invalidate }, listUploads: { invalidate }, listShipTo: { invalidate }, getBranchSummary: { invalidate }, getAlerts: { invalidate }, getAlertsTrend: { invalidate }, listDeliveredItems: { invalidate: deliveredItemsInvalidate }, getPrioritizationSettings: { invalidate } },
+      orders: { listPredictionHistory: { fetch: vi.fn().mockResolvedValue([]) }, getStats: { invalidate }, listItems: { invalidate }, listUploads: { invalidate }, listShipTo: { invalidate }, getBranchSummary: { invalidate }, getAlerts: { invalidate }, getAlertsTrend: { invalidate }, listDeliveredItems: { invalidate: deliveredItemsInvalidate }, getManagementOverview: { invalidate: managementOverviewInvalidate }, getPrioritizationSettings: { invalidate } },
     }),
   },
 }));
@@ -108,6 +119,20 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(screen.getByRole("button", { name: "Dashboard Ativo" }).getAttribute("aria-current")).toBe("page");
   });
 
+  it("apresenta a Visão Gerencial com desempenho de entregas, pendências e filial", () => {
+    itemDetailQuery.mockReturnValue(emptyQuery(null));
+
+    render(<Home />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Visão Gerencial" }));
+
+    expect(screen.getByRole("button", { name: "Visão Gerencial" }).getAttribute("aria-current")).toBe("page");
+    expect(screen.getByText("Desempenho de entregas e pressão da carteira")).toBeTruthy();
+    expect(screen.getByText("Tempo médio em aberto")).toBeTruthy();
+    expect(screen.getByText(/Comparativo por filial/)).toBeTruthy();
+    expect(screen.getAllByText("PORTO ALEGRE").length).toBeGreaterThan(0);
+  });
+
   it("exibe a data de entrega e os dias em aberto na tabela de itens concluídos", () => {
     itemDetailQuery.mockReturnValue(emptyQuery(null));
     deliveredItemRows.current = [{
@@ -168,7 +193,7 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     });
   });
 
-  it("recarrega os itens entregues após reset das importações", async () => {
+  it("recarrega os itens entregues e a Visão Gerencial após reset das importações", async () => {
     authState.user = { role: "admin", name: "Giovani Martino" };
     itemDetailQuery.mockReturnValue(emptyQuery(null));
 
@@ -178,6 +203,7 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     fireEvent.click(screen.getByRole("button", { name: "Confirmar reset" }));
 
     await waitFor(() => expect(deliveredItemsRefetch).toHaveBeenCalledTimes(1));
+    expect(managementOverviewRefetch).toHaveBeenCalledTimes(1);
   });
 
   it("exige confirmação antes de processar uma planilha selecionada", () => {
@@ -197,7 +223,7 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(uploadExcelMutate).not.toHaveBeenCalled();
   });
 
-  it("invalida os itens entregues somente após confirmar o upload", async () => {
+  it("invalida os itens entregues e a Visão Gerencial somente após confirmar o upload", async () => {
     authState.user = { role: "admin", name: "Giovani Martino" };
     itemDetailQuery.mockReturnValue(emptyQuery(null));
     uploadExcelMutate.mockResolvedValue({ acceptedRows: 1, totalRows: 1, duplicateRows: 0, rejectedRows: 0, changedRowsCount: 0, rejectionReasons: [] });
@@ -220,6 +246,7 @@ describe("histórico acionado pelos Alertas de Variação", () => {
       fireEvent.click(screen.getByRole("button", { name: "Confirmar upload" }));
 
       await waitFor(() => expect(deliveredItemsInvalidate).toHaveBeenCalledTimes(1));
+      expect(managementOverviewInvalidate).toHaveBeenCalledTimes(1);
     } finally {
       vi.unstubAllGlobals();
     }

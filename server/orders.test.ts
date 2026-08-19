@@ -1241,3 +1241,53 @@ describe("Open Orders Backend & Upload Logic", () => {
       withDeadlineItems: 0,
     }));
   });
+
+  it("consolida entregas, ciclo e pendências ativas para a Visão Gerencial", async () => {
+    await db.resetImportedData();
+    const caller = appRouter.createCaller({
+      user: { id: 1, openId: "management-overview-admin", name: "Management Overview Admin", email: "management-overview@test.com", loginMethod: "oauth", role: "admin", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() },
+      req: {} as any,
+      res: {} as any,
+    });
+    const makeWorkbook = (rows: unknown[][]) => {
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), "Orders");
+      return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }).toString("base64");
+    };
+
+    await caller.orders.uploadExcel({
+      fileName: "visao-gerencial-inicial.xlsx",
+      fileBase64: makeWorkbook([
+        ["Filial", "Item", "Customer PO", "Previsão", "Data Criacao da Ordem", "Extended Price"],
+        ["PORTO ALEGRE", "ITEM-ENTREGUE", "PO-ENTREGUE", "2099-12-31", "2026-07-01", 1500],
+        ["COLOMBO", "ITEM-ATIVO", "PO-ATIVO", "2099-12-31", "2026-08-01", 2500],
+      ]),
+    });
+    await caller.orders.uploadExcel({
+      fileName: "visao-gerencial-seguinte.xlsx",
+      fileBase64: makeWorkbook([
+        ["Filial", "Item", "Customer PO", "Previsão", "Data Criacao da Ordem", "Extended Price"],
+        ["COLOMBO", "ITEM-ATIVO", "PO-ATIVO", "2099-12-31", "2026-08-01", 2500],
+      ]),
+    });
+
+    const overview = await caller.orders.getManagementOverview();
+    expect(overview.portfolio).toEqual(expect.objectContaining({
+      activeItems: 1,
+      activeValue: 2500,
+      overdueItems: 0,
+    }));
+    expect(overview.delivery).toEqual(expect.objectContaining({
+      totalDelivered: 1,
+      deliveredValue: 1500,
+      lifecycleMeasuredItems: 1,
+      onTimeCount: 1,
+      lateCount: 0,
+      onTimeRate: 100,
+    }));
+    expect(overview.pendingAging.reduce((total, band) => total + band.items, 0)).toBe(1);
+    expect(overview.branchPerformance).toEqual(expect.arrayContaining([
+      expect.objectContaining({ shipTo: "PORTO ALEGRE", deliveredItems: 1, activeItems: 0 }),
+      expect.objectContaining({ shipTo: "COLOMBO", deliveredItems: 0, activeItems: 1 }),
+    ]));
+  });

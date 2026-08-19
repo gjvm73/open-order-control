@@ -239,6 +239,10 @@ export const appRouter = router({
       return await db.getBranchSummary();
     }),
 
+    getManagementOverview: publicProcedure.query(async () => {
+      return await db.getManagementOverview();
+    }),
+
     getItemDetail: publicProcedure.input(z.object({
       id: z.number(),
     })).query(async ({ input }) => {

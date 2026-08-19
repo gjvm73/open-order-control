@@ -418,3 +418,9 @@
 - [x] Remover as guias Relatório Gerencial e Avaliação Histórica da navegação e da interface
 - [x] Remover consultas, procedimentos e lógicas exclusivas desses módulos no backend
 - [x] Atualizar os testes e validar Dashboard Ativo e Itens Entregues após a simplificação
+
+### Pendências registradas em 19/08/2026 - Visão Gerencial
+- [x] Consolidar métricas executivas de carteira ativa e itens entregues
+- [x] Criar a guia Visão Gerencial com indicadores, análises de prazo e desempenho por filial
+- [x] Cobrir as métricas e a nova interface com testes de regressão
+- [x] Validar a experiência, atualizar o rastreador e salvar o ponto de verificação

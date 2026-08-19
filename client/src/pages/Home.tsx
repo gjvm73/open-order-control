@@ -91,7 +91,7 @@ export default function Home() {
   const [adminPassword, setAdminPassword] = useState("");
   const [alertThresholdDays, setAlertThresholdDays] = useState(7);
   const [alertThresholdDraft, setAlertThresholdDraft] = useState("7");
-  const [activeTab, setActiveTab] = useState<"active" | "delivered">("active");
+  const [activeTab, setActiveTab] = useState<"active" | "delivered" | "management">("active");
   const [deliveredSearch, setDeliveredSearch] = useState("");
   const [deliveredShipTo, setDeliveredShipTo] = useState("");
   const [deliveredItemFilter, setDeliveredItemFilter] = useState("");
@@ -108,6 +108,7 @@ export default function Home() {
   }), [deliveredSearch, deliveredItemFilter, deliveredPoFilter, deliveredShipTo]);
 
   const deliveredItemsQuery = trpc.orders.listDeliveredItems.useQuery(deliveredInput);
+  const managementOverviewQuery = trpc.orders.getManagementOverview.useQuery();
   const deliveredItems = (deliveredItemsQuery.data ?? []).map((item) => ({
     ...item,
     previousPrediction: formatPrediction(item.previousPrediction),
@@ -286,6 +287,7 @@ export default function Home() {
         alertsQuery.refetch(),
         alertsTrendQuery.refetch(),
         deliveredItemsQuery.refetch(),
+        managementOverviewQuery.refetch(),
       ]);
     } catch (err: any) {
       toast.error(err.message || "Não foi possível resetar as importações.");
@@ -347,8 +349,9 @@ export default function Home() {
           utils.orders.listShipTo.invalidate(),
           utils.orders.getBranchSummary.invalidate(),
           utils.orders.getAlerts.invalidate(alertsInput),
-          utils.orders.getAlertsTrend.invalidate(alertsInput),
-          utils.orders.listDeliveredItems.invalidate(deliveredInput),
+        utils.orders.getAlertsTrend.invalidate(alertsInput),
+        utils.orders.listDeliveredItems.invalidate(deliveredInput),
+        utils.orders.getManagementOverview.invalidate(),
         ]).finally(() => setUploadStatus("idle"));
       } catch (err: any) {
         toast.error(err.message || "Erro ao processar o upload do arquivo.");
@@ -404,6 +407,23 @@ export default function Home() {
     currentPrediction: formatPrediction(alert.currentPrediction),
   }));
   const alertSummary = alertsData.summary;
+  const managementOverview = managementOverviewQuery.data || {
+    portfolio: { activeItems: 0, activeValue: 0, overdueItems: 0, noSupplierItems: 0, noDeadlineItems: 0, changedItems: 0 },
+    delivery: { totalDelivered: 0, deliveredValue: 0, lifecycleMeasuredItems: 0, averageOpenDays: null, within30Days: 0, from31To60Days: 0, from61To90Days: 0, over90Days: 0, withoutLifecycleDate: 0, deliveryWithPrediction: 0, onTimeCount: 0, lateCount: 0, onTimeRate: null, averageLateDays: null },
+    pendingAging: [],
+    branchPerformance: [],
+    deliveryTrend: [],
+    latestUpload: null,
+  };
+  const deliveryLifecycleTotal = Math.max(managementOverview.delivery.lifecycleMeasuredItems, 1);
+  const maxDeliveryTrend = Math.max(...managementOverview.deliveryTrend.map((entry) => entry.deliveredItems), 1);
+  const managementFocus = managementOverview.portfolio.overdueItems > 0
+    ? `${managementOverview.portfolio.overdueItems} pendência(s) ativa(s) com previsão vencida exigem tratativa.`
+    : managementOverview.portfolio.noSupplierItems > 0
+      ? `${managementOverview.portfolio.noSupplierItems} pendência(s) ativa(s) permanecem sem fornecedor.`
+      : managementOverview.delivery.onTimeRate !== null && managementOverview.delivery.onTimeRate < 80
+        ? "A aderência ao último prazo registrado está abaixo de 80%; validar causas de atraso."
+        : "A carteira não apresenta pressão operacional relevante nos indicadores consolidados.";
   const changedItems = items.filter((item) => item.predictionChangesCount > 0);
   const hasActivePortfolio = Number(stats.totalItems || 0) > 0;
   const stabilityRate = hasActivePortfolio ? (stats.latestStabilityRate ?? stats.stabilityRate ?? 0) : null;
@@ -490,6 +510,7 @@ export default function Home() {
           <nav aria-label="Navegação principal do controle de pedidos" className="flex max-w-full items-center gap-4 overflow-x-auto whitespace-nowrap text-xs font-mono uppercase tracking-wider md:gap-6">
             <button type="button" onClick={() => setActiveTab("active")} aria-current={activeTab === "active" ? "page" : undefined} className={`shrink-0 pb-1 border-b-2 transition-all ${activeTab === "active" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Dashboard Ativo</button>
             <button type="button" onClick={() => setActiveTab("delivered")} aria-current={activeTab === "delivered" ? "page" : undefined} className={`shrink-0 pb-1 border-b-2 transition-all ${activeTab === "delivered" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Itens Entregues ({deliveredItems.length})</button>
+            <button type="button" onClick={() => setActiveTab("management")} aria-current={activeTab === "management" ? "page" : undefined} className={`shrink-0 pb-1 border-b-2 transition-all ${activeTab === "management" ? "border-red-600 text-white font-bold" : "border-transparent text-zinc-400 hover:text-white"}`}>Visão Gerencial</button>
           </nav>
           <span className="hidden shrink-0 text-[10px] font-mono text-zinc-400 xl:block">Regra: Desaparecidos no upload mais recente são considerados entregues</span>
         </div>
@@ -630,6 +651,68 @@ export default function Home() {
                 </tbody>
               </table>
             </div>
+          </section>
+        ) : activeTab === "management" ? (
+          <section className="space-y-8">
+            <div className="border-b border-zinc-900 pb-4 flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4">
+              <div>
+                <h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">Visão gerencial</h2>
+                <h3 className="text-2xl font-black tracking-tight mt-1">Desempenho de entregas e pressão da carteira</h3>
+                <p className="text-xs font-mono text-zinc-500 mt-1 leading-5 max-w-3xl">Leitura consolidada da carteira ativa e dos itens entregues, orientada a prazo, tempo de ciclo, aderência ao último prazo registrado e pontos de pressão por filial.</p>
+              </div>
+              <span className="text-xs font-mono text-zinc-400">Base atualizada: {managementOverview.latestUpload ? formatDateTime(managementOverview.latestUpload.uploadDate) : "sem upload"}</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              <MetricCard label="Itens entregues" value={String(managementOverview.delivery.totalDelivered)} detail={`${formatCurrency(managementOverview.delivery.deliveredValue)} em valor estendido`} icon={<Package className="w-4 h-4" />} accent="black" />
+              <MetricCard label="Tempo médio em aberto" value={managementOverview.delivery.averageOpenDays === null ? "—" : `${managementOverview.delivery.averageOpenDays} dias`} detail={`${managementOverview.delivery.lifecycleMeasuredItems} entrega(s) com ciclo mensurável`} icon={<Clock3 className="w-4 h-4" />} accent="red" />
+              <MetricCard label="Entregas dentro do prazo" value={managementOverview.delivery.onTimeRate === null ? "—" : `${managementOverview.delivery.onTimeRate}%`} detail={managementOverview.delivery.deliveryWithPrediction > 0 ? `${managementOverview.delivery.onTimeCount} de ${managementOverview.delivery.deliveryWithPrediction} com previsão válida` : "Sem comparação de prazo disponível"} icon={<Target className="w-4 h-4" />} accent="black" />
+              <MetricCard label="Pendências ativas" value={String(managementOverview.portfolio.activeItems)} detail={`${managementOverview.portfolio.overdueItems} vencida(s) · ${formatCurrency(managementOverview.portfolio.activeValue)}`} icon={<ShieldAlert className="w-4 h-4" />} accent="red" />
+            </div>
+
+            <section className="grid grid-cols-1 xl:grid-cols-[1fr_1fr_0.85fr] gap-6">
+              <div className="border border-zinc-900 p-6 bg-white">
+                <div className="flex justify-between gap-4 items-start border-b border-zinc-200 pb-4 mb-5"><div><p className="text-xs font-mono uppercase tracking-wider text-zinc-500">01 / Ciclo de entrega</p><h3 className="text-xl font-bold mt-1">Tempo em aberto até a baixa</h3></div><Clock3 className="w-5 h-5 text-red-600" /></div>
+                <div className="space-y-4">
+                  {[
+                    { label: "Até 30 dias", value: managementOverview.delivery.within30Days, tone: "bg-emerald-600" },
+                    { label: "31–60 dias", value: managementOverview.delivery.from31To60Days, tone: "bg-amber-500" },
+                    { label: "61–90 dias", value: managementOverview.delivery.from61To90Days, tone: "bg-orange-600" },
+                    { label: "Acima de 90 dias", value: managementOverview.delivery.over90Days, tone: "bg-red-600" },
+                  ].map((band) => <div key={band.label}><div className="flex items-center justify-between text-xs font-mono mb-1.5"><span>{band.label}</span><strong>{band.value} item(ns)</strong></div><div className="h-2 bg-zinc-100"><div className={`h-2 ${band.tone}`} style={{ width: `${Math.round((band.value / deliveryLifecycleTotal) * 100)}%` }} /></div></div>)}
+                </div>
+                <p className="mt-5 text-[10px] font-mono leading-5 text-zinc-500">{managementOverview.delivery.withoutLifecycleDate > 0 ? `${managementOverview.delivery.withoutLifecycleDate} item(ns) entregue(s) sem datas suficientes para calcular o ciclo.` : "Todos os itens entregues possuem datas suficientes para calcular o ciclo."}</p>
+              </div>
+
+              <div className="border border-zinc-900 p-6 bg-white">
+                <div className="flex justify-between gap-4 items-start border-b border-zinc-200 pb-4 mb-5"><div><p className="text-xs font-mono uppercase tracking-wider text-zinc-500">02 / Cadência de entrega</p><h3 className="text-xl font-bold mt-1">Baixas por mês</h3></div><TrendingUp className="w-5 h-5 text-red-600" /></div>
+                {managementOverview.deliveryTrend.length === 0 ? <p className="py-12 text-center text-xs font-mono text-zinc-500">Ainda não há entregas com data para formar uma tendência.</p> : <div className="space-y-4">{managementOverview.deliveryTrend.map((entry) => <div key={entry.month} className="grid grid-cols-[62px_1fr_108px] items-center gap-3"><span className="text-xs font-mono uppercase text-zinc-500">{entry.month}</span><div className="h-7 bg-zinc-100 flex items-center"><div className="h-7 bg-zinc-950" style={{ width: `${Math.round((entry.deliveredItems / maxDeliveryTrend) * 100)}%` }} /></div><span className="text-right text-xs font-mono"><strong>{entry.deliveredItems}</strong> · {entry.averageOpenDays === null ? "—" : `${entry.averageOpenDays}d`}</span></div>)}</div>}
+                <p className="mt-5 text-[10px] font-mono leading-5 text-zinc-500">Cada linha mostra itens entregues no mês e, após o ponto médio, o tempo médio em aberto.</p>
+              </div>
+
+              <div className="border border-zinc-900 p-6 bg-zinc-950 text-white">
+                <p className="text-xs font-mono uppercase tracking-wider text-zinc-400">03 / Síntese executiva</p>
+                <h3 className="text-xl font-bold mt-1">Foco da próxima reunião</h3>
+                <div className="mt-8 border-t border-zinc-700 pt-5"><p className="text-4xl font-black tracking-tight">{managementOverview.delivery.lateCount}</p><p className="mt-1 text-xs font-mono text-zinc-300">entrega(s) após a última previsão válida</p></div>
+                <div className="mt-5 space-y-3 text-xs font-mono"><DecisionLine label="Atraso médio" value={managementOverview.delivery.averageLateDays === null ? "—" : `${managementOverview.delivery.averageLateDays} dias`} note="somente entregas após a previsão" positive={managementOverview.delivery.lateCount === 0} /><DecisionLine label="Sem fornecedor" value={String(managementOverview.portfolio.noSupplierItems)} note="pendências ativas" positive={managementOverview.portfolio.noSupplierItems === 0} /><DecisionLine label="Sem prazo" value={String(managementOverview.portfolio.noDeadlineItems)} note="pendências ativas" positive={managementOverview.portfolio.noDeadlineItems === 0} /></div>
+                <p className="mt-6 border-t border-zinc-700 pt-4 text-xs leading-5 text-zinc-300">{managementFocus}</p>
+              </div>
+            </section>
+
+            <section className="grid grid-cols-1 xl:grid-cols-[0.8fr_1.2fr] gap-6">
+              <div className="border border-zinc-900 p-6 bg-white">
+                <div className="border-b border-zinc-200 pb-4"><p className="text-xs font-mono uppercase tracking-wider text-zinc-500">04 / Envelhecimento das pendências</p><h3 className="text-xl font-bold mt-1">Carteira ainda em aberto</h3></div>
+                <div className="mt-5 divide-y divide-zinc-200">{managementOverview.pendingAging.map((band) => <div key={band.key} className="py-4 flex items-center justify-between gap-4"><span className="text-sm font-mono">{band.label}</span><span className={`px-3 py-1 text-xs font-bold font-mono ${band.key === "over90" ? "bg-red-100 text-red-700" : band.key === "from61To90" ? "bg-amber-100 text-amber-800" : "bg-zinc-100 text-zinc-700"}`}>{band.items}</span></div>)}</div>
+                <p className="mt-5 text-[10px] font-mono leading-5 text-zinc-500">Faixas calculadas entre a Data de criação do pedido e a data atual. Registros sem Data de criação são separados para saneamento.</p>
+              </div>
+
+              <div className="border border-zinc-900 overflow-x-auto bg-white">
+                <div className="p-6 border-b border-zinc-900 flex flex-col sm:flex-row sm:items-end justify-between gap-3"><div><p className="text-xs font-mono uppercase tracking-wider text-zinc-500">05 / Comparativo por filial</p><h3 className="text-xl font-bold mt-1">Entrega, ciclo e pressão operacional</h3></div><span className="text-xs font-mono text-zinc-500">Consolidado de ativos e entregues</span></div>
+                <table className="w-full min-w-[820px] text-left border-collapse"><thead><tr className="border-b border-zinc-900 bg-zinc-50 text-xs font-mono uppercase tracking-wider"><th className="p-4">Filial</th><th className="p-4 text-center">Ativos</th><th className="p-4 text-center">Entregues</th><th className="p-4 text-center">Vencidos</th><th className="p-4 text-center">Ciclo médio</th><th className="p-4 text-center">No prazo</th><th className="p-4 text-right">Valor ativo</th></tr></thead><tbody className="divide-y divide-zinc-200 text-sm font-mono">{managementOverview.branchPerformance.length === 0 ? <tr><td colSpan={7} className="p-12 text-center text-zinc-500">Nenhum item ativo ou entregue disponível para consolidar.</td></tr> : managementOverview.branchPerformance.map((branch) => <tr key={branch.shipTo} className="hover:bg-zinc-50"><td className="p-4 font-bold">{branch.shipTo}</td><td className="p-4 text-center">{branch.activeItems}</td><td className="p-4 text-center">{branch.deliveredItems}</td><td className={`p-4 text-center font-bold ${branch.overdueItems > 0 ? "text-red-600" : "text-zinc-700"}`}>{branch.overdueItems}</td><td className="p-4 text-center">{branch.averageOpenDays === null ? "—" : `${branch.averageOpenDays} d`}</td><td className="p-4 text-center">{branch.onTimeRate === null ? "—" : `${branch.onTimeRate}%`}</td><td className="p-4 text-right font-bold">{formatCurrency(branch.activeValue)}</td></tr>)}</tbody></table>
+              </div>
+            </section>
+
+            <div className="border border-amber-700 bg-amber-50 p-4 text-xs font-mono leading-5 text-amber-950"><strong>Critério operacional da entrega:</strong> o sistema registra a data de entrega como a data da primeira carga semanal em que o item deixa de aparecer. A aderência ao prazo compara essa data com a última previsão válida registrada; por isso, a leitura é um indicador de acompanhamento da rotina de cargas.</div>
           </section>
         ) : (
           <>

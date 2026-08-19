@@ -941,3 +941,227 @@ export async function getDeliveredItems(filters?: { search?: string; item?: stri
     lastUploadDate: upload?.uploadDate ?? null,
   }));
 }
+
+/**
+ * Consolida a carteira ativa e os itens baixados por ausência em uploads
+ * posteriores. A data de entrega é, portanto, a data da primeira carga em
+ * que o item não foi mais encontrado.
+ */
+export async function getManagementOverview() {
+  const emptyResponse = {
+    portfolio: {
+      activeItems: 0,
+      activeValue: 0,
+      overdueItems: 0,
+      noSupplierItems: 0,
+      noDeadlineItems: 0,
+      changedItems: 0,
+    },
+    delivery: {
+      totalDelivered: 0,
+      deliveredValue: 0,
+      lifecycleMeasuredItems: 0,
+      averageOpenDays: null as number | null,
+      within30Days: 0,
+      from31To60Days: 0,
+      from61To90Days: 0,
+      over90Days: 0,
+      withoutLifecycleDate: 0,
+      deliveryWithPrediction: 0,
+      onTimeCount: 0,
+      lateCount: 0,
+      onTimeRate: null as number | null,
+      averageLateDays: null as number | null,
+    },
+    pendingAging: [
+      { key: "upTo30", label: "Até 30 dias", items: 0 },
+      { key: "from31To60", label: "31–60 dias", items: 0 },
+      { key: "from61To90", label: "61–90 dias", items: 0 },
+      { key: "over90", label: "Acima de 90 dias", items: 0 },
+      { key: "withoutCreationDate", label: "Sem data de criação", items: 0 },
+    ],
+    branchPerformance: [] as Array<{
+      shipTo: string;
+      activeItems: number;
+      deliveredItems: number;
+      overdueItems: number;
+      averageOpenDays: number | null;
+      onTimeRate: number | null;
+      activeValue: number;
+      deliveredValue: number;
+    }>,
+    deliveryTrend: [] as Array<{ month: string; deliveredItems: number; averageOpenDays: number | null }>,
+    latestUpload: null as { id: number; uploadDate: Date; fileName: string } | null,
+  };
+
+  const db = await getDb();
+  if (!db) return emptyResponse;
+
+  const allItems = await db.select().from(orderItems);
+  const [latestUpload] = await db.select({
+    id: uploads.id,
+    uploadDate: uploads.uploadDate,
+    fileName: uploads.fileName,
+  }).from(uploads).orderBy(desc(uploads.uploadDate), desc(uploads.id)).limit(1);
+  const today = new Date();
+  const toNumber = (value: unknown) => {
+    const parsed = Number(value || 0);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+  const roundOne = (value: number) => Math.round(value * 10) / 10;
+  const activeItems = allItems.filter((item) => item.status === "active");
+  const deliveredItems = allItems.filter((item) => item.status === "delivered");
+
+  const pendingAging = {
+    upTo30: 0,
+    from31To60: 0,
+    from61To90: 0,
+    over90: 0,
+    withoutCreationDate: 0,
+  };
+  for (const item of activeItems) {
+    const creationDate = parseOperationalDate(item.orderCreationDate);
+    if (!creationDate) {
+      pendingAging.withoutCreationDate += 1;
+      continue;
+    }
+    const ageDays = getOperationalAgeDays(creationDate, today);
+    if (ageDays <= 30) pendingAging.upTo30 += 1;
+    else if (ageDays <= 60) pendingAging.from31To60 += 1;
+    else if (ageDays <= 90) pendingAging.from61To90 += 1;
+    else pendingAging.over90 += 1;
+  }
+
+  type DeliveryMeasurement = {
+    item: typeof deliveredItems[number];
+    shipTo: string;
+    openDays: number | null;
+    lateDays: number | null;
+    deliveredOnTime: boolean | null;
+    deliveredAt: Date | null;
+  };
+  const deliveryMeasurements: DeliveryMeasurement[] = deliveredItems.map((item) => {
+    const creationDate = parseOperationalDate(item.orderCreationDate);
+    const deliveredAt = parseOperationalDate(item.deliveredAt);
+    const predictionDate = parseValidPredictionDate(item.currentPrediction);
+    const openDays = creationDate && deliveredAt ? getOperationalAgeDays(creationDate, deliveredAt) : null;
+    const deliveredOnTime = predictionDate && deliveredAt ? deliveredAt.getTime() <= predictionDate.getTime() : null;
+    const lateDays = predictionDate && deliveredAt && deliveredAt.getTime() > predictionDate.getTime()
+      ? getOperationalAgeDays(predictionDate, deliveredAt)
+      : null;
+    return {
+      item,
+      shipTo: normalizeShipTo(item.shipTo) || "Sem filial informada",
+      openDays,
+      lateDays,
+      deliveredOnTime,
+      deliveredAt,
+    };
+  });
+
+  const measuredOpenDays = deliveryMeasurements
+    .map((measurement) => measurement.openDays)
+    .filter((value): value is number => value !== null);
+  const deliveryWithPrediction = deliveryMeasurements.filter((measurement) => measurement.deliveredOnTime !== null);
+  const lateDays = deliveryMeasurements
+    .map((measurement) => measurement.lateDays)
+    .filter((value): value is number => value !== null);
+  const delivery = {
+    totalDelivered: deliveredItems.length,
+    deliveredValue: deliveredItems.reduce((total, item) => total + toNumber(item.extendedPrice), 0),
+    lifecycleMeasuredItems: measuredOpenDays.length,
+    averageOpenDays: measuredOpenDays.length > 0 ? roundOne(measuredOpenDays.reduce((total, days) => total + days, 0) / measuredOpenDays.length) : null,
+    within30Days: measuredOpenDays.filter((days) => days <= 30).length,
+    from31To60Days: measuredOpenDays.filter((days) => days >= 31 && days <= 60).length,
+    from61To90Days: measuredOpenDays.filter((days) => days >= 61 && days <= 90).length,
+    over90Days: measuredOpenDays.filter((days) => days > 90).length,
+    withoutLifecycleDate: deliveredItems.length - measuredOpenDays.length,
+    deliveryWithPrediction: deliveryWithPrediction.length,
+    onTimeCount: deliveryWithPrediction.filter((measurement) => measurement.deliveredOnTime).length,
+    lateCount: deliveryWithPrediction.filter((measurement) => measurement.deliveredOnTime === false).length,
+    onTimeRate: deliveryWithPrediction.length > 0
+      ? roundOne((deliveryWithPrediction.filter((measurement) => measurement.deliveredOnTime).length / deliveryWithPrediction.length) * 100)
+      : null,
+    averageLateDays: lateDays.length > 0 ? roundOne(lateDays.reduce((total, days) => total + days, 0) / lateDays.length) : null,
+  };
+
+  const branches = new Map<string, {
+    activeItems: typeof activeItems;
+    deliveryMeasurements: DeliveryMeasurement[];
+  }>();
+  for (const item of activeItems) {
+    const shipTo = normalizeShipTo(item.shipTo) || "Sem filial informada";
+    const current = branches.get(shipTo) || { activeItems: [], deliveryMeasurements: [] };
+    current.activeItems.push(item);
+    branches.set(shipTo, current);
+  }
+  for (const measurement of deliveryMeasurements) {
+    const current = branches.get(measurement.shipTo) || { activeItems: [], deliveryMeasurements: [] };
+    current.deliveryMeasurements.push(measurement);
+    branches.set(measurement.shipTo, current);
+  }
+  const branchPerformance = Array.from(branches.entries()).map(([shipTo, branch]) => {
+    const branchOpenDays = branch.deliveryMeasurements
+      .map((measurement) => measurement.openDays)
+      .filter((value): value is number => value !== null);
+    const deliveryWithPrediction = branch.deliveryMeasurements.filter((measurement) => measurement.deliveredOnTime !== null);
+    const onTimeCount = deliveryWithPrediction.filter((measurement) => measurement.deliveredOnTime).length;
+    return {
+      shipTo,
+      activeItems: branch.activeItems.length,
+      deliveredItems: branch.deliveryMeasurements.length,
+      overdueItems: branch.activeItems.filter((item) => {
+        const predictionDate = parseValidPredictionDate(item.currentPrediction);
+        return Boolean(predictionDate && predictionDate < today);
+      }).length,
+      averageOpenDays: branchOpenDays.length > 0 ? roundOne(branchOpenDays.reduce((total, days) => total + days, 0) / branchOpenDays.length) : null,
+      onTimeRate: deliveryWithPrediction.length > 0 ? roundOne((onTimeCount / deliveryWithPrediction.length) * 100) : null,
+      activeValue: branch.activeItems.reduce((total, item) => total + toNumber(item.extendedPrice), 0),
+      deliveredValue: branch.deliveryMeasurements.reduce((total, measurement) => total + toNumber(measurement.item.extendedPrice), 0),
+    };
+  }).sort((left, right) => right.overdueItems - left.overdueItems || right.activeItems - left.activeItems || right.deliveredItems - left.deliveredItems || left.shipTo.localeCompare(right.shipTo, "pt-BR"));
+
+  const trendByMonth = new Map<string, { monthDate: Date; deliveredItems: number; openDays: number[] }>();
+  for (const measurement of deliveryMeasurements) {
+    if (!measurement.deliveredAt) continue;
+    const monthDate = new Date(Date.UTC(measurement.deliveredAt.getUTCFullYear(), measurement.deliveredAt.getUTCMonth(), 1));
+    const monthKey = monthDate.toISOString().slice(0, 7);
+    const current = trendByMonth.get(monthKey) || { monthDate, deliveredItems: 0, openDays: [] };
+    current.deliveredItems += 1;
+    if (measurement.openDays !== null) current.openDays.push(measurement.openDays);
+    trendByMonth.set(monthKey, current);
+  }
+  const deliveryTrend = Array.from(trendByMonth.values())
+    .sort((left, right) => left.monthDate.getTime() - right.monthDate.getTime())
+    .slice(-6)
+    .map((entry) => ({
+      month: entry.monthDate.toLocaleDateString("pt-BR", { month: "short", year: "2-digit", timeZone: "UTC" }).replace(".", ""),
+      deliveredItems: entry.deliveredItems,
+      averageOpenDays: entry.openDays.length > 0 ? roundOne(entry.openDays.reduce((total, days) => total + days, 0) / entry.openDays.length) : null,
+    }));
+
+  return {
+    portfolio: {
+      activeItems: activeItems.length,
+      activeValue: activeItems.reduce((total, item) => total + toNumber(item.extendedPrice), 0),
+      overdueItems: activeItems.filter((item) => {
+        const predictionDate = parseValidPredictionDate(item.currentPrediction);
+        return Boolean(predictionDate && predictionDate < today);
+      }).length,
+      noSupplierItems: activeItems.filter((item) => classifyPrediction(item.currentPrediction) === "noSupplier").length,
+      noDeadlineItems: activeItems.filter((item) => classifyPrediction(item.currentPrediction) === "noDeadline").length,
+      changedItems: activeItems.filter((item) => item.predictionChangesCount > 0).length,
+    },
+    delivery,
+    pendingAging: [
+      { key: "upTo30", label: "Até 30 dias", items: pendingAging.upTo30 },
+      { key: "from31To60", label: "31–60 dias", items: pendingAging.from31To60 },
+      { key: "from61To90", label: "61–90 dias", items: pendingAging.from61To90 },
+      { key: "over90", label: "Acima de 90 dias", items: pendingAging.over90 },
+      { key: "withoutCreationDate", label: "Sem data de criação", items: pendingAging.withoutCreationDate },
+    ],
+    branchPerformance,
+    deliveryTrend,
+    latestUpload: latestUpload || null,
+  };
+}
