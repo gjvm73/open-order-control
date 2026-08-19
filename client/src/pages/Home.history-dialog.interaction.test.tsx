@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
 const itemDetailQuery = vi.hoisted(() => vi.fn());
 const invalidate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
@@ -133,6 +133,29 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(screen.getByText(/Alterações de previsão não influenciam/)).toBeTruthy();
     expect(screen.getByText(/Comparativo por filial/)).toBeTruthy();
     expect(screen.getAllByText("PORTO ALEGRE").length).toBeGreaterThan(0);
+  });
+
+  it("aciona a impressão exclusiva da Visão Gerencial", () => {
+    itemDetailQuery.mockReturnValue(emptyQuery(null));
+    const printSpy = vi.spyOn(window, "print").mockImplementation(() => undefined);
+    vi.useFakeTimers();
+
+    try {
+      render(<Home />);
+      fireEvent.click(screen.getByRole("button", { name: "Visão Gerencial" }));
+      fireEvent.click(screen.getByRole("button", { name: "Imprimir Visão Gerencial" }));
+
+      expect(document.body.dataset.pdfMode).toBe("management");
+      act(() => {
+        vi.advanceTimersByTime(80);
+      });
+
+      expect(printSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      printSpy.mockRestore();
+      vi.useRealTimers();
+      delete document.body.dataset.pdfMode;
+    }
   });
 
   it("exibe a data de entrega e os dias em aberto na tabela de itens concluídos", () => {

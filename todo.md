@@ -429,3 +429,8 @@
 - [x] Calcular o envelhecimento das pendências exclusivamente pela Data de criação do pedido
 - [x] Cobrir a regra de idade por faixas com teste de regressão e validar a interface
 - [x] Atualizar o rastreador e salvar o ponto de verificação da correção
+
+### Pendências registradas em 19/08/2026 - impressão da Visão Gerencial
+- [x] Criar modo de impressão específico para os indicadores e análises executivas
+- [x] Adicionar comando de impressão na guia Visão Gerencial
+- [x] Cobrir o acionamento, validar o layout e salvar o ponto de verificação

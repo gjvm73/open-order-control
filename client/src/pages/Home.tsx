@@ -97,7 +97,7 @@ export default function Home() {
   const [deliveredItemFilter, setDeliveredItemFilter] = useState("");
   const [deliveredPoFilter, setDeliveredPoFilter] = useState("");
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [pdfMode, setPdfMode] = useState<"executive" | "detailed" | null>(null);
+  const [pdfMode, setPdfMode] = useState<"executive" | "detailed" | "management" | null>(null);
   const [prioritizationOpen, setPrioritizationOpen] = useState(false);
 
   const deliveredInput = React.useMemo(() => ({
@@ -205,11 +205,16 @@ export default function Home() {
     document.body.dataset.pdfMode = pdfMode;
     document.title = pdfMode === "detailed"
       ? "Open Order Control - Relatório Detalhado"
-      : "Open Order Control - Relatório Executivo";
+      : pdfMode === "management"
+        ? "Open Order Control - Visão Gerencial"
+        : "Open Order Control - Relatório Executivo";
 
     // O relatório completo deve sempre incluir o dashboard gerencial, mesmo que a aba de entregues esteja aberta.
     if (pdfMode === "detailed" && activeTab !== "active") {
       setActiveTab("active");
+    }
+    if (pdfMode === "management" && activeTab !== "management") {
+      setActiveTab("management");
     }
 
     const printTimer = window.setTimeout(() => {
@@ -225,7 +230,7 @@ export default function Home() {
     return () => window.clearTimeout(printTimer);
   }, [pdfMode]);
 
-  const handleExportPdf = (mode: "executive" | "detailed" = "executive") => {
+  const handleExportPdf = (mode: "executive" | "detailed" | "management" = "executive") => {
     setPdfMode(mode);
   };
 
@@ -653,14 +658,17 @@ export default function Home() {
             </div>
           </section>
         ) : activeTab === "management" ? (
-          <section className="space-y-8">
+          <section data-print-management className="space-y-8">
             <div className="border-b border-zinc-900 pb-4 flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4">
               <div>
                 <h2 className="text-sm font-mono uppercase tracking-wider text-zinc-500">Visão gerencial</h2>
                 <h3 className="text-2xl font-black tracking-tight mt-1">Desempenho de entregas e pressão da carteira</h3>
                 <p className="text-xs font-mono text-zinc-500 mt-1 leading-5 max-w-3xl">Leitura consolidada da carteira ativa e dos itens entregues, orientada a prazo, tempo de ciclo, aderência ao último prazo registrado e pontos de pressão por filial.</p>
               </div>
-              <span className="text-xs font-mono text-zinc-400">Base atualizada: {managementOverview.latestUpload ? formatDateTime(managementOverview.latestUpload.uploadDate) : "sem upload"}</span>
+              <div className="flex flex-col items-start gap-3 lg:items-end">
+                <span className="text-xs font-mono text-zinc-400">Base atualizada: {managementOverview.latestUpload ? formatDateTime(managementOverview.latestUpload.uploadDate) : "sem upload"}</span>
+                <Button variant="outline" className="no-print h-9 rounded-none border-zinc-900 bg-white px-3 text-xs font-mono uppercase tracking-wider hover:bg-zinc-950 hover:text-white" onClick={() => handleExportPdf("management")}><Printer className="mr-2 h-4 w-4" /> Imprimir Visão Gerencial</Button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">

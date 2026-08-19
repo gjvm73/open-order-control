@@ -677,6 +677,73 @@ body {
     overflow: visible !important;
   }
 
+  /* A impressão da Visão Gerencial isola o painel executivo, sem a navegação ou as demais abas. */
+  body[data-pdf-mode="management"] main.print-report > .print-only-report {
+    display: none !important;
+  }
+
+  body[data-pdf-mode="management"] main.print-report > .screen-dashboard {
+    display: block !important;
+    width: 100% !important;
+    color: #111111 !important;
+  }
+
+  body[data-pdf-mode="management"] main.print-report > .screen-dashboard > section:not([data-print-management]) {
+    display: none !important;
+  }
+
+  body[data-pdf-mode="management"] main.print-report > .screen-dashboard > section[data-print-management] {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body[data-pdf-mode="management"] main.print-report > .screen-dashboard > section[data-print-management]::before {
+    content: "OPEN ORDER CONTROL  /  VISÃO GERENCIAL";
+    display: block;
+    border-bottom: 1.2px solid #111111;
+    padding: 0 0 3mm;
+    margin: 0 0 5mm;
+    color: #111111;
+    font: 700 8pt/1.1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.12em;
+  }
+
+  body[data-pdf-mode="management"] main.print-report > .screen-dashboard > section[data-print-management] > .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 3mm !important;
+  }
+
+  body[data-pdf-mode="management"] main.print-report > .screen-dashboard > section[data-print-management] > section.grid:first-of-type {
+    grid-template-columns: 1fr 1fr 0.85fr !important;
+    gap: 3mm !important;
+  }
+
+  body[data-pdf-mode="management"] main.print-report > .screen-dashboard > section[data-print-management] > section.grid:nth-of-type(2) {
+    grid-template-columns: 0.8fr 1.2fr !important;
+    gap: 3mm !important;
+  }
+
+  body[data-pdf-mode="management"] main.print-report > .screen-dashboard > section[data-print-management] .bg-zinc-950 {
+    background: #111111 !important;
+    color: #ffffff !important;
+  }
+
+  body[data-pdf-mode="management"] main.print-report > .screen-dashboard > section[data-print-management] .p-6 {
+    padding: 3.2mm !important;
+  }
+
+  body[data-pdf-mode="management"] main.print-report > .screen-dashboard > section[data-print-management] .p-4 {
+    padding: 2.2mm !important;
+  }
+
+  body[data-pdf-mode="management"] main.print-report > .screen-dashboard > section[data-print-management] h2,
+  body[data-pdf-mode="management"] main.print-report > .screen-dashboard > section[data-print-management] h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
   /* O modo completo restaura o dashboard inteiro, sem os cortes do resumo executivo. */
   body[data-pdf-mode="detailed"] main.print-report > .print-only-report {
     display: none !important;
