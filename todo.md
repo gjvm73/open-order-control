@@ -434,3 +434,8 @@
 - [x] Criar modo de impressão específico para os indicadores e análises executivas
 - [x] Adicionar comando de impressão na guia Visão Gerencial
 - [x] Cobrir o acionamento, validar o layout e salvar o ponto de verificação
+
+### Pendências registradas em 19/08/2026 - referência temporal do envelhecimento
+- [x] Calcular o envelhecimento pela data do último upload menos a Data de abertura do pedido
+- [x] Atualizar a fórmula informada na Visão Gerencial e a cobertura de regressão
+- [x] Validar a correção e salvar o ponto de verificação

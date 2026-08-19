@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { vi } from "vitest";
 import { appRouter } from "./routers";
 import * as db from "./db";
 import type { TrpcContext } from "./_core/context";
@@ -1294,4 +1295,48 @@ describe("Open Orders Backend & Upload Logic", () => {
       expect.objectContaining({ shipTo: "PORTO ALEGRE", deliveredItems: 1, activeItems: 0 }),
       expect.objectContaining({ shipTo: "COLOMBO", deliveredItems: 0, activeItems: 1 }),
     ]));
+  });
+
+  it("classifica o envelhecimento pela data do último upload, e não pela data atual", async () => {
+    vi.useFakeTimers();
+    try {
+      const caller = appRouter.createCaller({
+        user: { id: 1, openId: "management-aging-reference-admin", name: "Management Aging Reference Admin", email: "management-aging-reference@test.com", loginMethod: "oauth", role: "admin", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() },
+        req: {} as any,
+        res: {} as any,
+      });
+      const makeWorkbook = (rows: unknown[][]) => {
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet(rows), "Orders");
+        return XLSX.write(workbook, { type: "buffer", bookType: "xlsx" }).toString("base64");
+      };
+
+      await db.resetImportedData();
+      vi.setSystemTime(new Date("2026-03-01T12:00:00.000Z"));
+      await caller.orders.uploadExcel({
+        fileName: "envelhecimento-inicial.xlsx",
+        fileBase64: makeWorkbook([
+          ["Filial", "Item", "Customer PO", "Previsão", "Data Criacao da Ordem"],
+          ["COLOMBO", "ITEM-REFERENCIA", "PO-REFERENCIA", "2026-06-30", "2026-02-01"],
+        ]),
+      });
+
+      vi.setSystemTime(new Date("2026-03-15T12:00:00.000Z"));
+      await caller.orders.uploadExcel({
+        fileName: "envelhecimento-ultimo-upload.xlsx",
+        fileBase64: makeWorkbook([
+          ["Filial", "Item", "Customer PO", "Previsão", "Data Criacao da Ordem"],
+          ["COLOMBO", "ITEM-REFERENCIA", "PO-REFERENCIA", "2026-07-15", "2026-02-01"],
+        ]),
+      });
+
+      vi.setSystemTime(new Date("2026-08-19T12:00:00.000Z"));
+      const overview = await caller.orders.getManagementOverview();
+      expect(overview.pendingAging).toEqual(expect.arrayContaining([
+        expect.objectContaining({ key: "from31To60", items: 1 }),
+        expect.objectContaining({ key: "over90", items: 0 }),
+      ]));
+    } finally {
+      vi.useRealTimers();
+    }
   });

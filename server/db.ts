@@ -1003,7 +1003,11 @@ export async function getManagementOverview() {
     uploadDate: uploads.uploadDate,
     fileName: uploads.fileName,
   }).from(uploads).orderBy(desc(uploads.uploadDate), desc(uploads.id)).limit(1);
-  const today = new Date();
+  const currentDate = new Date();
+  const latestUploadDate = latestUpload?.uploadDate ? new Date(latestUpload.uploadDate) : null;
+  const agingReferenceDate = latestUploadDate && !Number.isNaN(latestUploadDate.getTime())
+    ? latestUploadDate
+    : currentDate;
   const toNumber = (value: unknown) => {
     const parsed = Number(value || 0);
     return Number.isFinite(parsed) ? parsed : 0;
@@ -1025,7 +1029,7 @@ export async function getManagementOverview() {
       pendingAging.withoutCreationDate += 1;
       continue;
     }
-    const ageDays = getOperationalAgeDays(creationDate, today);
+    const ageDays = getOperationalAgeDays(creationDate, agingReferenceDate);
     if (ageDays <= 30) pendingAging.upTo30 += 1;
     else if (ageDays <= 60) pendingAging.from31To60 += 1;
     else if (ageDays <= 90) pendingAging.from61To90 += 1;
@@ -1112,7 +1116,7 @@ export async function getManagementOverview() {
       deliveredItems: branch.deliveryMeasurements.length,
       overdueItems: branch.activeItems.filter((item) => {
         const predictionDate = parseValidPredictionDate(item.currentPrediction);
-        return Boolean(predictionDate && predictionDate < today);
+        return Boolean(predictionDate && predictionDate < currentDate);
       }).length,
       averageOpenDays: branchOpenDays.length > 0 ? roundOne(branchOpenDays.reduce((total, days) => total + days, 0) / branchOpenDays.length) : null,
       onTimeRate: deliveryWithPrediction.length > 0 ? roundOne((onTimeCount / deliveryWithPrediction.length) * 100) : null,
@@ -1146,7 +1150,7 @@ export async function getManagementOverview() {
       activeValue: activeItems.reduce((total, item) => total + toNumber(item.extendedPrice), 0),
       overdueItems: activeItems.filter((item) => {
         const predictionDate = parseValidPredictionDate(item.currentPrediction);
-        return Boolean(predictionDate && predictionDate < today);
+        return Boolean(predictionDate && predictionDate < currentDate);
       }).length,
       noSupplierItems: activeItems.filter((item) => classifyPrediction(item.currentPrediction) === "noSupplier").length,
       noDeadlineItems: activeItems.filter((item) => classifyPrediction(item.currentPrediction) === "noDeadline").length,

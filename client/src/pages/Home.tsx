@@ -711,7 +711,7 @@ export default function Home() {
               <div className="border border-zinc-900 p-6 bg-white">
                 <div className="border-b border-zinc-200 pb-4"><p className="text-xs font-mono uppercase tracking-wider text-zinc-500">04 / Envelhecimento das pendências</p><h3 className="text-xl font-bold mt-1">Carteira ainda em aberto</h3></div>
                 <div className="mt-5 divide-y divide-zinc-200">{managementOverview.pendingAging.map((band) => <div key={band.key} className="py-4 flex items-center justify-between gap-4"><span className="text-sm font-mono">{band.label}</span><span className={`px-3 py-1 text-xs font-bold font-mono ${band.key === "over90" ? "bg-red-100 text-red-700" : band.key === "from61To90" ? "bg-amber-100 text-amber-800" : "bg-zinc-100 text-zinc-700"}`}>{band.items}</span></div>)}</div>
-                <p className="mt-5 text-[10px] font-mono leading-5 text-zinc-500">Fórmula: data atual − Data de criação do pedido. Alterações de previsão não influenciam estas faixas. Registros sem Data de criação são separados para saneamento.</p>
+                <p className="mt-5 text-[10px] font-mono leading-5 text-zinc-500">Fórmula: data do último upload − Data de criação do pedido. Alterações de previsão não influenciam estas faixas. Registros sem Data de criação são separados para saneamento.</p>
               </div>
 
               <div className="border border-zinc-900 overflow-x-auto bg-white">

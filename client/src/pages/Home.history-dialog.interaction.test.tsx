@@ -129,7 +129,7 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     expect(screen.getByRole("button", { name: "Visão Gerencial" }).getAttribute("aria-current")).toBe("page");
     expect(screen.getByText("Desempenho de entregas e pressão da carteira")).toBeTruthy();
     expect(screen.getByText("Tempo médio em aberto")).toBeTruthy();
-    expect(screen.getByText(/Data de criação do pedido/)).toBeTruthy();
+    expect(screen.getByText(/data do último upload − Data de criação do pedido/i)).toBeTruthy();
     expect(screen.getByText(/Alterações de previsão não influenciam/)).toBeTruthy();
     expect(screen.getByText(/Comparativo por filial/)).toBeTruthy();
     expect(screen.getAllByText("PORTO ALEGRE").length).toBeGreaterThan(0);
