@@ -444,3 +444,8 @@
 - [x] Adicionar balão explicativo com os conceitos das métricas de foco da próxima reunião
 - [x] Cobrir a exibição do balão e validar a interface
 - [x] Atualizar o rastreador e salvar o ponto de verificação
+
+### Pendências registradas em 19/08/2026 - arredondamento de ciclo de entrega
+- [x] Exibir Tempo médio em aberto arredondado para cima, sem casas decimais
+- [x] Cobrir a apresentação do valor arredondado e validar a aplicação
+- [x] Atualizar o rastreador e salvar o ponto de verificação
