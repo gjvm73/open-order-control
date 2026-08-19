@@ -424,3 +424,8 @@
 - [x] Criar a guia Visão Gerencial com indicadores, análises de prazo e desempenho por filial
 - [x] Cobrir as métricas e a nova interface com testes de regressão
 - [x] Validar a experiência, atualizar o rastreador e salvar o ponto de verificação
+
+### Pendências registradas em 19/08/2026 - correção do envelhecimento
+- [x] Calcular o envelhecimento das pendências exclusivamente pela Data de criação do pedido
+- [x] Cobrir a regra de idade por faixas com teste de regressão e validar a interface
+- [x] Atualizar o rastreador e salvar o ponto de verificação da correção

@@ -1244,6 +1244,7 @@ describe("Open Orders Backend & Upload Logic", () => {
 
   it("consolida entregas, ciclo e pendências ativas para a Visão Gerencial", async () => {
     await db.resetImportedData();
+    const agedOrderCreation = new Date(Date.now() - 120 * 86400000).toISOString().slice(0, 10);
     const caller = appRouter.createCaller({
       user: { id: 1, openId: "management-overview-admin", name: "Management Overview Admin", email: "management-overview@test.com", loginMethod: "oauth", role: "admin", createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date() },
       req: {} as any,
@@ -1260,14 +1261,14 @@ describe("Open Orders Backend & Upload Logic", () => {
       fileBase64: makeWorkbook([
         ["Filial", "Item", "Customer PO", "Previsão", "Data Criacao da Ordem", "Extended Price"],
         ["PORTO ALEGRE", "ITEM-ENTREGUE", "PO-ENTREGUE", "2099-12-31", "2026-07-01", 1500],
-        ["COLOMBO", "ITEM-ATIVO", "PO-ATIVO", "2099-12-31", "2026-08-01", 2500],
+        ["COLOMBO", "ITEM-ATIVO", "PO-ATIVO", "2099-12-31", agedOrderCreation, 2500],
       ]),
     });
     await caller.orders.uploadExcel({
       fileName: "visao-gerencial-seguinte.xlsx",
       fileBase64: makeWorkbook([
         ["Filial", "Item", "Customer PO", "Previsão", "Data Criacao da Ordem", "Extended Price"],
-        ["COLOMBO", "ITEM-ATIVO", "PO-ATIVO", "2099-12-31", "2026-08-01", 2500],
+        ["COLOMBO", "ITEM-ATIVO", "PO-ATIVO", "2099-10-01", agedOrderCreation, 2500],
       ]),
     });
 
@@ -1286,6 +1287,9 @@ describe("Open Orders Backend & Upload Logic", () => {
       onTimeRate: 100,
     }));
     expect(overview.pendingAging.reduce((total, band) => total + band.items, 0)).toBe(1);
+    expect(overview.pendingAging).toEqual(expect.arrayContaining([
+      expect.objectContaining({ key: "over90", items: 1 }),
+    ]));
     expect(overview.branchPerformance).toEqual(expect.arrayContaining([
       expect.objectContaining({ shipTo: "PORTO ALEGRE", deliveredItems: 1, activeItems: 0 }),
       expect.objectContaining({ shipTo: "COLOMBO", deliveredItems: 0, activeItems: 1 }),
