@@ -408,3 +408,8 @@
 - [x] Calcular a média de dias em aberto somente para itens entregues com datas válidas
 - [x] Exibir o indicador no topo da guia Itens Entregues
 - [x] Cobrir o indicador com teste de regressão e validar a atualização
+
+### Pendências registradas em 18/08/2026 - data de criação em itens entregues
+- [x] Exibir a Data de criação original ao lado de Customer PO na tabela de entregues
+- [x] Formatar a coluna no padrão brasileiro e tratar registros sem data
+- [x] Cobrir a coluna com teste de regressão e validar a atualização

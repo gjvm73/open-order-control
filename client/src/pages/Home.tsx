@@ -753,12 +753,13 @@ export default function Home() {
             </div>
 
             <div className="border border-zinc-900 bg-white overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[1300px]">
+              <table className="w-full text-left border-collapse min-w-[1440px]">
                 <thead>
                   <tr className="border-b border-zinc-900 bg-zinc-50 text-xs font-mono uppercase tracking-wider">
                     <th className="p-4 border-r border-zinc-900">Filial solicitante</th>
                     <th className="p-4 border-r border-zinc-900">Item / descrição</th>
                     <th className="p-4 border-r border-zinc-900">Customer PO</th>
+                    <th className="p-4 border-r border-zinc-900">Data de criação</th>
                     <th className="p-4 border-r border-zinc-900">Última previsão</th>
                     <th className="p-4 border-r border-zinc-900">Data de entrega</th>
                     <th className="p-4 border-r border-zinc-900 text-center">Dias em aberto</th>
@@ -769,13 +770,14 @@ export default function Home() {
                 </thead>
                 <tbody className="divide-y divide-zinc-200 text-sm font-mono">
                   {deliveredItems.length === 0 ? (
-                    <tr><td colSpan={9} className="p-16 text-center text-zinc-500">Nenhum item entregue registrado com os filtros atuais.</td></tr>
+                    <tr><td colSpan={10} className="p-16 text-center text-zinc-500">Nenhum item entregue registrado com os filtros atuais.</td></tr>
                   ) : (
                     deliveredItems.map((row) => (
                       <tr key={row.id} className="hover:bg-zinc-50 align-top">
                         <td className="p-4 border-r border-zinc-200 font-bold text-xs">{row.shipTo}</td>
                         <td className="p-4 border-r border-zinc-200"><p className="font-bold">{row.item}</p><p className="text-xs text-zinc-500 mt-1 max-w-[260px]">{row.itemDescription || "Sem descrição"}</p></td>
                         <td className="p-4 border-r border-zinc-200">{row.customerPo || "—"}</td>
+                        <td className="p-4 border-r border-zinc-200 text-zinc-600">{row.orderCreationDate ? formatDate(row.orderCreationDate) : "—"}</td>
                         <td className="p-4 border-r border-zinc-200 text-zinc-600">{row.currentPrediction || "—"}</td>
                         <td className="p-4 border-r border-zinc-200 font-bold text-emerald-700">{row.deliveredAt ? formatDate(row.deliveredAt) : "—"}</td>
                         <td className="p-4 border-r border-zinc-200 text-center font-bold text-zinc-700">{(() => {

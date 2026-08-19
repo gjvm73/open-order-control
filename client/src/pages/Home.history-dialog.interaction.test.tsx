@@ -147,7 +147,9 @@ describe("histórico acionado pelos Alertas de Variação", () => {
     fireEvent.click(screen.getByRole("button", { name: /Itens Entregues/i }));
 
     expect(screen.getByRole("columnheader", { name: "Data de entrega" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "Data de criação" })).toBeTruthy();
     expect(screen.getByRole("columnheader", { name: "Dias em aberto" })).toBeTruthy();
+    expect(screen.getByText("01/08/2026")).toBeTruthy();
     expect(screen.getByText("18/08/2026")).toBeTruthy();
     expect(screen.getAllByText("17 dias")).toHaveLength(2);
     expect(screen.getByLabelText("Tempo médio em aberto: 17 dias")).toBeTruthy();
